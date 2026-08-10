@@ -105,7 +105,9 @@ fresh session needs before it quotes anything:
   **17,350/17,350** · the four HLT sweeps **97 · 93 · 45 · 44 = 279/283** ·
   `ss_lint` **PASS, `SS_VERSION` 0x8C / 224 addresses / 212 flops / `SS_TAG`
   0x8CE0** · **`r7_lint` PASS** · `check_fuzz_bank` **PASS, 621 seeds** ·
-  `fz2_w1 lint` **PASS** · `fz2_w1 bars` **10/11 MET**.
+  `fz2_w1 lint` **PASS** · `fz2_w1 bars` **11/11 MET** (was 10/11; **A-14**
+  re-registered E-1c's MEANING by USER RULING — read the ⚠ below before quoting
+  it).
 * **⚠ FOUR RATCHETS IN THIS FILE CANNOT RUN HERE AT ALL** — `timed_scenario`,
   `timed_ins_replay`, `timed_wvec_gate`, `timed_enter_replay`. They die in
   `image_of(seed)` on `gen_seq._v1_anchor_stop`: fuzz-v2 moved the image anchor
@@ -401,20 +403,31 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   REPLAYED; and **3,865** is the pre-SUP-1 population, still one flag away and
   still FAILING for D9's reason. `6b044475c7`'s *"PASS/623"* predates EXC-1 and
   is that commit's number, not this tree's.
-- **`sw/fz2_w1.py bars` is the fuzz-v2 standing scorer — 10/11 MET, C-1 the one
-  MISSED** (`sw/testdata/fz2/fz2_bars.json`, 2026-08-10T01:34:24Z, offline,
+- **`sw/fz2_w1.py bars` is the fuzz-v2 standing scorer — 11/11 MET since A-14**
+  (`sw/testdata/fz2/fz2_bars.json`, 2026-08-10T02:50:20Z, offline,
   ~25 s), with `sw/fz2_w1.py lint` **PASS / 0 hits / 48 stratum rows** beside it
   (it cross-checks the campaign document against the code — **if a doc edit
-  trips it, fix the doc**). C-1 misses on **E-1c alone**: `undispositioned` **25**
-  of 3,840 against a bar of 0. Its two RATE clauses read **MET and VALIDATED**
+  trips it, fix the doc**). It was **10/11, C-1 MISSED on E-1c alone** at
+  `undispositioned` **25** of 3,840.
+  ⚠ **E-1c IS 0 BY A RE-REGISTRATION OF ITS MEANING, NOT BECAUSE THE 25 STARTED
+  DUMPING** — **AMENDMENT A-14**, on the USER's ruling of 2026-08-09: *"If these
+  seeds are matching between real CPU and core, then it doesn't matter if they
+  aren't producing the final state dump."* UNDISPOSITIONED now means *no dump
+  AND no explanation **AND the two legs do not agree***, and the sixth
+  disposition `ROW_MATCHED` (`sw/fz2_rowmatch.py`, its own falsifier) took all
+  25 — each at `win = 4000`, `bad_rows` 0, `flick` 0. **THE REACHED RATE DID NOT
+  MOVE**: 3,513 dumps, all four rate cells byte-identical (98.54 / 83.92 /
+  98.89 / 84.23). The 25 are **DISPOSITIONED, NOT EXPLAINED**; `mech_census`
+  still carries `BUDGET` 12 · `NEAR` 9 · `OTHER` 4. Prereg §36–§37.
+  C-1's two RATE clauses read **MET and VALIDATED**
   on the disjoint `fz2v`/960 — soup **98.12 %** ≥ 90.0, raw **80.83 %** ≥ 75.0 —
   ⚠ **and neither clears the ORIGINAL bar (99.0 / 95.0)**: what is validated is
   that the *re-registered* bars hold on a population that did not set them.
   **C-3 reads MET** (A-11 → A-12 → **A-13**), **C-6 reads MET** on the FLASH #13
   corpus (`hold_rows_exact` 4,638 / `hold_rows_off` **0**, against 4,636 / 2 on
-  the F12 one). Full table, the five declared discard classes with their
-  falsifiers, and the corpus's own caveats: `standing_gates.md` §B, *THE
-  fuzz-v2 CORPUS*.
+  the F12 one). Full table, the **six** dispositions (the five declared discard
+  classes plus A-14's `ROW_MATCHED`) with their falsifiers, and the corpus's own
+  caveats: `standing_gates.md` §B, *THE fuzz-v2 CORPUS*.
 - **`python3 sw/r7_lint.py` IS A STANDING GATE (always-on, 0.2 s, exit 0/1/2).**
   It checks that the shape §73 closed R7′ with is still the shape in the tree:
   **(a)** no undeclared live-`READY` carrier crosses BIU → EU (one declared
