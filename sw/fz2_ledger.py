@@ -278,6 +278,62 @@ def control(suffix):
 
 
 # --------------------------------------------------------------------------- #
+# C-CHIP -- the socket leg must reproduce across the re-flash
+# --------------------------------------------------------------------------- #
+CHIP_FIELDS = ("arch_words", "ps3_8080", "done_real", "wrote_term",
+               "wrote_term_at", "arch_ok", "arch_restart")
+
+
+def chip_control(new_suffix, base_suffix):
+    """THE COMPARISON IS ONLY ATTRIBUTABLE TO THE CORE IF THE CHIP DID NOT MOVE.
+
+    Both legs of an fz2 capture come from the same physical part in the same
+    socket: `real` is the socketed chip, `sim` is the fabric core.  The harness
+    RTL around the chip is unchanged between two ucore bitstreams, so the chip
+    leg is predicted to reproduce.  If it does not, nothing that moved may be
+    charged to the landings."""
+    import gzip
+    a = read_rows(base_suffix)
+    b = read_rows(new_suffix)
+    print("  --- C-CHIP: the socket leg across the re-flash ---")
+    ok = True
+    common = sorted(set(a) & set(b))
+    print(f"  seeds in both corpora: {len(common)} "
+          f"(base {len(a)}, new {len(b)})")
+    if len(common) != len(a) or len(a) != len(b):
+        print("  FAIL  the seed sets differ")
+        ok = False
+    for fld in CHIP_FIELDS:
+        bad = [s for s in common if a[s].get(fld) != b[s].get(fld)]
+        print(f"  {'PASS' if not bad else 'FAIL'}  chip field {fld:14s} "
+              f"{len(common) - len(bad)}/{len(common)}"
+              + (f"   e.g. {bad[:5]}" if bad else ""))
+        ok &= not bad
+
+    # rows, on every retained capture present in both
+    nrow = same = 0
+    diffs = []
+    for s in common:
+        pa = capture_path(a[s]["cid"], a[s], base_suffix)
+        pb = capture_path(b[s]["cid"], b[s], new_suffix)
+        if not pa or not pb:
+            continue
+        nrow += 1
+        ra = json.load(gzip.open(os.path.join(ROOT, pa)))["real"]
+        rb = json.load(gzip.open(os.path.join(ROOT, pb)))["real"]
+        if ra == rb:
+            same += 1
+        else:
+            diffs.append(s)
+    print(f"  {'PASS' if not diffs else 'FAIL'}  retained chip ROW streams "
+          f"{same}/{nrow} identical"
+          + (f"   e.g. {diffs[:5]}" if diffs else ""))
+    ok &= not diffs
+    print(f"  C-CHIP: {'PASS' if ok else 'FAIL'}")
+    return 0 if ok else 1
+
+
+# --------------------------------------------------------------------------- #
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -285,12 +341,16 @@ def main():
                     help="campaign dir suffix, e.g. '-F13-archive'")
     ap.add_argument("--control", action="store_true",
                     help="run C-LEDGER against --suffix and exit")
+    ap.add_argument("--chip-control", metavar="BASE_SUFFIX",
+                    help="run C-CHIP: --suffix (new) vs BASE_SUFFIX (archive)")
     ap.add_argument("--out", help="write the derived ledger here")
     ap.add_argument("--diff", metavar="LEDGER",
                     help="seed-by-seed diff against a ledger JSON "
                          "(default: the committed one)")
     a = ap.parse_args()
 
+    if a.chip_control is not None:
+        return chip_control(a.suffix, a.chip_control)
     if a.control:
         return control(a.suffix)
 
