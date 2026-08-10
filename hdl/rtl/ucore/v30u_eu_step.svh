@@ -53,7 +53,8 @@ S_OPC_POP: if (chain == 4'd0) begin
         irq_fast_inta_n = 1'b1;
         irq_sel_nmi_n = irq_nmi_lvl;
         irq_sel_brk_n = !irq_take;      // §86: an EXTERNAL recognition wins
-        brk_arm_n     = 1'b0;           //      ...and the arm is spent either way
+        brk_arm_n     = brk_arm_n && irq_take;   // ...BUT IT DOES NOT SPEND
+                                                 //    THE ARM (fz2 C1)
         st_n = S_IRQ_D;
         stop = 1'b1;
     end else if (!q_ripe) stop = 1'b1;
@@ -682,7 +683,8 @@ S_EPOP: if (chain == 4'd0) begin
     else if (bnd_take) begin
         irq_shadow_n = 1'b0;
         irq_sel_nmi_n = irq_nmi_lvl;
-        irq_sel_brk_n = !irq_take; brk_arm_n = 1'b0;              // §86
+        irq_sel_brk_n = !irq_take;                                // §86
+        brk_arm_n = brk_arm_n && irq_take;                        // fz2 C1
         poste_n = 1'b1; pe_opc_reg_n = opc_reg_n; pe_opc8080_n = opc8080_n;
         pe_op8_n = op8_n; pe_pfxcnt_n = pfxcnt_n;
         st_n = S_IRQ_D;
@@ -733,7 +735,8 @@ S_TAIL_W: if (chain == 4'd0) begin
             // the tail's own boundary, taken right where the model takes it
             irq_shadow_n  = 1'b0;
             irq_sel_nmi_n = irq_nmi_lvl;
-            irq_sel_brk_n = !irq_take; brk_arm_n = 1'b0;          // §86
+            irq_sel_brk_n = !irq_take;                            // §86
+            brk_arm_n = brk_arm_n && irq_take;                    // fz2 C1
             st_n = S_IRQ_D;
             stop = 1'b1;
         end else begin
@@ -752,7 +755,8 @@ S_TAIL_POP: begin
     else if (bnd_take) begin
         irq_shadow_n = 1'b0;
         irq_sel_nmi_n = irq_nmi_lvl;
-        irq_sel_brk_n = !irq_take; brk_arm_n = 1'b0;              // §86
+        irq_sel_brk_n = !irq_take;                                // §86
+        brk_arm_n = brk_arm_n && irq_take;                        // fz2 C1
         st_n = S_IRQ_D;
         stop = 1'b1;
     end

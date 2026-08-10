@@ -1782,6 +1782,28 @@ wire brk_seen = psw[FBRK] && brk_p[BRK_FLOOR-1];
 //                                                   shadow
 // *Falsifier*: any capture in which `PUSH` sreg or `LES`/`LDS` shows a grace
 // >= 1, or a member of the two entries shows a grace of 0.
+// fz2 SURVEY FIX #3 (family `C1`) -- **AN EXTERNAL RECOGNITION DOES NOT SPEND
+// THE ARM.  ONLY THE TRAP'S OWN TAKE DOES.**  §86 landed the five entry sites
+// with `brk_arm_n = 1'b0` and the comment *"the arm is spent either way"*.
+// That second half is refuted by silicon: at a boundary where a maskable or
+// non-maskable recognition and an armed single-step trap coincide, the part
+// walks through the external door and STILL OWES THE TRAP, which it pays at
+// the entry sequence's own end boundary -- before the handler's first
+// instruction, after exactly one handler prefetch.
+//
+// MEASURED, on the banked FLASH #13 A/B captures, chip against fabric core,
+// 19 seats whose rows agree cycle for cycle up to the fork
+// (`docs/notes/fz2_c1_prereg_2026-08-10.md` §2).  Exemplar `fz2c/400007`:
+// both legs read the NMI vector at rows 3,345-3,352 and push at 3,357-3,373,
+// both fetch the handler's first word at 3,374, and then the CHIP reads
+// `0x00004`/`0x00006` at 3,383-3,390 while the core executes the handler.
+//
+// The fix is the term the line beside it already uses.  It is INERT wherever
+// `brk_arm` is 0 -- every `HLT.*` golden and every sweep cell runs with
+// `PSW.TF` clear -- so the whole `check_core` surface is bit-identical.
+// *Falsifier*: a capture in which the chip takes an external interrupt at a
+// boundary with `PSW.TF` armed and does NOT then read vector 1 before the
+// handler's first instruction retires.
 wire brk_take = brk_arm && !irq_shadow;
 wire bnd_take = irq_take || brk_take;
 wire bnd_fire = at_bnd && bnd_take;
