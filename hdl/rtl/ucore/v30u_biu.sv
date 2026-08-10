@@ -512,8 +512,37 @@ wire display   = r_cmt_valid && !ann_kill;
 // SOCKET, 2026-08-06, row 7.40.7 -> redirected CODE T1:
 //   empty/direct: mc1/874, mc2/700,2408,3758; NMI-age boundary: mc1/410,607
 //   staged/slow:  mc2/633,1616, t30-raw/235; live-INT exception: mc2/573
+//
+// ...AND THE STAGED TAIL FINALLY READS THE SAME RAIL THE SENTENCE ABOVE IS
+// ABOUT.  `flush_int_live` is the MASKABLE pin, and both populations that
+// sentence was measured on are maskable ones; the STAGED arm was given that
+// rail alone and the NON-MASKABLE recognition was never given to it at all.
+// `flush_src_live` is the recognition standing at the withdrawal, whichever
+// unit raised it -- the live maskable pin, or the part's own NMI latch, which
+// is exactly the pair `v30u_eu.sv` publishes as "the two interrupt rails that
+// physically meet the withdrawal edge".
+//
+// It replaces `flush_staged_eval` IN THE DISPLAY ONLY, where that wire is
+// subsumed by construction (`flush_staged_eval` implies `flush_int_live`
+// implies `flush_src_live`).  **`flush_staged_eval` ITSELF IS NOT TOUCHED**,
+// because it has a SECOND consumer that is not a display at all -- the idle
+// clock's arbitration point in step (c) -- so this landing is display-only by
+// construction as well as by intent.  ONE term swapped in ONE expression, one
+// wire added, no flop and no save-state address.
+//
+// MEASURED, fz2 corpus, and the statement is engine-free: over the 356
+// retained event-free captures the EMPTY display is held by the
+// REP-withdrawal suppression AND BY NOTHING ELSE on 13 clean-prefix rows; all
+// 13 are the STAGED arm with the NMI latch standing, and silicon shows EMPTY
+// on that very row on 13 of 13.  The `direct` arm produces no such row at all.
+// The queue port still wins and silicon agrees: `fz2c/408062` is a banked
+// SUCCESS in which these same rails are set at row 3257 while a CODE fetch
+// owns the port (`qs_port_fetch`), and BOTH legs put EMPTY at 3259.
+// FALSIFIER: a staged REP withdrawal meeting a standing recognition with the
+// queue port otherwise free, where silicon still delays EMPTY one clock.
 wire flush_idle = !r_run && !r_cmt_valid && (r_rq_n == 2'd0) && !eu_post;
 wire flush_nmi_young = flush_nmi && (r_dage <= 3'd4);
+wire flush_src_live = flush_int_live || flush_nmi;
 wire flush_staged_eval = flush_stage && flush_pend && flush_int_live &&
                          !r_wr_done_p && flush_idle;
 wire flush_direct = !flush_stage && !flush_nmi_young && !flush_int_live;
@@ -657,9 +686,8 @@ wire qs_e_now = (r_e_pend || q_flush ||
                 (flush_pre && flush_direct)) &&
                 !(q_flush && flush_rep &&
                   (flush_direct ||
-                   (flush_pend &&
-                    !(r_run && !r_cur_fetch && (r_ts < TS_T3)) &&
-                    !flush_staged_eval))) &&
+                   (flush_pend && !flush_src_live &&
+                    !(r_run && !r_cur_fetch && (r_ts < TS_T3))))) &&
                 !pop_now && !e_from_block &&
                 (r_absorb_ttl == 2'd0) && !qs_port_fetch &&
                 // (c) a ready-but-not-started EU request owns the next slot
