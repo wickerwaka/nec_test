@@ -1,0 +1,610 @@
+{
+ "leg": "f12",
+ "host": "root@mister-nec",
+ "git": "f18ad478b9",
+ "waits": 0,
+ "seed_ns": "f13",
+ "started": "2026-08-10T00:43:21Z",
+ "div_guards": [
+  {
+   "tag": "f12-start",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:43:21Z"
+  },
+  {
+   "tag": "f12-INT.F3AA-pre",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:43:21Z"
+  },
+  {
+   "tag": "f12-INT.F3AA-post",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:43:29Z"
+  },
+  {
+   "tag": "f12-8F.0-pre",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:43:29Z"
+  },
+  {
+   "tag": "f12-8F.0-post",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:43:38Z"
+  },
+  {
+   "tag": "f12-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:43:38Z"
+  }
+ ],
+ "forms": {
+  "INT.F3AA": {
+   "n_asked": 200,
+   "n_pairs": 136,
+   "errors": [
+    [
+     0,
+     "no F pop from close addr 08a08"
+    ],
+    [
+     5,
+     "no F pop from close addr 04b4e"
+    ],
+    [
+     10,
+     "no F pop from close addr 08de2"
+    ],
+    [
+     15,
+     "no F pop from close addr 044fc"
+    ],
+    [
+     19,
+     "no F pop from close addr 08d88"
+    ],
+    [
+     21,
+     "no F pop from close addr 0c4c4"
+    ],
+    [
+     26,
+     "no F pop from close addr 01cb0"
+    ],
+    [
+     33,
+     "pf assert before window (-2)"
+    ],
+    [
+     34,
+     "no F pop from close addr 00dd6"
+    ],
+    [
+     35,
+     "no F pop from close addr 0eb00"
+    ],
+    [
+     39,
+     "no F pop from close addr 0a378"
+    ],
+    [
+     40,
+     "no F pop from close addr 0603e"
+    ],
+    [
+     41,
+     "no F pop from close addr 0d88e"
+    ],
+    [
+     42,
+     "no F pop from close addr 06928"
+    ],
+    [
+     50,
+     "no F pop from close addr 0ede8"
+    ],
+    [
+     51,
+     "no F pop from close addr 0868a"
+    ],
+    [
+     59,
+     "pf assert before window (-1)"
+    ],
+    [
+     61,
+     "pf assert before window (0)"
+    ],
+    [
+     65,
+     "no F pop from close addr 0e688"
+    ],
+    [
+     68,
+     "no F pop from close addr 0b122"
+    ],
+    [
+     74,
+     "no F pop from close addr 0ad3e"
+    ],
+    [
+     75,
+     "no F pop from close addr 09074"
+    ],
+    [
+     85,
+     "pf assert before window (-2)"
+    ],
+    [
+     87,
+     "no F pop from close addr 0c510"
+    ],
+    [
+     88,
+     "no F pop from close addr 0441c"
+    ],
+    [
+     89,
+     "no F pop from close addr 06b38"
+    ],
+    [
+     96,
+     "no F pop from close addr 07282"
+    ],
+    [
+     99,
+     "no F pop from close addr 080d4"
+    ],
+    [
+     101,
+     "pf assert before window (0)"
+    ],
+    [
+     102,
+     "no F pop from close addr 0e42e"
+    ],
+    [
+     104,
+     "no F pop from close addr 00f16"
+    ],
+    [
+     105,
+     "no F pop from close addr 0421c"
+    ],
+    [
+     106,
+     "no F pop from close addr 0173a"
+    ],
+    [
+     107,
+     "no F pop from close addr 04bfa"
+    ],
+    [
+     114,
+     "no F pop from close addr 05952"
+    ],
+    [
+     115,
+     "no F pop from close addr 04dba"
+    ],
+    [
+     117,
+     "no F pop from close addr 0a2c8"
+    ],
+    [
+     118,
+     "no F pop from close addr 0406e"
+    ],
+    [
+     119,
+     "no F pop from close addr 0a82c"
+    ],
+    [
+     120,
+     "no F pop from close addr 08d7c"
+    ],
+    [
+     126,
+     "no F pop from close addr 0a78c"
+    ],
+    [
+     127,
+     "no F pop from close addr 016d0"
+    ],
+    [
+     128,
+     "no F pop from close addr 04e3a"
+    ],
+    [
+     134,
+     "no F pop from close addr 067f2"
+    ],
+    [
+     135,
+     "pf assert before window (-1)"
+    ],
+    [
+     143,
+     "no F pop from close addr 0529e"
+    ],
+    [
+     144,
+     "no F pop from close addr 05450"
+    ],
+    [
+     148,
+     "no F pop from close addr 0d732"
+    ],
+    [
+     149,
+     "no F pop from close addr 01f9a"
+    ],
+    [
+     151,
+     "pf assert before window (-2)"
+    ],
+    [
+     158,
+     "no F pop from close addr 04bbc"
+    ],
+    [
+     159,
+     "no F pop from close addr 0b65c"
+    ],
+    [
+     165,
+     "no F pop from close addr 04026"
+    ],
+    [
+     167,
+     "pf assert before window (-1)"
+    ],
+    [
+     168,
+     "no F pop from close addr 094fe"
+    ],
+    [
+     171,
+     "no F pop from close addr 043d2"
+    ],
+    [
+     183,
+     "no F pop from close addr 06390"
+    ],
+    [
+     184,
+     "no F pop from close addr 04f50"
+    ],
+    [
+     189,
+     "pf assert before window (0)"
+    ],
+    [
+     190,
+     "no F pop from close addr 08bca"
+    ],
+    [
+     191,
+     "no F pop from close addr 0acd0"
+    ],
+    [
+     193,
+     "pf assert before window (0)"
+    ],
+    [
+     198,
+     "no F pop from close addr 046a6"
+    ],
+    [
+     199,
+     "no F pop from close addr 016fe"
+    ]
+   ],
+   "rows_file": "INT.F3AA.f12.json.gz",
+   "sha256": "0730a547f0651945d63cca6bc79ceed3188a7ac5c11459d652589b3fb609038a",
+   "seconds": 7.9
+  },
+  "8F.0": {
+   "n_asked": 130,
+   "n_pairs": 60,
+   "errors": [
+    [
+     1,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     8,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     11,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     15,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     18,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     21,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     41,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     45,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     53,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     54,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     57,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     59,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     66,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     68,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     83,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     100,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     101,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     110,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     112,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     116,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     122,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     153,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     179,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     181,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     184,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     192,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     194,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     196,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     200,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     202,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     205,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     207,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     216,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     219,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     223,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     228,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     238,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     239,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     249,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     275,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     287,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     297,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     300,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     301,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     319,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     323,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     324,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     326,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     330,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     331,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     335,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     347,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     376,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     390,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     392,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     409,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     435,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     438,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     440,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     445,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     447,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     450,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     461,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     465,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     486,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     488,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     491,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     499,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     514,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ],
+    [
+     516,
+     "no done marker in trace (runaway test?) \u2014 quarantine"
+    ]
+   ],
+   "rows_file": "8F.0.f12.json.gz",
+   "sha256": "9e3113b6d2429f0451962e3f67713d80110d293efa1ba1f57c8c361d44fa436a",
+   "seconds": 9.1
+  }
+ },
+ "finished": "2026-08-10T00:43:38Z",
+ "div_guards_unpinned": []
+}

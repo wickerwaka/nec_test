@@ -354,3 +354,271 @@ by construction: the chip drives a stale-EA value, the core drove the modeled
 fz2 re-capture, C1–C6) stand exactly as committed at `edb67a1cb1`.  The §4.2
 offline columns are retained as record and **no longer bar anything**; the
 reason is §9A.2 and it was found by measurement, not by preference.
+
+---
+
+# §10  THE RESULT — FLASH #13 IS IN FABRIC AND BOTH LANDINGS ARE CONFIRMED THERE
+
+Appended after the run.  Nothing in §1–§9A was edited.  Every figure below is
+quoted from the run, not recalled.  **Registered clauses: 17 MET, 3 MISSED, 1
+NOT EVALUABLE, and one bar of my own is reported as MIS-REGISTERED with the
+control that shows it.**
+
+## §10.1  THE BITSTREAM — both draws PASS, identical to the digit
+
+| | draw 1 | draw 2 |
+|---|---|---|
+| receipt | **`69f8614f379d1ba8…`** | **`4c39c7928d31576c…`** |
+| configuration | **RETENTION (X1_AD_RETENTION=1)**, DERIVED from `.flow.rpt` + `.map.rpt` | same |
+| verdict | **PASS** (E2·E3·E4·E5) | **PASS** |
+| `divclk` Fmax | **39.83 MHz** | **39.83 MHz** |
+| worst setup | **+6.143 ns** | **+6.143 ns** |
+| setup TNS / hold TNS | **0.000 / 0.000 on all four domains** | same |
+| ALMs | **12,182 / 41,910 (29 %)** | same |
+| latches · `lpm_divide` | **0 · 0** | **0 · 0** |
+| A&S regs · fitter regs | 5,060 · 6,063 | same |
+| stages | map·fit·asm·sta all Successful, **0 errors**, 1175/103/2/93 warnings | same |
+| compile | 597 s | 597 s |
+| input manifest | **88 files `ec2dd5698f04cb35…`** | **byte-identical** |
+
+Per-domain setup slack: `divclk` +6.143 · `altera_reserved_tck` +8.906 ·
+`FPGA_CLK2_50` +13.233 · `pll_audio` +23.892.  Hold slack +0.246 / +0.190 /
++0.398 / +0.296.  All TNS 0.000.
+
+* **B1 MET** — draw 2 PASS, ≥ 32 MHz with 7.83 MHz of margin, receipt reads
+  RETENTION (the `4bb65d2ab6` fix's second exercise, and its first on a
+  bitstream that was then flashed).
+* **B2 MET** — the two draws agree to the digit on Fmax, worst setup and ALMs,
+  on two different receipt ids and two different report hashes, so these are two
+  real compiles.
+* **B3 MET** — `.rbf` **`c5886e14acb56b2669910d434d6ca906d2edd272d656f26c90d848eb11e5e594`
+  BYTE-IDENTICAL across both draws**; the `.sof`s differ (`aa78fa030d186af8…`
+  vs `e4a2056a2de53c1f…`), which is this tree's documented normal behaviour.
+* **B4 MET, four ways** — the retention `.rbf` differs from this tree's CONTROL
+  `.rbf` `2c4af805dfbe7179…` (so the `--verilog_macro` reached the compiler);
+  A&S registers **5,039 → 5,060 = +21**, exactly the retention model's 20
+  registers plus §69.3's recorded ±1; `core_ad_hold` appears **0 times** in
+  `.fit.rpt` and `.map.rpt`, so it is not in `Registers Removed During
+  Synthesis`; and both receipts read RETENTION out of the compiler's own
+  transcript.
+* **B5 MET** — **`c_ready_q` occurs 0 times** in the timing report, and with TNS
+  0.000 on every domain there is no failing set at all.  R7′ stays closed under
+  the macro.
+
+**AGAINST THE CONTROL BUILD AT HEAD** (`int_f3aa_repair_results` §6, two draws,
+39.37 MHz / +5.853 / 12,340 ALMs / 5,039 A&S regs / 6,408 fitter regs):
+retention is **+0.46 MHz FASTER**, −158 ALMs and −345 fitter registers.  **Every
+historical control→retention pair in the archive COST between 0.02 and 2.13
+MHz** (`fuzzv2_retention_prereg` §3).  This one gains.  It is recorded, not
+explained; §74.4a says the combinational and packing figures are not run-to-run
+reproducible and this is the same class of wobble, but it is the first pair with
+the sign reversed and a future sitting should not be surprised by it.
+
+**TREE STATE AT BUILD TIME, RECORDED**: draw 1's receipt reads
+`e18219fad3-dirty` and draw 2's `20816b9462-dirty` — a concurrent offline agent
+was committing to `sw/` and `docs/` while these compiled.  **`hdl/` did not
+move**: the 88-file input manifest is byte-identical across both draws, which is
+the mechanical statement that the build's own inputs were stable.
+
+## §10.2  FLASH #13 — VERIFY OK, first try
+
+    .sof   e4a2056a2de53c1ff2b7482bfc39822e42971bc987c479bca98b7b7f2f36545b
+    .rbf   c5886e14acb56b2669910d434d6ca906d2edd272d656f26c90d848eb11e5e594
+    receipt 4c39c7928d31576c2b57e0a5…  (FLASH#13 RETENTION draw 2 of 2)
+    built from a tree whose hdl/ hashes to 88 files ec2dd5698f04cb35…
+
+All four of the receipt's declared outputs were re-hashed on disk **before** the
+flash and match byte for byte.  Single writer re-asked of the board immediately
+before: no `v30ctl`/`serve` process there, no local serve client.
+`sw/safe_flash.sh` PREP → quartus_pgm (`Configuration succeeded`, 0 errors) →
+**VERIFY ok on try 1** (`pwr_good True`, `cpu_running True`, magic checked).
+`flash_log.jsonl` **15 → 16 entries**, `git_describe f18ad478b9-dirty` — the
+dirt is the concurrent agent's `fz2_statusanom.json` plus this sitting's
+`fz2_preflight.json`, and it is recorded rather than tidied away because the
+tree is shared.  **F1 MET.**
+
+## §10.3  FIRST LIGHT AND THE RIG
+
+| # | registered | measured | |
+|---|---|---|---|
+| **F2** | MATCH 800 ×3 | `check_ab_hw all 800` — **chip-vs-golden MATCH 800, core-vs-chip MATCH 800, core-vs-golden MATCH 800** | **MET** |
+| **F3** | RBCHECK 8 registers | **8 registers round-tripped**: `EVT_ADDR[0..2]`, `EVT_CFG[0..2]`, `TVEC`, `VECCTL` | **MET** |
+| **F4** | C-6: 9 legs, 51/51, MET | **9 legs, 51 checks, 51 PASS, verdict MET**; `holds_proved [2, 20, 300]`, `pins_proved [pin_int, pin_nmi]`, `tvecs_proved [[0,48896],[3056,8]]`; P1–P5 measured **2 · 300 · 2 · 300 · 20 to the clock**; INTA vector `0xFF`; stimulus image sha256 identical to FLASH #12's | **MET** — see §10.4 |
+| **F5** | chip proof after everything | `check_ab_hw chip 800` **MATCH over 800 rows** | **MET** |
+| **F6** | transport | **0 `RigMismatch`, 0 quarantines, 0 UNPINNED div readbacks anywhere in the sitting**; `board_idle()` clean, `use_core False`, `cfg 0xff0008` | **MET** |
+
+## §10.4  ONE BAR OF MINE WAS MIS-REGISTERED, AND THE CONTROL SAYS SO
+
+F4 also said the C-6 legs *"must reproduce EXACTLY; any movement is a
+rig-integrity FINDING and a stop."*  The retained **row byte streams** did move:
+all 8 row-bearing legs have different sha256s from FLASH #12's.
+
+**It is not a finding, and the control is a same-bitstream repeat.**  Running
+`fz2_w1.py control` **twice in a row on FLASH #13** gives **0 of 8 identical row
+sha256s** and **51/51 PASS, verdict MET, both times**.  The probe captures 4,063
+rows of a free-running spin program; the raw stream is not a reproducible
+quantity for it and never was.  What IS reproducible is everything the leg is
+scored on, and all of it reproduced: the check verdicts, the measured hold
+lengths to the clock, the TVEC interceptions, the negative control, the INTA
+vector and the stimulus image hash.
+
+**The bar was written at the wrong granularity by me, before the run.  It is
+reported as MIS-REGISTERED, not as a pass and not as a stop**, and the
+FLASH #12 record is archived beside the new one at
+`sw/testdata/fz2/fz2_control_F12-archive.json` so the comparison stays
+auditable.
+
+## §11  `INT.F3AA` — THE REPAIR IS CONFIRMED IN FABRIC, 27 CELLS, ONE SIGNATURE
+
+Same-image A/B, socketed chip (`use_core=0`) then the ucore in fabric
+(`use_core=1`), 200 frozen seeds.  **64 seeds fail on the CHIP leg** ("no done
+marker" — the case runs away on silicon) and are population attrition, not
+results; the same 64, seed for seed, on both bitstreams.  Scoreable population:
+**136 pairs.**
+
+| # | registered | **measured** | |
+|---|---|---|---|
+| **I1′** | `f12` shows ≥ 10 divergences, else NOT SCOREABLE | **109/136 identical → 27 divergences** | **MET — the population reaches the mechanism** |
+| **I2′** | `f13` core-vs-chip identical | **136 / 136** | **MET** |
+| **I3′** | 0 cases lost | **27 gained, 0 lost** | **MET** |
+| **I4′** | the withdrawal signature | **27 of 27 are the `qop` column, at row 17 (21 cases) or row 19 (6), and the chip's `qop` on the row AFTER is `E`** | **MET, unanimously** |
+
+**That is the repair's own signature read off silicon**: `int_f3aa_repair_results`
+§2 describes the defect as *"the whole withdrawal sequence exactly ONE CLOCK
+EARLY (EMPTY on row n instead of n+1)"*, and every one of the 27 fabric
+divergences is `qop` EMPTY one row early, in a `PASV` run at the withdrawal,
+with 149–204 bad rows following from that one clock.  **Zero cases diverge
+anywhere else.**
+
+Captures retained with per-clock rows and sha256:
+`INT.F3AA.f12.json.gz` `0730a547f0651945…`, `INT.F3AA.f13.json.gz`
+`aa1eb9dc5e905ea7…`.
+
+## §12  `8F.0` mod=3 — THE GHOST READ IS PRESENT IN FABRIC, AND THE LAW IS
+## INCOMPLETE.  BOTH HALVES ARE REPORTED.
+
+130 frozen mod=3 seeds, same-image A/B.  **The mask is lifted by construction**:
+both legs execute the same loader, so the don't-care of §9A.2 does not apply.
+
+| | FLASH #12 | FLASH #13 | repeat on #13 |
+|---|---|---|---|
+| A/B pairs formed | 60 / 130 | 61 / 130 | 61 / 130 |
+| core-leg runaways (chip completed, core did not) | **70** | **69** | **69, the identical seed set** |
+| rows identical, core vs chip | **31 / 60** | **52 / 61** | 51 / 61 |
+| ghost row (addr+data) core == chip | **0 / 29** | **22 / 31** | 21 / 31 |
+| ghost row core == `SS:SP` | **29 / 29 (100 %)** | **2 / 31 (6.5 %)** | 2 / 31 |
+| ghost row chip == `SS:SP` | 0 / 29 | 1 / 31 | 1 / 31 |
+
+* **G1′ MISSED** — registered ≤ 20 of 130 identical on `f12`; measured **31**.
+  The overshoot is mine: ~half the mod=3 population does not carry the ghost
+  read inside the scored window at all, and those cases are identical for a
+  reason that has nothing to do with the mechanism.
+* **G2′ MISSED** — registered ≥ 90 of 130 identical on `f13`; measured **52**.
+  Reported as registered: the strong form of the law is **not** met on this
+  population.
+* **G3′ MET, and it is the headline** — the core's ghost address **stops being
+  the modeled `SS:SP`**: 29/29 → 2/31, and it lands on silicon's own value on
+  **22 of 31**.  Before the landing the ucore in fabric agreed with the chip on
+  **zero** of 29; after it, on 22 of 31.  That is the mechanism, in silicon,
+  address by address.
+* **G4′ NOT EVALUABLE** — the `f12` and `f13` surviving pair sets are
+  **DISJOINT (0 seeds in common)**, so there is no cell on which "identical
+  before, divergent after" can be asked.  The before/after above is therefore a
+  comparison of two disjoint sub-samples of one frozen 130-seed population, and
+  it is quoted as that and not as a paired test.
+
+### §12.1  THE REPEATABILITY CONTROL, AND WHAT IT SEPARATES
+
+`f13` was captured **twice**.  The set of core-leg runaways is **identical,
+69 of 69** — which case runs away is deterministic.  The retained rows are not
+byte-identical, and the difference is **ONE case of 61, on the CHIP leg**: the
+silicon ghost address is history-dependent, exactly as `closure_checkpoint`
+measured in 2026-07 ("5/6 sampled reproduced the golden address exactly").
+**The CORE rows differ on 0 of 61.**  So the core is deterministic, the chip
+wobbles at ~1.6 %, and the ghost figures above are stable to ±1 cell.
+
+### §12.2  A POST-HOC CONTROL, LABELLED AS ONE — AND IT IS DECISIVE
+
+Frozen AFTER the legs above were scored, from the SAME generator and the SAME
+seed namespace, mod ≠ 3 only, 130 seeds.  **It bars nothing and was run to
+diagnose the runaway class.**
+
+    NON-MOD3 CONTROL on FLASH #13:  130 / 130 A/B pairs, 0 errors,
+                                    130 / 130 rows identical, core vs chip.
+
+**Zero runaways and zero divergences where the mod=3 population has 69 and 9.**
+The instrument is sound and the residue is **mod=3-specific and core-owned**.
+
+### §12.3  THE FINDING THIS PRODUCES, BOOKED NOT CLOSED
+
+**On 69 of 130 directed `8F` mod=3 cases the ucore in fabric never reaches the
+done marker while the socketed chip does.**  It is 70 before the landing and 69
+after, so the ghost READ does not cause it and does not close it.  It is
+deterministic, it is absent from the mod ≠ 3 control, and no standing gate sees
+it — `check_core --opcodes 8F.0` is 500/500 because the golden schema masks the
+very row the divergence sits on, and `ulockstep` compares against a model that
+has no ghost family.  **Falsifier**: a mod=3 seed from `8F.0.pop.json` that runs
+the core away in fabric but completes under `tb_v30_core`, which would put it in
+the integration rather than in the core.  Nothing is claimed about its cause.
+
+## §13  THE fz2 FABRIC-CORE RE-CAPTURE
+
+Archived by rename, nothing deleted: `fz2c` → `fz2c-F12-archive`,
+`fz2e` → `fz2e-F12-archive`, `fz2_capture.json` → `fz2_capture_F12-archive.json`.
+Manifests re-pinned by `fuzz_campaign new` to FLASH #13.  **FULL population,
+3,840 seeds, 672 s of board time, 0 halts**, 48/48 strata written in full with
+`rc 0`, **48 div guards, 0 unpinned**.
+
+| # | registered | **measured** | |
+|---|---|---|---|
+| **C1** | socket-derived columns reproduce, 100 % | **12 of 3,840 seeds (0.31 %) moved one** | **MISSED — §13.1** |
+| **C2** | `fz2c/406000` leaves FUNCTIONAL | **`FUNCTIONAL / func:R@6`, 3,265 bad rows → `SUCCESS / clean`, 0 bad rows, `func_mismatch` False** | **MET** |
+| **C3** | FUNCTIONAL ≤ 28 | **28 → 26** | **MET** |
+| **C4** | ≥ 16 of the 21 improving seeds fall | **21 of 22 fell** (20 of 21 excluding `fz2e/521059`, which is in C1's set) | **MET, exceeded** |
+| **C5** | `fz2e/520005` may rise | it **FELL**, 3,285 → 2,866, still FUNCTIONAL | as registered |
+| **C6** | capture integrity | **all 3,840 lines carry FLASH #13's era** (`sof e4a2056a2de53c1f…`, receipt `4c39c7928d31576c…`, `rig_evt_hold_bits 12`), `build_stale` False on all 3,840, **0 alarms, 0 quarantines, 0 `RigMismatch`** | **MET** |
+
+Bank-wide: `bad_rows` **fell on 61 seeds, rose on 8, unchanged on 3,771**;
+`(verdict, sub)` moved on **21**; `SUCCESS` 3,625 → 3,639 and `KNOWN_ACCEPTED`
+184 → 172.
+
+### §13.1  C1 — WHAT MOVED, AND WHY IT IS NOT A CHIP FINDING
+
+**`image_sha256` is identical on all 3,840 seeds**, so the corpus regenerated
+byte for byte and nothing about the stimulus moved.  The 12 seeds that moved a
+socket column are **11 `raw`-tier and 1 `soup`**, and the raw tier is by
+construction the one that runs off into open-bus feedthrough space, where the
+chip's own trajectory depends on what the floating bus returns.  Six of the 12
+changed `mech` or `done_real` — i.e. the SOCKET run itself took a different path,
+not a different comparison.
+
+C-9's stability leg (192 seeds × 3 reps, 192 stable) did not contain one; at
+0.31 % the expected count in a 192-seed sample is 0.6, so 0 is unremarkable and
+the two measurements do not conflict.
+
+**The bar was registered at 100 % and it is MISSED.**  The right reading is that
+a corpus with an open-bus tier does not have a 100 %-reproducible socket leg,
+and the 12 seeds are listed in `sw/testdata/fz2/fz2_f13_c1_moves.json` so that
+**no before/after claim is made on them** — which is why C4 is reported both with
+and without `fz2e/521059`.
+
+## §14  WHAT IS AND IS NOT CLAIMED
+
+* **BOTH LANDINGS ARE CONFIRMED IN FABRIC.**  `INT.F3AA` closes 27 of 27 fabric
+  divergences with one signature and loses nothing.  The 8F ghost read moves the
+  ucore's ghost address off the modeled `SS:SP` (100 % → 6.5 %) and onto
+  silicon's own value on 22 of 31 measurable cells, and closes `fz2c/406000` —
+  the one scored fz2 seed the landing was predicted to close — from
+  `FUNCTIONAL` to `SUCCESS / clean`.
+* **The ghost read's law is INCOMPLETE**, by its own registered bar: G2′ asked
+  for ≥ 90 of 130 and got 52.  Nine of 31 ghost cells still disagree with
+  silicon and 69 of 130 mod=3 cases run the core away.  Reported as a miss.
+* **`fz2_w1.py bars` was NOT run and `sw/testdata/fz2/fz2_bars.json` was NOT
+  written by this sitting.**  The banked corpus underneath it has been REPLACED
+  by the FLASH #13 capture, which is the intended consequence; the concurrent
+  agent's rescore must be taken against the new bank.  `fz2_preflight.json`,
+  `fz2_capture.json` and `fz2_control.json` were necessarily rewritten by their
+  own tools; the FLASH #12 versions of the latter two are archived beside them.
+* **A fabric figure taken on FLASH #12 may no longer be quoted against this
+  tree.**  The board now carries **FLASH #13, `.sof e4a2056a2de53c1f…`,
+  `.rbf c5886e14acb56b26…`, receipt `4c39c7928d31576c…`**.

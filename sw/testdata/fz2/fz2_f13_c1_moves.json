@@ -1,0 +1,68 @@
+{
+ "fz2c/405055": [
+  "arch_words",
+  "term"
+ ],
+ "fz2c/408029": [
+  "bus_cycles",
+  "arch_ok",
+  "arch_words",
+  "stalled",
+  "mech",
+  "ps3_8080",
+  "term",
+  "done_real"
+ ],
+ "fz2c/411076": [
+  "bus_cycles",
+  "arch_ok",
+  "arch_words",
+  "mech",
+  "term",
+  "done_real"
+ ],
+ "fz2e/518059": [
+  "bus_cycles",
+  "term"
+ ],
+ "fz2e/519056": [
+  "term"
+ ],
+ "fz2e/521059": [
+  "bus_cycles",
+  "arch_words",
+  "ps3_8080",
+  "term"
+ ],
+ "fz2e/523040": [
+  "bus_cycles",
+  "stalled",
+  "mech",
+  "term",
+  "done_real"
+ ],
+ "fz2e/523042": [
+  "bus_cycles",
+  "ps3_8080",
+  "term"
+ ],
+ "fz2e/524015": [
+  "term"
+ ],
+ "fz2e/528016": [
+  "bus_cycles",
+  "arch_words",
+  "term"
+ ],
+ "fz2e/530063": [
+  "bus_cycles",
+  "mech",
+  "term",
+  "done_real"
+ ],
+ "fz2e/531045": [
+  "bus_cycles",
+  "arch_words",
+  "term"
+ ]
+}

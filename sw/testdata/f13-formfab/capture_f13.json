@@ -1,0 +1,739 @@
+{
+ "leg": "f13",
+ "host": "root@mister-nec",
+ "git": "f18ad478b9",
+ "waits": 0,
+ "seed_ns": "f13",
+ "started": "2026-08-10T00:46:14Z",
+ "div_guards": [
+  {
+   "tag": "f13-start",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:46:14Z"
+  },
+  {
+   "tag": "f13-INT.F3AA-pre",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:46:14Z"
+  },
+  {
+   "tag": "f13-INT.F3AA-post",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:46:22Z"
+  },
+  {
+   "tag": "f13-8F.0-pre",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:46:23Z"
+  },
+  {
+   "tag": "f13-8F.0-post",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:46:28Z"
+  },
+  {
+   "tag": "f13-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:46:28Z"
+  }
+ ],
+ "forms": {
+  "INT.F3AA": {
+   "n_asked": 200,
+   "n_pairs": 136,
+   "errors": [
+    [
+     0,
+     "chip",
+     "no F pop from close addr 08a08"
+    ],
+    [
+     5,
+     "chip",
+     "no F pop from close addr 04b4e"
+    ],
+    [
+     10,
+     "chip",
+     "no F pop from close addr 08de2"
+    ],
+    [
+     15,
+     "chip",
+     "no F pop from close addr 044fc"
+    ],
+    [
+     19,
+     "chip",
+     "no F pop from close addr 08d88"
+    ],
+    [
+     21,
+     "chip",
+     "no F pop from close addr 0c4c4"
+    ],
+    [
+     26,
+     "chip",
+     "no F pop from close addr 01cb0"
+    ],
+    [
+     33,
+     "chip",
+     "pf assert before window (-2)"
+    ],
+    [
+     34,
+     "chip",
+     "no F pop from close addr 00dd6"
+    ],
+    [
+     35,
+     "chip",
+     "no F pop from close addr 0eb00"
+    ],
+    [
+     39,
+     "chip",
+     "no F pop from close addr 0a378"
+    ],
+    [
+     40,
+     "chip",
+     "no F pop from close addr 0603e"
+    ],
+    [
+     41,
+     "chip",
+     "no F pop from close addr 0d88e"
+    ],
+    [
+     42,
+     "chip",
+     "no F pop from close addr 06928"
+    ],
+    [
+     50,
+     "chip",
+     "no F pop from close addr 0ede8"
+    ],
+    [
+     51,
+     "chip",
+     "no F pop from close addr 0868a"
+    ],
+    [
+     59,
+     "chip",
+     "pf assert before window (-1)"
+    ],
+    [
+     61,
+     "chip",
+     "pf assert before window (0)"
+    ],
+    [
+     65,
+     "chip",
+     "no F pop from close addr 0e688"
+    ],
+    [
+     68,
+     "chip",
+     "no F pop from close addr 0b122"
+    ],
+    [
+     74,
+     "chip",
+     "no F pop from close addr 0ad3e"
+    ],
+    [
+     75,
+     "chip",
+     "no F pop from close addr 09074"
+    ],
+    [
+     85,
+     "chip",
+     "pf assert before window (-2)"
+    ],
+    [
+     87,
+     "chip",
+     "no F pop from close addr 0c510"
+    ],
+    [
+     88,
+     "chip",
+     "no F pop from close addr 0441c"
+    ],
+    [
+     89,
+     "chip",
+     "no F pop from close addr 06b38"
+    ],
+    [
+     96,
+     "chip",
+     "no F pop from close addr 07282"
+    ],
+    [
+     99,
+     "chip",
+     "no F pop from close addr 080d4"
+    ],
+    [
+     101,
+     "chip",
+     "pf assert before window (0)"
+    ],
+    [
+     102,
+     "chip",
+     "no F pop from close addr 0e42e"
+    ],
+    [
+     104,
+     "chip",
+     "no F pop from close addr 00f16"
+    ],
+    [
+     105,
+     "chip",
+     "no F pop from close addr 0421c"
+    ],
+    [
+     106,
+     "chip",
+     "no F pop from close addr 0173a"
+    ],
+    [
+     107,
+     "chip",
+     "no F pop from close addr 04bfa"
+    ],
+    [
+     114,
+     "chip",
+     "no F pop from close addr 05952"
+    ],
+    [
+     115,
+     "chip",
+     "no F pop from close addr 04dba"
+    ],
+    [
+     117,
+     "chip",
+     "no F pop from close addr 0a2c8"
+    ],
+    [
+     118,
+     "chip",
+     "no F pop from close addr 0406e"
+    ],
+    [
+     119,
+     "chip",
+     "no F pop from close addr 0a82c"
+    ],
+    [
+     120,
+     "chip",
+     "no F pop from close addr 08d7c"
+    ],
+    [
+     126,
+     "chip",
+     "no F pop from close addr 0a78c"
+    ],
+    [
+     127,
+     "chip",
+     "no F pop from close addr 016d0"
+    ],
+    [
+     128,
+     "chip",
+     "no F pop from close addr 04e3a"
+    ],
+    [
+     134,
+     "chip",
+     "no F pop from close addr 067f2"
+    ],
+    [
+     135,
+     "chip",
+     "pf assert before window (-1)"
+    ],
+    [
+     143,
+     "chip",
+     "no F pop from close addr 0529e"
+    ],
+    [
+     144,
+     "chip",
+     "no F pop from close addr 05450"
+    ],
+    [
+     148,
+     "chip",
+     "no F pop from close addr 0d732"
+    ],
+    [
+     149,
+     "chip",
+     "no F pop from close addr 01f9a"
+    ],
+    [
+     151,
+     "chip",
+     "pf assert before window (-2)"
+    ],
+    [
+     158,
+     "chip",
+     "no F pop from close addr 04bbc"
+    ],
+    [
+     159,
+     "chip",
+     "no F pop from close addr 0b65c"
+    ],
+    [
+     165,
+     "chip",
+     "no F pop from close addr 04026"
+    ],
+    [
+     167,
+     "chip",
+     "pf assert before window (-1)"
+    ],
+    [
+     168,
+     "chip",
+     "no F pop from close addr 094fe"
+    ],
+    [
+     171,
+     "chip",
+     "no F pop from close addr 043d2"
+    ],
+    [
+     183,
+     "chip",
+     "no F pop from close addr 06390"
+    ],
+    [
+     184,
+     "chip",
+     "no F pop from close addr 04f50"
+    ],
+    [
+     189,
+     "chip",
+     "pf assert before window (0)"
+    ],
+    [
+     190,
+     "chip",
+     "no F pop from close addr 08bca"
+    ],
+    [
+     191,
+     "chip",
+     "no F pop from close addr 0acd0"
+    ],
+    [
+     193,
+     "chip",
+     "pf assert before window (0)"
+    ],
+    [
+     198,
+     "chip",
+     "no F pop from close addr 046a6"
+    ],
+    [
+     199,
+     "chip",
+     "no F pop from close addr 016fe"
+    ]
+   ],
+   "rows_file": "INT.F3AA.f13.json.gz",
+   "sha256": "aa1eb9dc5e905ea7d30b5583735e677951a1ae92336e9348667ee3f1fb305d25",
+   "seconds": 8.3
+  },
+  "8F.0": {
+   "n_asked": 130,
+   "n_pairs": 61,
+   "errors": [
+    [
+     1,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     2,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     11,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     12,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     14,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     16,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     26,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     38,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     43,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     52,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     66,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     67,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     82,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     90,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     92,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     102,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     107,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     108,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     122,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     127,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     137,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     139,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     140,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     144,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     145,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     155,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     199,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     213,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     215,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     216,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     217,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     218,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     222,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     232,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     249,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     254,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     266,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     273,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     282,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     291,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     297,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     321,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     325,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     328,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     332,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     334,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     335,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     351,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     355,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     358,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     361,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     381,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     383,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     384,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     387,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     389,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     394,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     398,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     409,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     410,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     422,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     423,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     449,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     466,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     468,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     490,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     498,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     504,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     517,
+     "core",
+     "done marker data cccc != sentinel"
+    ]
+   ],
+   "rows_file": "8F.0.f13.json.gz",
+   "sha256": "8049ee023847a97e58ef0cd1e851ba4cf37ea5e1af9991b02dd8bf9c51a6ccb0",
+   "seconds": 5.9
+  }
+ },
+ "finished": "2026-08-10T00:46:28Z",
+ "div_guards_unpinned": []
+}

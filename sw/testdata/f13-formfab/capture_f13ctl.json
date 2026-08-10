@@ -1,0 +1,50 @@
+{
+ "leg": "f13ctl",
+ "host": "root@mister-nec",
+ "git": "f18ad478b9",
+ "waits": 0,
+ "seed_ns": "f13",
+ "started": "2026-08-10T00:49:21Z",
+ "div_guards": [
+  {
+   "tag": "f13ctl-start",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:49:22Z"
+  },
+  {
+   "tag": "f13ctl-8F.0-pre",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:49:22Z"
+  },
+  {
+   "tag": "f13ctl-8F.0-post",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:49:28Z"
+  },
+  {
+   "tag": "f13ctl-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:49:28Z"
+  }
+ ],
+ "forms": {
+  "8F.0": {
+   "n_asked": 130,
+   "n_pairs": 130,
+   "errors": [],
+   "rows_file": "8F.0.f13ctl.json.gz",
+   "sha256": "b18a8d7f376b6a517acc76f47637d1eeb4fcb7c02758fedc448339e3867d1dca",
+   "seconds": 6.3
+  }
+ },
+ "finished": "2026-08-10T00:49:28Z",
+ "div_guards_unpinned": []
+}

@@ -191,12 +191,21 @@ def cmd_capture(a):
         t0 = time.time()
         div_guard(f"{a.leg}-{form}-pre", rec["div_guards"])
         for i in ks:
+            # WHICH LEG FAILED IS RECORDED.  A pair is dropped when either leg
+            # cannot be emitted, and a CORE-ONLY failure is a divergence severe
+            # enough to break the done marker -- dropping it without saying so
+            # would hide exactly the failures this instrument is looking for.
+            chip = core = None
+            who = None
             try:
+                who = "chip"
                 chip = _emit(form, i, a.host, a.waits, 0)
+                who = "core"
                 core = _emit(form, i, a.host, a.waits, 1)
             except Exception as e:                            # noqa: BLE001
-                errs.append([i, str(e)[:160]])
-                print(f"  ERR {form}/{i}: {str(e)[:110]}", flush=True)
+                errs.append([i, who, str(e)[:160]])
+                print(f"  ERR {form}/{i} [{who} leg]: {str(e)[:100]}",
+                      flush=True)
                 continue
             finally:
                 es.EMIT_USE_CORE = False

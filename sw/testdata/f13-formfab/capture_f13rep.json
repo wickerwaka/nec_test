@@ -1,0 +1,396 @@
+{
+ "leg": "f13rep",
+ "host": "root@mister-nec",
+ "git": "f18ad478b9",
+ "waits": 0,
+ "seed_ns": "f13",
+ "started": "2026-08-10T00:48:26Z",
+ "div_guards": [
+  {
+   "tag": "f13rep-start",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:48:27Z"
+  },
+  {
+   "tag": "f13rep-8F.0-pre",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:48:27Z"
+  },
+  {
+   "tag": "f13rep-8F.0-post",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:48:33Z"
+  },
+  {
+   "tag": "f13rep-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T00:48:33Z"
+  }
+ ],
+ "forms": {
+  "8F.0": {
+   "n_asked": 130,
+   "n_pairs": 61,
+   "errors": [
+    [
+     1,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     2,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     11,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     12,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     14,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     16,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     26,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     38,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     43,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     52,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     66,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     67,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     82,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     90,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     92,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     102,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     107,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     108,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     122,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     127,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     137,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     139,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     140,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     144,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     145,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     155,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     199,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     213,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     215,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     216,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     217,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     218,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     222,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     232,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     249,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     254,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     266,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     273,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     282,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     291,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     297,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     321,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     325,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     328,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     332,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     334,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     335,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     351,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     355,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     358,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     361,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     381,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     383,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     384,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     387,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     389,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     394,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     398,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     409,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     410,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     422,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     423,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     449,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     466,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     468,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     490,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     498,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     504,
+     "core",
+     "done marker data cccc != sentinel"
+    ],
+    [
+     517,
+     "core",
+     "done marker data cccc != sentinel"
+    ]
+   ],
+   "rows_file": "8F.0.f13rep.json.gz",
+   "sha256": "aa6d9426459c67119a35899c85f4ff295dc43341ce0a7a7efe811d7d79fc83f9",
+   "seconds": 5.9
+  }
+ },
+ "finished": "2026-08-10T00:48:33Z",
+ "div_guards_unpinned": []
+}
