@@ -1,0 +1,31 @@
+{
+ "ledger": "sw/testdata/fz2/fz2_failure_ledger_f15_2026-08-10.json",
+ "ledger_sha256": "5cbc2c5e53c17b371c29ddceca274d5ce772b1111bb32183146191cc5fabc4bb",
+ "suffix": "",
+ "cmd": "python3 sw/fz2_failview.py --ledger sw/testdata/fz2/fz2_failure_ledger_f15_2026-08-10.json --control sw/testdata/fz2/fz2_failure_ledger_f14_2026-08-10.json:-F14-archive --split docs/notes/fz2_atlas --index docs/notes/fz2_failure_atlas_2026-08-10.md --json sw/testdata/fz2/fz2_failview_coverage_2026-08-10.json",
+ "totals": {
+  "n": 116,
+  "validated": 116,
+  "div_ok": 116,
+  "img_ok": 116,
+  "no_dispatch": 0,
+  "bus_img": 4,
+  "bus_img_seeds": 2
+ },
+ "control": {
+  "ledger": "sw/testdata/fz2/fz2_failure_ledger_f14_2026-08-10.json",
+  "sha256": "d7dacbd5f4babcc452738b3d06e5a90f0f34657a59040a3ab7a7f911962a6708",
+  "suffix": "-F14-archive",
+  "totals": {
+   "n": 145,
+   "validated": 145,
+   "div_ok": 145,
+   "img_ok": 145,
+   "no_dispatch": 0,
+   "bus_img": 4,
+   "bus_img_seeds": 2
+  },
+  "problems": []
+ },
+ "problems": []
+}
