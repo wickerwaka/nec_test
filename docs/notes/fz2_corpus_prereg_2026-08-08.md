@@ -5202,3 +5202,109 @@ must therefore move no rate.*
 `fz2_w1.py lint` PASS · the leaf-diff above, exactly · a second `bars` run
 differing only in `ts` · `check_fuzz_bank` PASS · `test_fuzz_classify` and
 `test_fuzz_accept` PASS · the three §34.4 falsifiers, each red, each reverted.
+
+---
+
+## §35 THE A-13 RESCORE AS RUN — **EVERY PRE-REGISTERED LEAF MOVED AND NOTHING ELSE DID**, C-3 READS **MET**, AND THE BANK HALF IS SHOWN TO FAIL THREE WAYS
+
+### 35.1 THE RUN — `sw/testdata/fz2/fz2_bars.json`, 2026-08-10T01:34:24Z
+
+```
+FZ2 BARS: 10/11 MET   NOT MET: C-1
+```
+
+C-3's `R3_discarded.b_out_of_bank`, as it now reads:
+
+```
+SOURCE                "the BANKED capture's own rows, recomputed"
+banked_rows_scanned   623
+banked_rows_fires     2
+banked_and_excluded   2
+banked_not_excluded   []
+excluded_not_justified []
+ok                    true
+```
+
+**623 scanned, 2 fire, 2 excluded, and the two sets are the same two files.**
+The bar's other components are untouched and read exactly as §33 measured them:
+`bad_0f_pairs` **0**, `ps3_8080` **3**, R1 725 / 3,115 / 3 / **0
+disagreements**, R2 0 (tautological), R3′a 0 disagreements with
+`c1_excluded_total` **3**, R3′c ok.
+
+### 35.2 THE LEAF-DIFF AGAINST §33's COMMITTED ARTIFACT — **12 OF 1,119, AND ALL 12 WERE PRE-REGISTERED**
+
+| §34.7 said | measured |
+|---|---|
+| CHANGED 5 | `C-3/registered` · `…/b_out_of_bank/ok` false→**true** · `…/R3_discarded/ok` false→**true** · `C-3/verdict` MISSED→**MET** · `ts` |
+| → `null` 1 | `C-3/finding` |
+| REMOVED 3 | `…/excluded_not_justified[0]/{cid,file,why}` |
+| ADDED 3 | `SOURCE` · `banked_rows_scanned` **623** · `banked_rows_fires` **2** |
+| **total** | **12** |
+
+**AND NOTHING ELSE MOVED.** Every C-1 per-tier cell, all four
+`excluded_ps3_8080` (0 · 1 · 1 · 1), `excluded_ps3_8080_total` **3**,
+`undispositioned` **25**, `R1_detected`, `R2_dispositioned`,
+`R3_discarded.in_scored_strata` **3** with its three `seeds` records,
+`banked_and_excluded` **2**, `c_printed`, and **every other bar's verdict** are
+byte-identical. §34.7's load-bearing prediction — *A-13 is a change to which
+artifact justifies an exclusion, and it must therefore move no rate* — holds.
+
+### 35.3 REPRODUCIBILITY
+
+Two consecutive `bars` runs (01:30:54Z → 01:31:44Z): **1 differing leaf of
+1,116, and it is `ts`.** A third run after the falsifiers below (01:34:24Z) is
+likewise `ts`-only against the second.
+
+### 35.4 THE FALSIFIERS — RUN AS REGISTERED, EACH ONE RED, EACH ONE REVERTED
+
+| perturbation | registered | measured |
+|---|---|---|
+| drop `fz2e/509069` from `excluded_seeds` | C-3 MISSED, `banked_not_excluded` names it | **C-3 MISSED**, `FZ2 BARS 9/11`, `R3′b ok false`, `banked_not_excluded` = `[{fz2e, soup_509069_e6e5f2c9b2ec.json.gz, "the BANKED capture's own rows show ps3_8080 and it is NOT excluded"}]`, `excluded_not_justified` **[]** |
+| exclude `fz2e/518000`, banked, rows do **not** fire | C-3 MISSED, `excluded_not_justified` | **C-3 MISSED**, `9/11`, `[{raw_518000_99bdf08b95ea.json.gz, "excluded as ps3_8080 but the BANKED capture's own rows do not show it"}]` |
+| exclude `fz2e/523042` — **the move the task brief asked for** | C-3 MISSED, *"names a file that is not in the bank"* | **C-3 MISSED**, `9/11`, exactly that string |
+
+`banked_rows_scanned` read **623** and `banked_rows_fires` **2** on all three,
+which is the control that the perturbation was in the *list* and not in the
+recomputation. `tests/v30/fuzz_bank/fz2e/manifest.json` is byte-identical to its
+committed state after all three (`git status` clean).
+
+**THE THIRD ONE IS WORTH DWELLING ON.** Had this sitting executed its brief
+literally — *"add it to the bank manifest's `excluded_seeds`"* — the result would
+have been a `bars` run reading **C-3 MISSED**, in a commit claiming the
+disposition was done. The check caught it. That is R3′b's INV-1 property working
+in the direction nobody designed it for.
+
+### 35.5 THE NON-VACUITY RE-RUN — THE DETECTOR IS STILL LIVE
+
+`python3 sw/fz2_a2_replay.py` → **`PASS: 0 failure(s)`**, all five assertions
+`ok`, on the **disjoint** `t30-brkem` bank:
+
+* socket T1+`CODE` (A-2's chosen form) — **87 / 116**;
+* socket T2+`CODE` — 87/116, the same predicate here;
+* core T1+`CODE` — 116/116 (O-1's artifact, fires on everything);
+* core T2+`CODE` — **0/116**, detects nothing.
+
+**A-13 changes where the BANK half looks, not what the predicate is**, so this
+figure is unchanged by construction and is re-run to prove that.
+
+### 35.6 THE OTHER GATES
+
+| gate | result |
+|---|---|
+| `python3 sw/fz2_w1.py lint` | **PASS**, 0 hits, 48 stratum rows |
+| `python3 sw/check_fuzz_bank.py` | **PASS** · **621 banked seeds** · stable 621 / improved 0 / worse 0 · gen_drift 0 · regen_err 0 · float-floor 0 · new-sig TIMING 0, and it prints both exclusions (SUP-1: 3,242 seeds in 4 campaigns; EXC-1: 2 seeds in `fz2e`) |
+| `python3 sw/test_fuzz_classify.py` | **PASS**, 0 failures |
+| `python3 sw/test_fuzz_accept.py` | **PASS**, 0 failures |
+
+⚠ **`check_fuzz_bank`'s figure is 621, not the 623 files on disk and not the
+`623` `6b044475c7` quoted at SUP-1** — that commit predates EXC-1. 623 banked
+files − 2 EXC-1 exclusions = **621 replayed**.
+
+### 35.7 WHAT IS STILL OPEN AFTER THIS SITTING
+
+**C-1 alone, on E-1c**: `undispositioned` **25** of 3,840 against a registered
+bar of 0. Its two rate clauses read **MET and VALIDATED** (soup 98.12 %, raw
+80.83 % on the disjoint `fz2v`/960, §28). The 25 are the A-6/A-7 residue
+(`mech_undispositioned`: `BUDGET` 12 · `NEAR` 9 · `OTHER` 4) and are named, not
+hidden. **C-1 is the campaign's one standing MISSED bar and it is reported as
+one.**

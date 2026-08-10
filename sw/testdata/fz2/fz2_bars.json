@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-10T01:17:38Z",
+ "ts": "2026-08-10T01:34:24Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -135,7 +135,7 @@
   },
   "C-3": {
    "statement": "8080-free: the GENERATION clause unchanged, and the RUNTIME clause re-registered by A-11 to DETECTED AND DISCARDED, with A-12's ruling on what DISCARDED means",
-   "registered": "GENERATION (unchanged, neither A-11 nor A-12 edits it): 0 forbidden `0F xx` pairs on every composed image.  RUNTIME (A-11 \u00a729.3 as amended by A-12 \u00a731.4): runtime 8080 entries are DETECTED AND DISCARDED, scored as R1 AND R2 AND R3' -- R1 0 disagreements between the banked `ps3_8080` column and the socket-leg predicate recomputed off retained rows; R2 0 `ps3_8080` seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no evidential weight); R3' DISCARDED = (a) every `ps3_8080` seed out of its tier's NUMERATOR AND DENOMINATOR, recomputed a second way, (b) every banked `ps3_8080` seed named in its bank's `excluded_seeds` with a reason AND no over-exclusion in that class -- a list checked against the artifact in both directions, (c) the exclusion counted in C-1's own `measured` and printed on stdout.  Non-vacuity is demonstrated beside this run on the disjoint `t30-brkem` bank by `sw/fz2_a2_replay.py` (\u00a729.5)",
+   "registered": "GENERATION (unchanged, neither A-11 nor A-12 edits it): 0 forbidden `0F xx` pairs on every composed image.  RUNTIME (A-11 \u00a729.3 as amended by A-12 \u00a731.4): runtime 8080 entries are DETECTED AND DISCARDED, scored as R1 AND R2 AND R3' -- R1 0 disagreements between the banked `ps3_8080` column and the socket-leg predicate recomputed off retained rows; R2 0 `ps3_8080` seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no evidential weight); R3' DISCARDED = (a) every `ps3_8080` seed out of its tier's NUMERATOR AND DENOMINATOR, recomputed a second way, (b) A-13 \u00a734: every banked capture whose OWN ROWS show `ps3_8080` -- recomputed here, seed by seed, over the exact rows `check_fuzz_bank` replays -- named in its bank's `excluded_seeds` with a reason AND no over-exclusion in that class, a list checked against the artifact it governs in both directions, (c) the exclusion counted in C-1's own `measured` and printed on stdout.  Non-vacuity is demonstrated beside this run on the disjoint `t30-brkem` bank by `sw/fz2_a2_replay.py` (\u00a729.5)",
    "measured": {
     "bad_0f_pairs": 0,
     "seeds": 3840,
@@ -196,24 +196,21 @@
      "b_out_of_bank": {
       "banked_and_excluded": 2,
       "banked_not_excluded": [],
-      "excluded_not_justified": [
-       {
-        "cid": "fz2e",
-        "file": "raw_521059_17de21d60cf3.json.gz",
-        "why": "excluded as `ps3_8080` but the campaign results do not show it"
-       }
-      ],
-      "ok": false
+      "excluded_not_justified": [],
+      "SOURCE": "the BANKED capture's own rows, recomputed",
+      "banked_rows_scanned": 623,
+      "banked_rows_fires": 2,
+      "ok": true
      },
      "c_printed": {
       "c1_excluded_total": 3,
       "ok": true
      },
-     "ok": false
+     "ok": true
     }
    },
-   "verdict": "MISSED",
-   "finding": "A-12 / prereg \u00a731.4: the RUNTIME clause is MISSED on R3' -- the DISCARD half.  R3'a (out of numerator AND denominator, recomputed a second way) ok; R3'b (banked and excluded, list against artifact, both directions) FAILED; R3'c (counted and printed) ok.  See the components above; the detector itself is R1."
+   "verdict": "MET",
+   "finding": null
   },
   "C-4": {
    "statement": "era",
