@@ -54,20 +54,33 @@ def caps():
     return out
 
 def cut(R, line):
+    """The comparison window -- ERRATUM E-1, prereg sec.E-1, applied to BOTH
+    legs and with the baseline RE-MEASURED under it.
+
+    The cut is the point at which the TB stops being a faithful replay of the
+    board, and there is exactly ONE such point: the chip's first read of the
+    vector the rig SUBSTITUTES, which is a `MEMR` T1 at linear 0x00008/0x0000A
+    AT OR AFTER THE TERMINATING NMI'S OWN ASSERTION ROW.  The `at or after`
+    clause is the erratum: a raw seed is 64 K of random bytes and legitimately
+    READS ADDRESS 8 AS DATA long before the terminator exists, and the first
+    form cut six seeds' windows at such a read (`fz2e/518065` at row 1,593).
+
+    THE STIMULUS-EVENT CUT IS REMOVED, and its removal is CONSERVATIVE.  The
+    TB has one scheduler and must spend it on the terminator, so a seed whose
+    stimulus event matters diverges -- and that divergence is IDENTICAL in the
+    before and after legs, so it can only ever hide a gain, never manufacture
+    one.  Cutting at the assertion row instead threw away six windows on the
+    mere possibility (`fz2c/409066` at row 156, whose scored divergence is at
+    3,321 and whose replay is exact to that row)."""
     w = int(line["win"])
-    for i in range(min(w, len(R))):
+    hr = line.get("term", {}).get("hold_rows") or {}
+    nmi_runs = hr.get("pin_nmi") or []
+    term_at = nmi_runs[-1][0] if nmi_runs else 0
+    for i in range(term_at, min(w, len(R))):
         x = R[i]
         if fc._tstate(x) == 1 and x["bs_early"] == 5 and \
            (x["ad_addr"] & 0xFFFFF) in (0x00008, 0x0000A):
             w = i; break
-    hr = line.get("term", {}).get("hold_rows") or {}
-    nmi_runs = hr.get("pin_nmi") or []
-    int_runs = hr.get("pin_int") or []
-    stim = [r[0] for r in int_runs]
-    if len(nmi_runs) > 1:                      # terminator is the LAST run
-        stim += [r[0] for r in nmi_runs[:-1]]
-    if stim:
-        w = min(w, min(stim))
     return max(0, w)
 
 def one(job):
