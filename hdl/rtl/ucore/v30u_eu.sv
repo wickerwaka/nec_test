@@ -809,8 +809,32 @@ wire irq_pin_int = int_p[2];                       // the pin at c-3
 // `intr_pending` latch (block (a)) until this floor matures.  The latch has a
 // second, older use for REP withdrawal, so only a non-REP context feeds it
 // into this ordinary-boundary path; REP consumes it through C_INTR instead.
+//
+// fuzz-v2 family C2 -- **AND `!ie_p[3]` IS "UNTIL THIS FLOOR MATURES".**  The
+// sentence above was written by `7647e604e0` and the implementation did not
+// keep it: `intr_pending` is cleared ONLY by an interrupt entry, so the
+// retention outlived the three-clock floor by however long the next boundary
+// took to arrive.  MEASURED (`docs/notes/fz2_c2_amend_2026-08-10.md` §C2-1.3,
+// `sw/fz2_c2_rescore.py`): over all 252 INT-stimulus fz2 captures the latch is
+// load-bearing on exactly NINE clocks, and the ONLY column that separates the
+// two silicon AGREES from the seven CORE-ONLYs is how far the read sits from
+// the arm -- **2 and 3 clocks where silicon takes it, and 5, 215 and 289 on
+// three where it does not.**  `ie_p[3]` is IE four clocks ago, so a latch
+// armed at clock `A` is readable at `A+1 … A+3` and dead from `A+4`: exactly
+// the floor, and the same idiom `eu_bnd_post` below already uses for "the IE
+// gate is what held this boundary".
+//
+// WHAT THIS DELIBERATELY DOES **NOT** DO.  It does not close the four seats at
+// `run - arm == 2` (`fz2c/405002` `fz2c/405013` `fz2c/405072` `fz2e/512056`),
+// because `fz2c/404040` -- where SILICON RUNS THE ACKNOWLEDGE, seven clocks
+// after its own pin fell -- is identical to them on every coordinate in the
+// recognition path.  Separating those needs a directed board cell on the
+// IE-rise / pin-fall race, and there is not one.  §C2-1.3 names all nine rows.
+//   *Falsifier*: a capture in which the chip runs an acknowledge whose
+//   recognition can only be carried by a latch armed more than three clocks
+//   earlier -- i.e. `run - arm >= 4` with the chip agreeing.
 wire irq_int_lvl = (int_p[2] ||
-                    (intr_pending && (rep_kind == REP_NONE))) &&
+                    (intr_pending && (rep_kind == REP_NONE) && !ie_p[3])) &&
                    ie_p[2] && psw[FIE];
 wire irq_nmi_lvl = nmi_latch;
 wire irq_any     = irq_nmi_lvl || irq_int_lvl;
