@@ -1879,6 +1879,27 @@ def _c1_verdict(met, undisp):
     return v
 
 
+def _is_met(v):
+    """Whether a bar's verdict string counts as MET in the stdout headline.
+
+    A-5's `MET (rate clauses UNVALIDATED -- A-5)` is NOT counted and must not
+    be "fixed" into one: an unvalidated re-registration does not clear a bar
+    (§16.1).  §16.2 / §28 registered what happens next -- *"the marker comes
+    off when the disjoint population is measured, AND THE COUNT FOLLOWS IT
+    THEN"*.
+
+    ⚠ IT DID NOT, AND THIS FUNCTION IS THE REPAIR (§37.2).  The headline used
+    EXACT equality against `"MET"`, while `_c1_verdict` appends a parenthetical
+    in BOTH cases -- the UNVALIDATED marker and the A-9 VALIDATED one.  So a
+    validated MET was counted as NOT MET.  The defect was latent for exactly as
+    long as C-1 never read MET, which is until A-14; no bar's stored `verdict`
+    leaf was ever wrong and no other bar carries a parenthetical.
+
+    The predicate names the marker it is excluding rather than matching a bare
+    string, so the exclusion A-5 registered stays in force and is visible."""
+    return v.startswith("MET") and "UNVALIDATED" not in v
+
+
 def _need(lines, field):
     """Whether a registered field is present on the lines at all -- a bar
     scored off an absent field must read NOT SCOREABLE, never MET."""
@@ -2726,12 +2747,7 @@ def cmd_bars(a):
               f"arch-exact {p['arch_exact_mean_pct']}  "
               f"unscoreable {p['unscoreable_total']}   "
               "(three decompositions, never one aggregate)")
-    # EXACT string equality, deliberately: A-5's `MET (rate clauses
-    # UNVALIDATED -- A-5)` is NOT counted as MET here, and must not be
-    # "fixed" into one.  An unvalidated re-registration does not clear a bar
-    # (§16.1); the marker comes off when §16.2's disjoint population is
-    # measured, and the count follows it then.
-    missed = [b for b in BARS if rec["bars"][b]["verdict"] != "MET"]
+    missed = [b for b in BARS if not _is_met(rec["bars"][b]["verdict"])]
     print(f"\nFZ2 BARS: {len(BARS)-len(missed)}/{len(BARS)} MET"
           f"{'  NOT MET: ' + ','.join(missed) if missed else ''}")
     return 0 if not missed else 1

@@ -5572,3 +5572,125 @@ arrived is recorded here so it is not lost, and **none of it is a claim**:
 **No board probe was run and none is needed for E-1c**, because the banked rows
 already answer the question the user ruled on.  Any future re-opening of the
 *explanation* is a separate task with its own pre-registration.
+
+## §37 THE A-14 RESCORE AS RUN — **EVERY PRE-REGISTERED LEAF MOVED AND NOTHING ELSE DID; C-1 READS MET AND THE CORPUS BARS ARE 11/11.**  ONE REGISTERED CELL MISSED, AND IT IS REPORTED AS A FINDING, NOT RESTATED
+
+### 37.0 THE RUN
+
+`sw/testdata/fz2/fz2_bars.json`, 2026-08-10T02:50:20Z.
+
+```
+FZ2 BARS: 11/11 MET
+```
+
+**C-1 reads `MET (rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw
+80.83 %; §16.2 / A-9)`.**  Its E-1c leaf is `undispositioned` **0**, and the
+disposition that cleared it is named and counted beside it:
+`row_matched_total` **25**, `undispositioned_5class` **25**,
+`classified_from_row_matched` `{"line": 25}`, `mech_undispositioned` **`{}`**.
+
+### 37.1 THE LEAF-DIFF AGAINST §35's COMMITTED ARTIFACT
+
+Against sha256 `f2bc13ecad4da6ac68679761181f418a93a485ee5a14c653913969fd25eef5a9`:
+**30 leaves of 1,128 moved — 12 CHANGED, 3 REMOVED, 15 ADDED — and ALL THIRTY
+WERE PRE-REGISTERED AT §36.6**, value for value, including the `ts` that always
+moves.
+
+**AND NOTHING ELSE MOVED.**  §36.3's load-bearing prediction holds exactly:
+
+| predicted UNCHANGED | measured |
+|---|---|
+| the four rate cells | `census/soup` **98.54** · `census/raw` **83.92** · `enriched/soup` **98.89** · `enriched/raw` **84.23** — byte-identical |
+| their `n` / `reached` | 480/473 · 479/402 · 1439/1423 · 1439/1212 — byte-identical |
+| `undispositioned_3class` / `_4class` | **302** / **100** — byte-identical |
+| `stalled_total` / `long_insn_total` | **202** / **75** — byte-identical |
+| per-tier `stalled` / `long_insn`, `classified_from`, `classified_from_long_insn` | byte-identical |
+| `mech_census`, `mech_selfcheck` | 8 labels, 0/0/0 — byte-identical |
+| `excluded_ps3_8080` (0/1/1/1) and total **3** | byte-identical |
+| every leaf of C-2 … C-11 | byte-identical |
+
+**REPRODUCIBILITY**: two consecutive runs differ in **1 leaf of 1,128**, and it
+is `ts`.
+
+### 37.2 THE ONE REGISTERED CELL THAT MISSED — **THE HEADLINE COUNT**, AND IT IS A REAL DEFECT
+
+§36.6 registered *"stdout: `10/11 MET   NOT MET: C-1` → **`11/11 MET`**"*.
+**ON THE FIRST RUN IT READ `10/11 MET   NOT MET: C-1` — WHILE THE SAME RUN'S
+`C-1.verdict` LEAF READ `MET`.**  Reported here as registered, before the
+repair, because that is the order this campaign keeps.
+
+**THE CAUSE, AND IT IS NOT A-14's ARITHMETIC.**  The headline counted with
+EXACT string equality — `verdict != "MET"` — and `_c1_verdict` appends a
+parenthetical in **both** of its passing forms: A-5's `MET (rate clauses
+UNVALIDATED -- A-5)` and A-9's `MET (rate clauses VALIDATED on fz2v/960 …)`.
+The equality was put there deliberately, to stop the UNVALIDATED marker
+counting as MET (§16.1), and §28 registered what should happen next — *"the
+marker comes off when §16.2's disjoint population is measured, **and the count
+follows it then**"*.  **The count did not follow.**  A-9 took the marker off in
+§28 and this defect has been latent ever since; it was invisible for exactly as
+long as C-1 never read MET, which is until this sitting.
+
+**WHAT WAS AND WAS NOT WRONG.**  No stored `verdict` leaf was ever wrong; every
+`bars` artifact in this campaign carries the right string.  Only the stdout
+headline's *count* was, and only for a bar in the state `MET (VALIDATED …)` —
+which no bar had ever been in.  No other bar carries a parenthetical.
+
+**THE REPAIR** is `_is_met()` in `sw/fz2_w1.py`: a verdict counts as MET iff it
+starts with `MET` **and does not carry the `UNVALIDATED` marker**.  It names
+the marker it excludes instead of matching a bare string, so A-5's registered
+exclusion stays in force and stays visible.
+
+**THE FALSIFIER, RUN IN BOTH DIRECTIONS**, because a repair to a "counts as
+passing" predicate is exactly the kind that can be made to pass everything:
+
+| verdict string | counts as MET | required |
+|---|---|---|
+| `MET` | yes | yes |
+| `MET (rate clauses VALIDATED on fz2v/960 …)` | **yes** | yes |
+| `MET (rate clauses UNVALIDATED -- A-5)` | **no** | **no — A-5 §16.1** |
+| `MISSED (rate clauses VALIDATED on fz2v/960 …)` | no | no |
+| `MISSED` | no | no |
+| `NOT SCOREABLE` | no | no |
+
+**6 / 6 as required.**  With the repair, the re-run reads **`FZ2 BARS: 11/11
+MET`** and the JSON leaf-diff against the pre-repair run is **1 leaf, `ts`** —
+the repair moved the headline and nothing else.
+
+### 37.3 THE OTHER GATES
+
+| gate | result |
+|---|---|
+| `python3 sw/fz2_w1.py lint` | **PASS**, 0 hits, 48 stratum rows |
+| `python3 sw/fz2_rowmatch.py falsify` | **PASS** — F1 **0 / 201**, F2 **0 / 1,898**, F3 FALSE on **2,058 / 3,840** |
+| `python3 sw/fz2_stall.py falsify` (A-4) | **PASS**, rc 0 — fires on **0 / 659** terminator-reached in the current bank, 0 / 455 in the archive |
+| `python3 sw/fz2_longinsn.py falsify` (A-7) | **PASS**, rc 0 — **0 / 1,773** terminator-reached ALL BANKS; carries BOTH A-4 and A-7: **0**, disjoint |
+| `python3 sw/fz2_a2_replay.py` | **PASS**, 0 failures |
+| `python3 sw/check_fuzz_bank.py` | **PASS** · **621 banked seeds** · stable 621 / improved 0 / worse 0 · gen_drift 0 · regen_err 0 · float-floor 0 · new-sig TIMING 0 |
+| `python3 sw/test_fuzz_classify.py` | **PASS**, 0 failures |
+| `python3 sw/test_fuzz_accept.py` | **PASS**, 0 failures |
+
+A-4 and A-7 **gained no members** — their per-tier cells and totals are
+byte-identical (§37.1) — and their falsifiers were re-run anyway, as the control
+that the sixth disposition did not disturb the five it is asked after.
+
+### 37.4 WHAT IS OPEN AFTER THIS SITTING
+
+**Nothing, on the corpus bars.**  C-1 through C-11 all read MET; C-1's two rate
+clauses read MET **and VALIDATED** on the disjoint `fz2v`/960, and E-1c reads
+**0 of 3,840**.
+
+**AND WHAT THAT SENTENCE DOES NOT SAY**, kept here so nobody reads it as more
+than it is:
+
+* **E-1c is 0 because the meaning was re-registered by USER RULING**, not
+  because the 25 started dumping.  The reached rate did not move: 3,513 dumps,
+  `census/raw` still 83.92 %.  §36.2 is the before/after and §36.0 is the
+  timing.
+* **The 25 are dispositioned, not explained** — §36.8, which records the
+  pre-ruling diagnosis and names the three mechanisms it was pointing at.  The
+  A-6 census labels stay banked in `mech_census` and are the honest description
+  of why those captures never reached their terminator.
+* **`ROW_MATCHED` is a claim about two legs, not about architectural state.**
+  A member has no arch column and this class does not invent one.
+* No board contact was made in this sitting, no bitstream was touched, no RTL
+  was touched, and no capture constant moved.

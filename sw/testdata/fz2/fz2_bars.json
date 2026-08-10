@@ -1,11 +1,11 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-10T01:34:24Z",
+ "ts": "2026-08-10T02:50:20Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
    "statement": "containment measured as TERMINATOR-REACHED (E-1's predicate), with the escape count kept as a diagnostic",
-   "registered": "soup >= 90.0 %, raw >= 75.0 %, per population [A-5: soup LOWERED from 99.0, raw from 95.0 -- set AFTER measuring soup 98.54/98.89 % and raw 83.54/83.61 % ON THIS POPULATION, NOT DERIVED; VALIDATED 2026-08-09 on the DISJOINT A-9 population `fz2v` (960 seeds, k >= 600000, zero overlap): soup 471/480 = 98.12 % >= 90.0 and raw 388/480 = 80.83 % >= 75.0, both MET -- \u00a716.2 / \u00a728]; and 0 UNDISPOSITIONED non-dumping seeds (E-1c, UNTOUCHED by A-5)",
+   "registered": "soup >= 90.0 %, raw >= 75.0 %, per population [A-5: soup LOWERED from 99.0, raw from 95.0 -- set AFTER measuring soup 98.54/98.89 % and raw 83.54/83.61 % ON THIS POPULATION, NOT DERIVED; VALIDATED 2026-08-09 on the DISJOINT A-9 population `fz2v` (960 seeds, k >= 600000, zero overlap): soup 471/480 = 98.12 % >= 90.0 and raw 388/480 = 80.83 % >= 75.0, both MET -- \u00a716.2 / \u00a728]; and 0 UNDISPOSITIONED non-dumping seeds (E-1c, UNTOUCHED by A-5; RE-REGISTERED by A-14 / user ruling 2026-08-09 -- UNDISPOSITIONED now means no dump AND no explanation AND the two legs do not agree)",
    "measured": {
     "per_tier": {
      "census/soup": {
@@ -14,12 +14,15 @@
       "pct": 98.54,
       "excluded_ps3_8080": 0,
       "n_incl_excluded": 480,
-      "dispositioned": 6,
+      "dispositioned": 7,
+      "dispositioned_5class": 6,
       "dispositioned_4class": 6,
       "dispositioned_3class": 0,
       "stalled": 6,
       "long_insn": 0,
-      "undispositioned": 1,
+      "row_matched": 1,
+      "undispositioned": 0,
+      "undispositioned_5class": 1,
       "undispositioned_4class": 1,
       "undispositioned_3class": 7
      },
@@ -29,12 +32,15 @@
       "pct": 83.92,
       "excluded_ps3_8080": 1,
       "n_incl_excluded": 480,
-      "dispositioned": 72,
+      "dispositioned": 77,
+      "dispositioned_5class": 72,
       "dispositioned_4class": 58,
       "dispositioned_3class": 4,
       "stalled": 54,
       "long_insn": 14,
-      "undispositioned": 5,
+      "row_matched": 5,
+      "undispositioned": 0,
+      "undispositioned_5class": 5,
       "undispositioned_4class": 19,
       "undispositioned_3class": 73
      },
@@ -44,12 +50,15 @@
       "pct": 98.89,
       "excluded_ps3_8080": 1,
       "n_incl_excluded": 1440,
-      "dispositioned": 15,
+      "dispositioned": 16,
+      "dispositioned_5class": 15,
       "dispositioned_4class": 10,
       "dispositioned_3class": 1,
       "stalled": 9,
       "long_insn": 5,
-      "undispositioned": 1,
+      "row_matched": 1,
+      "undispositioned": 0,
+      "undispositioned_5class": 1,
       "undispositioned_4class": 6,
       "undispositioned_3class": 15
      },
@@ -59,17 +68,20 @@
       "pct": 84.23,
       "excluded_ps3_8080": 1,
       "n_incl_excluded": 1440,
-      "dispositioned": 209,
+      "dispositioned": 227,
+      "dispositioned_5class": 209,
       "dispositioned_4class": 153,
       "dispositioned_3class": 20,
       "stalled": 133,
       "long_insn": 56,
-      "undispositioned": 18,
+      "row_matched": 18,
+      "undispositioned": 0,
+      "undispositioned_5class": 18,
       "undispositioned_4class": 74,
       "undispositioned_3class": 207
      }
     },
-    "undispositioned": 25,
+    "undispositioned": 0,
     "mech_census": {
      "REACHED": 3503,
      "STALLED": 208,
@@ -80,11 +92,7 @@
      "WINDOW": 6,
      "FORGED_DONE": 4
     },
-    "mech_undispositioned": {
-     "OTHER": 4,
-     "NEAR": 9,
-     "BUDGET": 12
-    },
+    "mech_undispositioned": {},
     "mech_selfcheck": {
      "arch_ok_vs_mech": 0,
      "stalled_vs_mech": 0,
@@ -92,17 +100,22 @@
     },
     "undispositioned_3class": 302,
     "undispositioned_4class": 100,
+    "undispositioned_5class": 25,
     "stalled_total": 202,
     "long_insn_total": 75,
+    "row_matched_total": 25,
     "classified_from": {
      "line": 302
     },
     "classified_from_long_insn": {
      "line": 100
     },
+    "classified_from_row_matched": {
+     "line": 25
+    },
     "excluded_ps3_8080_total": 3
    },
-   "verdict": "MISSED (rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw 80.83 %; \u00a716.2 / A-9)",
+   "verdict": "MET (rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw 80.83 %; \u00a716.2 / A-9)",
    "finding": null
   },
   "C-2": {

@@ -402,17 +402,20 @@ and nothing was deleted.
 
 | gate | command | standing state |
 |---|---|---|
-| **the bars** | `python3 sw/fz2_w1.py bars` | **10 / 11 MET.  NOT MET: C-1.**  `sw/testdata/fz2/fz2_bars.json`, 2026-08-10T01:34:24Z.  Offline; ~25 s |
+| **the bars** | `python3 sw/fz2_w1.py bars` | **11 / 11 MET** since A-14, `sw/testdata/fz2/fz2_bars.json`, 2026-08-10T02:50:20Z.  Offline; ~25 s.  It was **10 / 11, NOT MET: C-1** on the 01:34:24Z artifact; §36–§37 is the move and **read the ⚠ under C-1 before quoting it** |
 | **the lint** | `python3 sw/fz2_w1.py lint` | **PASS, 0 hits, 48 stratum rows.**  It cross-checks the campaign document against the code — if a doc edit trips it, **fix the doc** |
 | **bank integrity** | `python3 sw/check_fuzz_bank.py` | **PASS · 621 banked seeds · stable 621 / improved 0 / worse 0 · gen_drift 0 · regen_err 0 · float-floor 0 · new-sig TIMING 0**, ~266 s.  See the ⚠ on the number below |
 | the classifier's own tests | `python3 sw/test_fuzz_classify.py` · `python3 sw/test_fuzz_accept.py` | **PASS / PASS**, 0 failures each |
 | the `ps3_8080` detector's non-vacuity | `python3 sw/fz2_a2_replay.py` | **PASS, 0 failures** — 87 / 116 on the **disjoint** `t30-brkem` bank, where 8080 entry is known to exist |
+| **A-4's non-vacuity** (`stalled`) | `python3 sw/fz2_stall.py falsify` | **PASS, rc 0** — fires on **0 / 659** terminator-REACHED captures in the current bank, **0 / 455** in the INV-2 archive |
+| **A-7's non-vacuity** (`long_insn`) | `python3 sw/fz2_longinsn.py falsify` | **PASS, rc 0** — **0 / 1,773** terminator-REACHED, ALL BANKS; carries BOTH A-4 and A-7 on **0** captures (disjoint by construction) |
+| **A-14's non-vacuity** (`row_matched`) | `python3 sw/fz2_rowmatch.py falsify` | **PASS, rc 0** — F1 **0 / 201** lines with `bad_rows > 0` take the class · F2 **0 / 1,898** lines with `win < 4,000` take it · F3 the predicate is FALSE on **2,058 / 3,840**.  On the 327 NON-DUMPING lines: 14 diverge and **0** take it, 1 has a short window and does **not**, **312** take it |
 
 **THE ELEVEN BARS, AS THEY STAND.**
 
 | bar | what it asserts | verdict |
 |---|---|---|
-| **C-1** | containment, measured as TERMINATOR-REACHED | **MISSED**, on **E-1c alone**: `undispositioned` **25** of 3,840 against a registered bar of **0** (`BUDGET` 12 · `NEAR` 9 · `OTHER` 4, all named). Its two RATE clauses read **MET and VALIDATED** — see below |
+| **C-1** | containment, measured as TERMINATOR-REACHED | **MET** since **A-14** (§36–§37, 2026-08-10). Its two RATE clauses read **MET and VALIDATED** on the disjoint `fz2v`/960 and **did not move**; **E-1c is `undispositioned` 0 of 3,840**, down from 25, and ⚠ **read the note below before quoting that** |
 | C-2 | the arch column is non-vacuous — demonstrated, not assumed | **MET** (3,513 dumps; `MAGIC` 1 distinct value, every other register 199–3,388) |
 | **C-3** | 8080-free: GENERATION unchanged; RUNTIME = **detected AND discarded** | **MET** (A-11 §29 → A-12 §31 → **A-13 §34**). `bad_0f_pairs` **0** / 3,840 · `ps3_8080` **3** · R1 0 disagreements over 725 recomputable · R2 0 (**declared TAUTOLOGICAL**) · R3′a 0 · **R3′b 623 banked captures rescanned, 2 fire, 2 excluded, same two files** · R3′c 3 printed |
 | C-4 | era | **MET** — 1 distinct era, 0 absent, 0 incomplete, 0 stale, 3,840 lines |
@@ -423,6 +426,36 @@ and nothing was deleted.
 | C-9 | the capture is stable, rows AND arch | **MET** — 192 stable / 0 unstable / 0 errors |
 | C-10 | transport | **MET** — 0 quarantines, 0 run-error lines |
 | C-11 | bank integrity: the census bank **is** the frozen rule, and the two populations are never pooled | **MET** — census 480/480 **exact by arithmetic**, enriched 143, `_capped` 0 on both |
+
+⚠ **E-1c IS 0 BECAUSE ITS MEANING WAS RE-REGISTERED BY USER RULING, NOT BECAUSE
+THE 25 STARTED DUMPING** (amendment **A-14**, prereg §36; the rescore is §37).
+The ruling, verbatim: *"If these seeds are matching between real CPU and core,
+then it doesn't matter if they aren't producing the final state dump."*
+UNDISPOSITIONED now means *no dump AND no explanation **AND the two legs do not
+agree***, and `ROW_MATCHED` is the sixth disposition — the socket leg and the
+fabric-core leg compared by the campaign's OWN comparator over its FULL window
+with **0** diverging rows.  All 25 took it, each at `win = 4000` (the
+comparator's ceiling, which is an arithmetic proof both legs carried ≥ 4,000
+rows), `bad_rows` 0, `flick` 0; the 5 with banked captures were **recomputed
+from their rows** and agreed with the line 5/5.
+
+**WHAT DID NOT MOVE, AND THIS IS THE POINT**: the reached rate.  3,513 dumps,
+`census/soup` **98.54** · `census/raw` **83.92** · `enriched/soup` **98.89** ·
+`enriched/raw` **84.23**, every cell byte-identical across the amendment.  The
+25 are **DISPOSITIONED, NOT EXPLAINED** — the A-6 census labels (`BUDGET` 12 ·
+`NEAR` 9 · `OTHER` 4) stay banked in `mech_census` and remain the honest
+description of why those captures never reached their terminator (§36.8 records
+the pre-ruling diagnosis).  **`ROW_MATCHED` is a claim about two legs agreeing,
+never about architectural state**; a member has no arch column and the class
+does not invent one.
+
+⚠ **A LATENT DEFECT WAS FOUND BY THIS RUN AND IS FIXED** (§37.2): the `bars`
+stdout headline counted MET by EXACT string equality, so the first A-14 run
+printed `10/11  NOT MET: C-1` while that same run's `C-1.verdict` leaf read
+`MET`.  A-5's `MET (… UNVALIDATED …)` must not count (§16.1) and A-9's
+`MET (… VALIDATED …)` must — `_is_met()` now names the marker it excludes, 6/6
+on its own both-directions falsifier.  **No stored `verdict` leaf was ever
+wrong**; only the headline count, and only for a state no bar had ever been in.
 
 **THE THREE-REGISTER LEDGER VOCABULARY** (`docs/notes/invalidation_ledger.md`).
 Three dispositions, and filing one as another says something untrue:
