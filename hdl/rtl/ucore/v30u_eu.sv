@@ -2032,9 +2032,42 @@ assign flush_pend = q_flush && pend_active && (rdq_n != 2'd0) && !brk_take;
 // readers see and gives the third the pin it is asking about.
 assign flush_nmi = irq_nmi_lvl;
 assign flush_int_live = pin_int;
-assign flush_cs = cs_now;
+// P5'-stall -- A CS WRITE IS PUBLISHED ON THE CLOCK ITS ROW ACTS, NOT ON EVERY
+// CLOCK OF THE ROW'S STALL.
+//
+// `wr_cs1` is the row's INTENT to write CS -- it is decoded from the micro-row
+// standing on `upc` and is therefore true for every clock a stalling row
+// re-enters itself.  `cs_now` during that stall is NOT the value that will be
+// written: it is whatever the row's source mux happens to hold, and in
+// `fz2e/533028` that is the instruction's DISPLACEMENT `7664` against the
+// `ccac` finally written.  The chip writes the register ONCE and builds
+// anything committed before that from the value the register HOLDS -- measured
+// on all four seats, each one's chip fetch equal to `flush_cs_old` exactly:
+//   fz2e/520062 @700  we 691->702, flush_cs 2774, written a243, chip 5cdb=OLD
+//   fz2e/528008 @628  we ...->630, flush_cs 3b1f, written 3e05, chip 0ecc=OLD
+//   fz2e/532012 @328  we 320->330, flush_cs bd85, written 64c3, chip b674=OLD
+//   fz2e/533028 @881  we 870->883, flush_cs 7664, written ccac, chip 12fe=OLD
+//
+// `v30u_biu.sv`'s P5' comment books this to THIS file and says why it cannot
+// be said there: no flop-free BIU predicate separates "the register is written
+// THIS clock" from "a row that will write it is stalled" (`flush_cs !=
+// flush_cs_old` is true throughout, and `r_cs_r` observes the change one clock
+// too late).  Here the predicate already exists and needs no flop:
+// `row_acts_ok` is the rail on which the row's acts are published, and it is
+// the rail `q_flush` itself is qualified by, one line above the strobes.  The
+// REDIRECT and the CS it redirects to are published by the same row on the same
+// clock, or they are not one act.  Both of the BIU's readers are fixed by this
+// one term, because both read these two wires: the display's `cmt_cs_live`
+// retarget and the prefetcher's own `fetch_lin`.
+//
+// FALSIFIER: any capture in which the chip's retargeted fetch is built from a
+// CS the register does not yet hold on that clock -- i.e. in which a stalled
+// CS-writing row's intended value reaches the bus before its row commits.
+// (docs/notes/fz2_w4_prereg_2026-08-10.md sec.1)
+wire flush_cs_now = wr_cs1 && row_acts_ok;
+assign flush_cs = flush_cs_now ? cs_now : sreg[SR_CS];
 assign flush_cs_old = sreg[SR_CS];
-assign flush_cs_we = wr_cs1;
+assign flush_cs_we = flush_cs_now;
 assign flush_ip = pc_now;
 // F25: ...and the prefetcher is held through the reset dispatch.
 assign eu_susp  = (st == S_RESET) ||
