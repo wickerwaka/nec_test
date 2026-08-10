@@ -1,0 +1,207 @@
+{
+ "iret": {
+  "len": 65536,
+  "period": 6,
+  "sha256": "ebee07abe73b5f718aaf0aa30e7176b1c8f66e9fccfd1c6c2fee26adbdcc7179",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ "iretnotf": {
+  "len": 65536,
+  "period": 6,
+  "sha256": "a556055be1ec66ddc586f3f3c6b101d5d36b8b7519597474aec7432e7490fb44",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ "notfclc": {
+  "len": 65536,
+  "period": 7,
+  "sha256": "6a018f7fc27dc422167e58004ad79be73f06320037adbffab05d4116b740200a",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ "notfnone": {
+  "len": 65536,
+  "period": 6,
+  "sha256": "9f5b3d2316adc442911668820e6c88cacaac2fcf4d999a9e194b99473f60c533",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ "popfadd": {
+  "len": 65536,
+  "period": 8,
+  "sha256": "632dc85bfce98fa75b2ad83709ca856b5c016eb50c9fb1aedade55a5d869d1f1",
+  "starts": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7
+  ]
+ },
+ "popfclc": {
+  "len": 65536,
+  "period": 7,
+  "sha256": "b9d08d6900b4e83d5effdd7814a993784150af16eaed0c2a962bc4c82b479a52",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ "popfinc": {
+  "len": 65536,
+  "period": 7,
+  "sha256": "df20560062c5109d2eae84add12f9fd5816b70df24930dd1545eb33753d0dcdd",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ "popfmemr": {
+  "len": 65536,
+  "period": 8,
+  "sha256": "9331ab90fadc5f7ec2365dc2e2c5b73db1197a913d5a1ce9ff6a8d925a23e1c9",
+  "starts": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7
+  ]
+ },
+ "popfmovi": {
+  "len": 65536,
+  "period": 8,
+  "sha256": "2e747e3bd497159afd58595a829da60798e4dc448509cb3a10eb941f5500e099",
+  "starts": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7
+  ]
+ },
+ "popfmul": {
+  "len": 65536,
+  "period": 8,
+  "sha256": "69e7e4787c75f6aecbaa5ae35557839bf0566294490eab608c2b8bb0d97b20c8",
+  "starts": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7
+  ]
+ },
+ "popfnone": {
+  "len": 65536,
+  "period": 6,
+  "sha256": "6d67be9af876a6f2818e55eb58321db1e88b6ef94ca763afc990cb89144fe506",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ "popfpfx": {
+  "len": 65536,
+  "period": 7,
+  "sha256": "761fa774c8a54d8de37b85d1b42c271024e40301b26f7fda84723ba68b534606",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ "popftest": {
+  "len": 65536,
+  "period": 8,
+  "sha256": "284de935df4ac2f7a72ff2ab0350807b40bdbd147cbbe5d4be4bac44d3a81286",
+  "starts": [
+   0,
+   1,
+   3,
+   4,
+   5,
+   6,
+   7
+  ]
+ },
+ "popfxchg": {
+  "len": 65536,
+  "period": 7,
+  "sha256": "80fa7dd08a746cc304e231cc8f1b818f5589fadbec86ce9420c2358d11049bb0",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6
+  ]
+ },
+ "storm": {
+  "len": 65536,
+  "period": 6,
+  "sha256": "bbabeaad7899153f0e83b194ebd512f86118a9315b6b88977c05f2667e04e3a5",
+  "starts": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ }
+}

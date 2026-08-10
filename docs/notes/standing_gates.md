@@ -910,6 +910,41 @@ the four ratchets the branch banner names: fuzz-v2 moved the image anchor and
 the cell's goldens are frozen at the v1 one.  It cannot be re-anchored without
 a re-capture.  **A REGISTERED DEBT of this landing.**
 
+**✅ THAT DEBT IS DISCHARGED (2026-08-10) — AND IT DID NOT NEED A RE-CAPTURE.**
+The clause above is right that the cell **cannot be re-anchored**, and wrong
+that re-capture was the only way out.  The stimulus is not something this cell
+must *derive*; it is something it must *reproduce* — and its identity was
+pre-registered: `predictions.json` carries a `sha256` per variant and was
+committed at `0fd3955f3a`, **before the sitting's first board contact**.  The
+15 images are now **FROZEN BESIDE THE ROWS** (`sw/testdata/sm3-s24tfcell/
+images/`, 69 KB gz) and re-derived from the v1 generator at `7e949925b7` —
+where `sw/sm3_tf_floor_cell.py` is **byte-identical** to this branch's
+(`git diff 7e949925b7 6ae4966b83 -- sw/sm3_tf_floor_cell.py` is empty), so the
+bytes are the generator's own output and not a reconstruction.  **All 15
+reproduce the pre-registered `sha256` exactly**, `image_of` re-checks on every
+load, and a 1-bit corruption or an `index.json`/`predictions.json` disagreement
+raises (both falsifiers exercised).  `gen_seq` / `testimage` / `check_seq` are
+**NOT TOUCHED** — the cell no longer imports any of them — so no `fz` stream can
+move on this account.
+
+**MEASURED, on this branch:** `score --core sim --floors 1,…,7` reproduces the
+committed `score.json` **byte for byte** (`git diff` empty; floor **3** EXACT at
+**121,890 rows / 0 row-diffs**, nearest other floor 11,032).  `score --core
+ucore --floors 4` on the **current** RTL (receipt `3b8822af1950fdbc…`) is
+**121,860 rows / 0 row-diffs, EXACT**, with `W-0b` **24,372 rows / 0**, `W-2`
+survivors **{4}** and `per_cell` **identical** to the sitting-25 record, and
+`W-0a` / `W-1` / `W-3` / `W-4` / `W-5` all **MET and identical** to it.  0
+row-diffs against silicon per clock is only obtainable on the program the part
+actually ran, so the match is itself the proof the frozen bytes are the right
+bytes.  **`C1` DID NOT MOVE THE TRAP'S FLOOR** — see the C1 results document
+§4.1a for what that does and does not say about `fz2e/517043`.
+`sw/w33_take_cell.py` and `sw/w34_grant.py` (which call `fcell.image_of` on the
+ten `popf*` variants) are unblocked by the same change.
+⚠ **The committed `score-ucore.json` is the sitting-25 record and covers floors
+1-7; `--floors 4` rewrites it with floor 4 alone.** The floors either side came
+from the `~/.cache/ucsimt-tmp/s25scan` binaries, which are **stale RTL** and
+were not rebuilt here. Re-run with care, or restore the file afterwards.
+
 **GATES:** `check_core --opcodes all` **169,000/169,000** (bit-identical) ·
 sweeps **97 · 93 · 45 · 44 = 279/283**, same four family-D survivors ·
 `check_boot` 220 and 400 MATCH · `ss_lint` PASS, map UNMOVED at 0x8D/226/0x8DE2

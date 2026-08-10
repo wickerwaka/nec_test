@@ -67,6 +67,15 @@ of consecutive transport errors STOPS the cell.  **NO FLASHING**, and this cell
 drives NO PIN AT ALL -- the trap is internal, so there is no `evt`, no hold, no
 `fired`, and none of INV-1's directive-truncation exposure.
 
+THE STIMULUS IS FROZEN, NOT GENERATED (fuzz-v2, 2026-08-10).  This cell used to
+compose its 15 images at the v1 code anchor; fuzz-v2 moved the code region and
+the compose now refuses.  Re-anchoring was NOT taken -- the 90 captures here are
+SOCKET captures and a re-anchored image is a program the part never ran -- so
+the images are stored beside the rows and checked on load against the `sha256`
+in `predictions.json`, which was committed before the first board contact.
+`image_of.__doc__` has the reasoning and the re-derivation recipe.  Nothing in
+`gen_seq` / `testimage` / `check_seq` is touched by this cell any more.
+
 Usage:
     python3 sw/sm3_tf_floor_cell.py predict [--floors 1,2,3,4,5,6,7]
     python3 sw/sm3_tf_floor_cell.py run [--waits 0,3] [--reps 3]
@@ -78,7 +87,6 @@ import gzip
 import hashlib
 import json
 import os
-import random
 import re
 import subprocess
 import sys
@@ -91,17 +99,21 @@ SW = Path(__file__).resolve().parent
 ROOT = SW.parent
 sys.path.insert(0, str(SW))
 
-import check_seq                                        # noqa: E402
 import simbin                                           # noqa: E402
 
 simbin.ensure("sm3 s24 TF-floor cell")
 import sm3_ackgeom as ag                                # noqa: E402
-from gen_seq import (Prog, PC0, SP0, DATA_LO, DATA_HI,   # noqa: E402
-                     far_int_support, HANDLER_AT)
 
 OUT = ROOT / "sw" / "testdata" / "sm3-s24tfcell"
+IMAGES = OUT / "images"
 ROM = ROOT / "docs" / "V20BITS.TXT"
 MEMW = 6
+
+# THE FROZEN v1 ANCHOR.  This cell's stimulus is a FROZEN ARTIFACT (see
+# `image_of`), so its geometry constant is frozen WITH it and is deliberately
+# NOT imported from `gen_seq` -- a later move of `gen_seq.PC0` must not silently
+# re-interpret 90 captures that were taken at 0x0500.
+PC0 = 0x0500
 
 # --------------------------------------------------------------------------- #
 # the images
@@ -174,48 +186,107 @@ def starts_of(variant):
 
 
 def image_of(variant):
-    rng = random.Random(f"sm3-s24/{variant}")
-    ins, _ = sled(variant)
-    p = Prog(rng)
-    for _ in range(NPERIOD):
-        for b in ins:
-            p.emit(list(b))
-    instr = p.assemble()
+    """THE FROZEN STIMULUS -- the exact bytes the part was handed, loaded from
+    disk and CHECKED against the pre-registered record.  -> (bytearray, meta).
 
-    ivt, handler = far_int_support()
-    ivt = dict(ivt)
-    # vector 1 is the SINGLE-STEP vector and `far_int_support` does not route
-    # it -- nothing in the tree ever needed it before §83.
-    ivt[1] = (0, HANDLER_AT if variant == "storm" else TF_HANDLER_AT)
+    WHY THIS IS A LOAD AND NOT A COMPOSE (fuzz-v2 / the v1-anchor debt).  This
+    cell used to BUILD its images: `Prog` at `gen_seq.PC0` (0x0500) through the
+    v1 `testimage.compose`.  fuzz-v2 T1/T2 moved the code region to
+    [0x8000,0xC000) and rewrote `compose` (the `stub_linear` store stub and the
+    0x90 fill are gone; a 0xCC apron, an interrupt-handler table and a
+    terminator are in), so on this branch the old call dies with
 
-    ram = [(a, rng.getrandbits(8)) for a in range(DATA_LO, DATA_HI + 0x100)]
-    ram += handler
-    if variant != "storm":
-        ram += [(TF_HANDLER_AT + i, b) for i, b in enumerate(TF_HANDLER)]
+        ComposeError: body [0500,06a4) is not inside the code region [8000,c000)
 
-    _starts, period = starts_of(variant)
-    tf = not (variant.startswith("notf") or variant == "iretnotf")
-    psw = PSW_TF if tf else PSW_NOTF
-    if variant in ("iret", "iretnotf"):
-        ram = [x for x in ram if not (SP0 <= x[0] < SP0 + 6 * (NPERIOD + 4))]
-        for k in range(NPERIOD + 4):
-            ip = PC0 + period * k + 1        # the byte AFTER this period's CF
-            for j, w in enumerate((ip, 0x0000, psw)):
-                ram.append((SP0 + 6 * k + 2 * j, w & 0xFF))
-                ram.append((SP0 + 6 * k + 2 * j + 1, w >> 8))
-    else:
-        ram = [x for x in ram if not (SP0 <= x[0] < SP0 + 2 * (NPERIOD + 4))]
-        for k in range(NPERIOD + 4):
-            ram.append((SP0 + 2 * k, psw & 0xFF))
-            ram.append((SP0 + 2 * k + 1, psw >> 8))
+    measured on this branch, after `W-0a` and `W-1` have already passed (they
+    read the retained rows and need no image).
 
-    regs = {"PS": 0, "PC": PC0, "SS": 0, "SP": SP0,
-            "DS0": 0, "DS1": 0, "PSW": PSW_NOTF,       # TF and IE both CLEAR
-            "AW": 0x1234, "BW": 0x2345, "CW": 0x0003, "DW": 0x0040,
-            "BP": 0x3456, "IX": 0x2500, "IY": 0x2A00}
-    image, meta = check_seq.compose(dict(seed=0, instr=instr, regs=regs,
-                                         ram=ram, ivt=ivt))
-    return image, meta
+    `sw/retired_v1.py` and `gen_seq._v1_anchor_stop` record the DECISION not to
+    paper that over by moving `PC0`, and the reason is exactly this cell's
+    reason: **the 90 captures in this directory are SOCKET captures** -- taken
+    on the part at `use_core=False` -- and a v2-anchored re-compose would score
+    the engine on a program silicon has never run.  That would be a fabricated
+    green.
+
+    BUT RE-CAPTURE IS NOT THE ONLY HONEST ROUTE, AND IT IS NOT THE ONE TAKEN.
+    The stimulus is not a thing this cell needs to *derive*; it is a thing it
+    needs to *reproduce*.  These 15 images are frozen artifacts exactly as the
+    rows beside them are, so they are stored beside them, and the tie back to
+    silicon is a hash that was committed BEFORE the part ever ran them:
+    `predictions.json` records a `sha256` per variant and was committed at
+    `0fd3955f3a`, before the sitting's first board contact.  Every load is
+    checked against it.  Nothing is re-anchored, `gen_seq` is not touched, and
+    no board is needed.
+
+    HOW THE FILES WERE PRODUCED, so a reviewer can re-derive them:
+
+        git archive --format=tar -o /tmp/v1.tar 7e949925b7 sw docs
+        # extract, then run the ORIGINAL image_of (unchanged at that commit --
+        # `git diff 7e949925b7 6ae4966b83 -- sw/sm3_tf_floor_cell.py` is empty)
+        # and gzip each `image_of(v)[0]` to images/<v>.bin.gz.
+
+    All 15 reproduce the `predictions.json` sha256 byte for byte; `index.json`
+    carries them again beside the geometry, and the two are cross-checked here.
+    """
+    p = IMAGES / f"{variant}.bin.gz"
+    if not p.exists():
+        raise SystemExit(
+            f"sm3_tf_floor_cell: no frozen image for {variant} ({p}).\n"
+            "  This cell's stimulus is FROZEN (see image_of.__doc__): it is not\n"
+            "  regenerated on this branch, because fuzz-v2 moved the code\n"
+            "  region and a re-anchored image is not the program the socket\n"
+            "  captures were taken on.")
+    with gzip.open(p, "rb") as f:
+        image = bytearray(f.read())
+
+    got = hashlib.sha256(bytes(image)).hexdigest()
+    want = _frozen_sha(variant)
+    if got != want:
+        raise SystemExit(
+            f"sm3_tf_floor_cell: FROZEN IMAGE MISMATCH for {variant}.\n"
+            f"  on disk    : {got}\n"
+            f"  registered : {want}\n"
+            "  The registered value is `predictions.json`, committed BEFORE the\n"
+            "  first board contact of the sitting.  The 90 captures beside it\n"
+            "  were taken on the registered bytes, so a mismatch means the\n"
+            "  stimulus has drifted away from the silicon and NOTHING here is\n"
+            "  scoreable until it is put back.")
+
+    # The geometry `phases()` reads must be the geometry the frozen bytes were
+    # built with, or `phase` names the wrong boundary.
+    starts, period = starts_of(variant)
+    idx = _frozen_index()[variant]
+    if [starts, period] != [idx["starts"], idx["period"]]:
+        raise SystemExit(
+            f"sm3_tf_floor_cell: sled geometry for {variant} has drifted from "
+            f"the frozen image.\n  sled()      : starts={starts} period={period}"
+            f"\n  frozen image: starts={idx['starts']} period={idx['period']}")
+    return image, {"frozen": True, "sha256": got, "path": str(p),
+                   "period": period, "starts": starts}
+
+
+_FROZEN_INDEX = None
+
+
+def _frozen_index():
+    global _FROZEN_INDEX
+    if _FROZEN_INDEX is None:
+        _FROZEN_INDEX = json.loads((IMAGES / "index.json").read_text())
+    return _FROZEN_INDEX
+
+
+def _frozen_sha(variant):
+    """The PRE-REGISTERED sha256 -- `predictions.json` is the authority because
+    it was committed before the part ran; `index.json` must agree with it."""
+    pred = json.loads((OUT / "predictions.json").read_text())
+    a = pred["rows"][variant]["sha256"]
+    b = _frozen_index()[variant]["sha256"]
+    if a != b:
+        raise SystemExit(
+            f"sm3_tf_floor_cell: images/index.json disagrees with the "
+            f"PRE-REGISTERED predictions.json for {variant}\n"
+            f"  predictions.json : {a}\n  index.json       : {b}")
+    return a
 
 
 # --------------------------------------------------------------------------- #
