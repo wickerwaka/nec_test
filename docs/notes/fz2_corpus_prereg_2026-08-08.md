@@ -4873,3 +4873,153 @@ written, staged or restored; every commit of this sitting stages EXPLICIT
 PATHS.  Restoring the corpus under a running capture would corrupt that
 session's work, and choosing between two sessions' work is not a patch's
 decision.  **It is reported to the coordinator.**
+
+---
+
+## §33 THE FIRST `bars` RUN ON THE **FLASH #13** CORPUS — AS FOUND, BEFORE ANYTHING IS AMENDED.  **C-3 READS `MISSED` ON R3′b, AND THE TASK BRIEF IS WRONG ABOUT WHY**
+
+`0ac4c2a83a` re-captured the whole corpus on FLASH #13 and archived the F12 one
+by rename, and it deliberately **did not run `bars`** (*"NOT RUN, BY
+INSTRUCTION: `fz2_w1.py bars`; `fz2_bars.json` is untouched by this sitting.
+The bank underneath it has been REPLACED by this capture."*).  This section is
+that run, taken **before a single line of code, manifest or ledger is edited**,
+so that the amendment below has a committed before-state to move away from.
+
+### 33.0 THE CORRECTION, FIRST, BECAUSE THE BRIEF IS LOAD-BEARING
+
+The task brief for this sitting says:
+
+> The FLASH #13 re-capture … produced `ps3_8080: 3` — **a third runtime 8080
+> seed beyond the two in the exclusion list** … Identify the seed … **Add it to
+> the bank manifest's `excluded_seeds`** …
+
+**The artifact says something else, and the artifact wins.**  `ps3_8080` is
+indeed 3.  It is **not** the two plus one.  It is **+2 / −1**, and the seed the
+brief would have me add is not the one that broke the bar:
+
+| | F12 corpus (now `*-F12-archive`) | **FLASH #13 corpus (scored here)** |
+|---|---|---|
+| `fz2c/408029` (raw, stratum 8) | `SUCCESS/window_truncated`, `ps3_8080` **False** | `KNOWN_ACCEPTED/open_bus`, **`ps3_8080` True**, 3,074 bad rows |
+| `fz2e/509069` (soup, stratum 21) | `FUNCTIONAL/func:R@94`, `sig 8cb79b8ba571898b`, 1,126 bad rows, **True** | **identical, leaf for leaf** — `func:R@94`, `sig 8cb79b8ba571898b`, 1,126, **True** |
+| `fz2e/521059` (raw, stratum 33) | `KNOWN_ACCEPTED/open_bus`, `sig 8a2834450efdb892`, 2,814 bad rows, **True** | `KNOWN_ACCEPTED/open_bus`, `sig 827fcf222e60d13e`, **20** bad rows, **`ps3_8080` False** |
+| `fz2e/523042` (raw, stratum 35) | `SUCCESS/clean`, **False** | `KNOWN_ACCEPTED/open_bus`, **True**, 2,789 bad rows |
+
+So **two new seeds entered 8080 mode and one stopped**, and the one that stopped
+is an EXC-1 member with a **banked file**.  R3′b's failing leaf is therefore
+**over-exclusion**, not under-exclusion:
+
+```
+"excluded_not_justified": [{"cid": "fz2e",
+                            "file": "raw_521059_17de21d60cf3.json.gz",
+                            "why": "excluded as `ps3_8080` but the campaign
+                                    results do not show it"}]
+```
+
+Executing the brief as written would have (a) left that leaf exactly where it
+is, and (b) **added two new failures**: neither `fz2c/408029` nor `fz2e/523042`
+has a file under `tests/v30/fuzz_bank/<cid>/seeds/`, and R3′b's first
+`excluded_not_justified` branch fails an exclusion record that *"names a file
+that is not in the bank"*.  C-3 would have gone from one failing leaf to three.
+
+### 33.1 THE MECHANISM, AND IT IS ALREADY BOOKED
+
+All three movers are **`raw` tier**, and their `image_sha256` is **identical
+across the two eras** — the generation is bit-identical and nothing about the
+program changed.  What moved is the **socket run's own path**.  `0ac4c2a83a`
+booked exactly this, bar C1, before this section existed:
+
+> C1 MISSED — 12 of 3,840 (0.31 %) moved a socket-derived column.  11 are `raw`
+> tier, `image_sha256` is identical on all 3,840, and six changed the SOCKET
+> run's own path.  **A corpus with an open-bus tier does not have a
+> 100 %-reproducible socket leg**; the 12 are listed and NO before/after claim
+> is made on them.
+
+`ps3_8080` **is** a socket-derived column, and the raw tier's whole-image mode
+writes into its own code region with values that come off an open bus.  Whether
+a runtime `0F xx` pair gets manufactured is therefore **a property of the
+capture, not of the seed** — which the fourth row of the table above proves the
+other way round: `fz2e/509069` is `soup` tier, and it is identical across the
+re-capture in every leaf including `sig`.
+
+`fz2c/408029` and `fz2e/523042` are both in `sw/testdata/fz2/fz2_f13_delta.json`
+(21 verdict movers).  `fz2e/521059` is not — its *verdict* did not move
+(`KNOWN_ACCEPTED/open_bus` both eras); its `sig`, `bad_rows` (2,814 → 20),
+`first_bad` (696 → 1,235) and `ps3_8080` did.
+
+**NO BEFORE/AFTER CLAIM IS MADE HERE EITHER.**  This is not evidence that
+FLASH #13 changed the part's 8080 behaviour.  It is the same non-reproducibility
+`0ac4c2a83a` declined to draw a conclusion from, showing up in one more column.
+
+### 33.2 THE BARS AS RUN — `sw/testdata/fz2/fz2_bars.json`, 2026-08-10T01:17:38Z
+
+**9/11 MET.  NOT MET: C-1, C-3.**
+
+| bar | verdict |
+|---|---|
+| C-1 | **MISSED** (rate clauses **VALIDATED** on `fz2v`/960 — soup 98.12 %, raw 80.83 %; §16.2 / A-9).  Blocker is E-1c alone: `undispositioned` **25** |
+| C-2 | MET |
+| C-3 | **MISSED** — R1 ok, R2 ok, R3′a ok, R3′c ok, **R3′b FAILED** |
+| C-4 | MET (1 era, 0 absent, 0 incomplete, 0 stale; 3,840 lines) |
+| C-5 | MET (gen_drift 0, wvec_mismatch 0, 3,840 seeds) |
+| C-6 | **MET** — `hold_rows_exact` **4,638 / `hold_rows_off` 0** |
+| C-7 | MET (max 957, at-or-over 0) |
+| C-8 | MET (63 div guards, **0 unpinned**) |
+| C-9 | MET (192 stable / 0 unstable / 0 errors) |
+| C-10 | MET (0 quarantines, 0 run-error lines) |
+| C-11 | MET (census 480/480 exact, enriched 143, `_capped` 0 both) |
+
+**C-6 IS THE OTHER HALF OF THE BRIEF, AND IT IS RIGHT.**  On the F12 corpus C-6
+read `MISSED` with `hold_rows_exact` 4,636 / `hold_rows_off` **2** (§20.4,
+§25.2).  On the FLASH #13 corpus it is **4,638 / 0** — the two non-reproducing
+directives of §25.3 did not recur, and C-6 reads **MET**.  §25.4's finding
+(the status readback, not the scheduler) is **not** retracted by this: it
+explains why those two rows were what they were, and a row that does not recur
+is consistent with it.
+
+C-3's measured cells, as found:
+
+```
+bad_0f_pairs 0    seeds 3840    ps3_8080 3    generation_ok true
+R1  retained_scored 725   not_recomputable 3115   fires 3   disagreements 0   ok
+R2  undispositioned_ps3 0  (TAUTOLOGICAL, no evidential weight)              ok
+R3'a disagreements 0   c1_excluded_total 3                                    ok
+R3'b banked_and_excluded 2   banked_not_excluded []   excluded_not_justified 1  FAIL
+R3'c c1_excluded_total 3                                                      ok
+```
+
+**THE GENERATION CLAUSE IS CLEAN AND STAYS CLEAN**: `bad_0f_pairs` **0** over
+all 3,840 regenerated images.  The brief's stop condition (*"if it does NOT,
+that is a different finding, stop and report"*) is **not** triggered.
+
+**R1 IS LIVE AND IT IS THE DETECTOR.**  725 of 3,840 seeds retain rows; on every
+one of them the socket-leg predicate recomputed off the rows agrees with the
+banked column, **0 disagreements**, and it fires on exactly **3** — the three
+above.  The other 3,115 keep no rows and are counted as not-recomputable, never
+extrapolated over.
+
+C-1's per-tier exclusion, which needed **no edit** to be correct on the new
+corpus because it is computed from the results:
+`census/soup` 0 · `census/raw` **1** · `enriched/soup` **1** · `enriched/raw`
+**1** — total **3**, printed on stdout and counted in C-1's own `measured`.
+
+### 33.3 REPRODUCIBILITY
+
+An earlier `bars` run existed in the working tree at 2026-08-10T01:09:42Z, taken
+by the coordinator immediately after `0ac4c2a83a`.  The run committed here was
+taken independently at 01:17:38Z and **leaf-diffs against it at 1 differing leaf
+of 1,116, and that leaf is `ts`.**
+
+`sw/testdata/fz2/fz2_statusanom.json` was also dirty in the working tree — an
+**offline** re-run at 2026-08-09T23:06:27Z of the committed 23:00:25Z record.
+Its census is identical leaf for leaf; the only other change is that the offline
+run carries **no `div_guards`**.  It was therefore **restored to the committed,
+board-backed copy** rather than committed.  ⚠ Both copies predate the FLASH #13
+re-capture (23:0x on 08-09 vs 00:51 on 08-10), so **`fz2_statusanom.json`
+describes the F12 corpus**.  It is a measurement tool, not a gate; it is not
+re-run here, and it is not quoted anywhere as a figure of this corpus.
+
+### 33.4 WHAT IS NOT DONE HERE
+
+Nothing is amended, excluded, promoted or repaired in this section.  It records
+the state as found, with C-3 red, so that §34's amendment has a committed
+before.
