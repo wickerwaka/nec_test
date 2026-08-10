@@ -2064,8 +2064,23 @@ wire qb_is_halt = pla3_one_byte_logic(pla3_lookup(
                   (pla3_xop(pla3_lookup(
                       mode8080 ? PLA3_MODE_8080 : PLA3_MODE_NATIVE, q_byte))
                    == PLA3_BL1_HALT);
+// fz2 P2 / `L-B` -- ...AND THE ANNOUNCEMENT IS THE OTHER HALF OF THE ACT THE
+// DECODE PARKS ON, SO IT CARRIES THE SAME TERM.  `HLT` is split across two
+// clocks BY DESIGN (S9a above: the display leads the park by one, and it rides
+// the OPCODE'S OWN POP CLOCK), so *"a boundary that retires into the trap does
+// not halt"* has to be said at both halves or it is only half said.  MEASURED,
+// and this is why it is here rather than argued: with the term at the decode
+// alone (`v30u_eu_step.svh` S_DECODE2), `fz2e/535042`'s trap fires at exactly
+// the chip's row and pushes the chip's IP `0e84` -- and the core still drove a
+// HALT cycle at row 820 that the chip leaves PASV, so NOT ONE of the eight
+// class-`B` seats moved and `fz2c/410053` hit `v30u_biu`'s `sev bound`
+// assertion.  The predicate is otherwise untouched: `q_pop && q_ripe &&
+// q_first` is the same boundary `brk_smp_n` samples on, and `brk_seen` is live
+// there (the `1BLD` probe reads `seen=1` on that clock).
+// *Falsifier*: a capture in which the chip drives a HALT cycle at a `HLT`
+// whose own retire boundary has the BRK/TF arm standing.
 assign eu_halt = q_pop && q_ripe && q_first && qb_is_halt && !mode8080 &&
-                 !eu_halted;
+                 !eu_halted && !brk_seen;
 
 // THE WAKE.  A halted part has no instruction boundary to sample, so the
 // decision sits at the EARLIEST CLOCK THE PIN PIPELINE ALLOWS -- which is the
@@ -2955,7 +2970,39 @@ always @* begin
         // the `QS = 1` pins announce (`q_first`).  A PREFIX retires with one of
         // its own, so this single predicate is §85.3's "the retire boundaries
         // AND the prefix hand-over" with no second term.
-        brk_smp_n = q_pop && q_ripe && q_first;
+        //
+        // fz2 P2 / `L-A` -- **...AND A BOUNDARY THAT WALKS THROUGH THE EXTERNAL
+        // DOOR STILL SAMPLES THE ARM.**  §86's predicate is the SUCCESSOR'S
+        // POP, and `at_bnd` implies `!opc_valid` on all three of its arms: a
+        // boundary that DISPATCHES an interrupt does not pop a successor, so
+        // under the pop-only predicate it never sampled.  That is the second
+        // half of `C1`'s defect and it is the same sentence one clause on --
+        // `C1` landed *an external recognition does not SPEND the arm*; this is
+        // *...and it does not SKIP THE SAMPLE either*.
+        //
+        // MEASURED, on the banked FLASH #14 A/B captures, chip against fabric
+        // core, with the core's own `+brktrace` beside them
+        // (`docs/notes/fz2_p2_prereg_2026-08-10.md` §2.1).  Exemplar
+        // `fz2c/407024`: an `IRET` pops a PSW that restores `TF` (`BRKR` at
+        // clock 3000), the terminating NMI is recognised at that IRET's OWN
+        // retire boundary (`BRKT clk=3006`, and the pushed IP is the IP the
+        // IRET just popped), and there is NO `BRKS` anywhere between them --
+        // six clocks, so the floor is met and `brk_seen` is 1.  The chip pays
+        // the trap after exactly one handler prefetch, which is `C1`'s law
+        // working; the ucore had nothing to preserve.
+        //
+        // THE TRAP'S OWN TAKE IS DELIBERATELY NOT A SAMPLING EVENT.  At a trap
+        // take `irq_take` is 0, so the five `S_IRQ_D` sites' `brk_arm_n =
+        // brk_arm_n && irq_take` clear the arm and nothing re-arms it.  Adding
+        // `brk_take` here would re-sample `psw[FBRK]` one clock into the
+        // entry, before `I_CITF` has cleared it, and storm.
+        //
+        // The sample INSTANT is unmoved: still one clock past the boundary,
+        // where §85.2a measured it.  No flop, no wire, no save-state address.
+        // *Falsifier*: a capture in which the chip recognises an external
+        // interrupt at a boundary with `PSW.TF` armed and does NOT then read
+        // vector 1 before the handler's first instruction retires.
+        brk_smp_n = (q_pop && q_ripe && q_first) || (bnd_fire && irq_take);
         unhalt_pend_n = 1'b0;
         if (bnd_fire)
             irq_fast_inta_n = bnd_opc || eu_bnd_post;

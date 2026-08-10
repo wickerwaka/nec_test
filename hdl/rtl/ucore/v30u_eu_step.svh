@@ -130,7 +130,34 @@ S_DECODE2: begin
     pv = ld_ext_n ? pla3_ext(ld_b_n) : pla3_native(ld_b_n);
     ld_pla_n = pv;
     if (!ld_ext_n && pla3_one_byte_logic(pv)) begin
-        if (pla3_xop(pv) == PLA3_BL1_HALT) begin
+        // fz2 P2 / `L-B` -- **`HLT` DOES NOT PARK WHEN IT RETIRES INTO THE
+        // TRAP.**  `brk_seen` is the term, and it is the SAME signal the
+        // sibling arm of this `if` reads on this same clock for the same
+        // reason (W3.5's law below: at this decode the arm flop still carries
+        // the previous boundary's value and `brk_seen` is the live one,
+        // measured 23/23).  A parked part has no next boundary, so an arm
+        // sampled at the `HLT`'s own retire has nowhere to be spent and the
+        // trap is lost outright.
+        //
+        // MEASURED, banked FLASH #14 captures, chip against fabric core
+        // (`docs/notes/fz2_p2_prereg_2026-08-10.md` §2.2).  Exemplar
+        // `fz2e/535042`: an `IRET` restores `TF`, the redirect lands on a
+        // byte `F4`, and the chip reads vector 1 with **no HALT cycle ever
+        // driven** -- and the frame it pushes carries IP `0e84`, ONE PAST the
+        // `F4`.  Silicon RETIRED the `HLT` and took the trap at its boundary;
+        // it did not halt and then wake.  The core's own trace has the sample
+        // right (`BRKS seen=1` at the correct boundary) and then parks.
+        //
+        // With the term false this falls into the `ONE_BYTE_LOGIC` arm `HALT`
+        // is already a member of; `v30u_eu_1bl.svh` is `default: ;` for this
+        // xop and ends with the identical `psw_n = (psw_n & PSW_WRITABLE) |
+        // PSW_FORCED` this arm writes, so the fall-through makes the same
+        // architectural write and then takes the ordinary boundary -- which is
+        // where the trap is due.  No flop, no wire, no save-state address, and
+        // no opcode named that this line did not already name.
+        // *Falsifier*: a capture in which the chip drives a HALT cycle at a
+        // `HLT` whose own retire boundary has the BRK/TF arm standing.
+        if (pla3_xop(pv) == PLA3_BL1_HALT && !brk_seen) begin
             // S9a: `halt_decode()` is called HERE, after `pop_opcode`'s own
             // `charge(1)`, so `eu_halt` rides the DECODE clock -- the state
             // this arm hands over to.  One rule, both paths.

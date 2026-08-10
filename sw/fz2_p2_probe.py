@@ -94,6 +94,27 @@ def cyc_table(rows, image, lo, hi):
     return out
 
 
+def tb_rows(S):
+    """Re-run the seed through the receipted `ucore` TB exactly as
+    `fz2_c1_rescore.one()` does (same IVT-2 patch, same window)."""
+    import check_seq                                      # noqa: PLC0415
+
+    cfg = S["cfg"]
+    evts, _, _ = fzc.term_directive(cfg, S["meta"])
+    w = cfg["waits"]
+    ip, cs = fzc.TERM_TVEC[1], fzc.TERM_TVEC[0]
+    b = bytearray(S["image"])
+    b[8] = ip & 0xFF
+    b[9] = (ip >> 8) & 0xFF
+    b[10] = cs & 0xFF
+    b[11] = (cs >> 8) & 0xFF
+    return check_seq.run_tb(bytes(b), 4200,
+                            waits=0 if w["wrand"] else w["fixed"],
+                            evt=evts[fzc.TERM_SCHED],
+                            wrand=(w["wmax"], w["wseed"]) if w["wrand"] else None,
+                            wvec=fzc.wvec_of(cfg), core="ucore")
+
+
 def cmd_rows(a):
     S = load(a.seed)
     fb = S["led"]["first_bad_row"] if S["led"] else 0
@@ -101,11 +122,12 @@ def cmd_rows(a):
     print(f"{a.seed}  first_bad {fb}  win {S['line'].get('win')}  "
           f"gen_drift {S['drift']}  family {S['led']['family'] if S['led'] else '-'}")
     ch = cyc_table(S["cap"]["real"], S["image"], lo, hi)
-    co = cyc_table(S["cap"]["sim"], S["image"], lo, hi)
+    src = tb_rows(S) if a.tb else S["cap"]["sim"]
+    co = cyc_table(src, S["image"], lo, hi)
     print("\n--- CHIP (socket) ---")
     for t1, k, ad, d, pre in ch:
         print(f"  {t1:5d} {k} {ad:05x} <- {d if d is None else format(d,'04x')}  {pre}")
-    print("\n--- CORE (fabric, banked) ---")
+    print("\n--- CORE (%s) ---" % ("live TB" if a.tb else "fabric, banked"))
     for t1, k, ad, d, pre in co:
         print(f"  {t1:5d} {k} {ad:05x} <- {d if d is None else format(d,'04x')}  {pre}")
 
@@ -306,6 +328,9 @@ if __name__ == "__main__":
     p.add_argument("seed")
     p.add_argument("--before", type=int, default=120)
     p.add_argument("--after", type=int, default=200)
+    p.add_argument("--tb", action="store_true",
+                   help="re-run the seed through the receipted ucore TB "
+                        "instead of reading the banked fabric leg")
     p.set_defaults(fn=cmd_rows)
     p = sub.add_parser("fork")
     p.add_argument("seeds", nargs="+")
