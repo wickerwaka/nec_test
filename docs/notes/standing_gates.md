@@ -781,6 +781,53 @@ All three enables are LOW for the body of a HALT; the pads float and RETAIN.
 45.49) and ALMs **11,104** (down from 11,126) — deleting a drive is a net
 simplification.  **Not in fabric yet**; §81.A.7 registers the prediction.
 
+### **F58 — LANDED 2026-08-09, fuzz-v2 survey fix #2, family `B1`** (`b1_halt_addr_prereg_2026-08-09.md` / `..._results_...`)
+
+**THE HALT PSEUDO-CYCLE ANNOUNCES NOTHING OF ITS OWN.**  It publishes the AD
+output latch AS IT STANDS.  Not F55 and not a re-land of it: **F55 is who holds
+the pads for the BODY** (nobody), **F58 is the VALUE published in the address
+phase**, which silicon and the core both drive.  The survey brief identified
+`B1` as F55 unlanded; **F55 landed at sitting 20 and is in fabric since
+FLASH #10**, and that identification is REFUTED in the prereg's §0.
+
+The core published `{data_ps(2'd2), last_fetch_addr}` — a value sourced from the
+prefetcher.  **MEASURED chip-leg only, every HALT pseudo-cycle in all 725
+retained fz2 captures: the published value is the last value the CORE ITSELF
+drove on each lane — 1,189 / 1,189, zero exceptions**, on the display row's
+low-16 and the T1's full 20 bits.  After a WRITE that is the write DATA; after a
+READ it is the T1 ADDRESS (the memory, not the core, drove the data phase);
+after an INTA it is unchanged, because an INTA drives no AD15-0.
+
+**WHY IT SURVIVED THE WHOLE UCORE CAMPAIGN:** the two rules AGREE whenever the
+last bus cycle before the HALT was a CODE fetch, and that is **1,164 of the
+1,189**.  The HLT sweeps and the S16 walk run the one-byte program `[0xF4]`, so
+**every golden that has ever gated this value sits in the degenerate case.**  The
+25 non-degenerate sites are exactly the 25 HALT displays of the 24 `B1` seeds,
+with nothing left over.
+
+**THE LANDING, one register pair and no rule:** `last_ad_hi` / `last_ad_lo`, in
+`last_ube`'s idiom, loaded from the enables that already exist
+(`ad_oe_addr||ad_oe_ps` and `ad_oe_addr||ad_oe_data`); the display publishes
+`{last_ad_hi, last_ad_lo}`.  The read/write asymmetry is encoded NOWHERE — it
+falls out of which enable is asserted when.  SS map **0x8C/224 → 0x8D/226**
+(`SSA_B_LAST_AD_HI/LO` at `9'h06B`/`9'h06C`, APPENDED, nothing renumbered),
+flops 212 → **214**.
+
+**REGISTERED BARS:** offline corpus rescore **HALT-site MISS 21 → 0** with **0
+rows entering the differing set** over all 725 retained captures (96 left);
+`check_core --opcodes all` **169,000/169,000**; the four HLT sweeps
+**279/283 UNMOVED**, same four family-D survivors by name; `check_boot` 220 and
+400 MATCH; `check_ab_sim` 187 rows MATCH; `ss_lint`/`r7_lint` PASS;
+`test_artifact` 45/45; **G6 PASS on both draws, Fmax 40.11 MHz, +6.319 ns, TNS
+0.000 setup AND hold** (receipts `b2c7466038147a9b…`, `bf9e0ad84703b07c…`; the
+branch's own band is 39.37-40.96).  **⚠ P1 MISSED ON ITS FIRST MEASUREMENT**
+(168,858/169,000 — a golden whose window OPENS on a HALT has no in-window cycle
+to have driven the pads) and was repaired by seeding the latch at `srst` from
+S9a's pre-window fetch walk, the same reconstruction `last_fetch_addr` already
+had.  **NOT IN FABRIC** — no board was contacted; the fabric prediction is
+registered for a later flashed sitting, and the banked corpus headline
+`3,639/3,837` is NOT moved by an offline sitting.
+
 ### **F56 AND F57 — FAMILY B, CLOSED IN BOTH ENGINES (SM3 sitting 21, `ucore_provenance.md` §82)**
 
 Two mechanisms, two pre-registrations, two landings, and **both are a deletion

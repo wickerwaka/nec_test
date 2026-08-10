@@ -123,10 +123,11 @@ package v30_ss_pkg;
   // 0x17A-0x17B and the PF_LOST decoder hold at 0x17C-0x17D.  Neither is in
   // this tree and neither address is; they are named at the end of the EU
   // region so a later landing reuses the same codes for the same meanings.
-  localparam int          SS_VERSION   = 8'h8C;   // ucore map v12 (8F ghost READ)
+  localparam int          SS_VERSION   = 8'h8D;   // ucore map v13 (F58 AD latch)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
-  localparam int          SS_BIU_COUNT = 101;  // U4 F49 (+5); s11 (-4); s21 (-1); H3 (+1)
+  localparam int          SS_BIU_COUNT = 103;  // U4 F49 (+5); s11 (-4); s21 (-1); H3 (+1);
+                                              // F58 (+2, the AD output latch)
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
   localparam int          SS_EU_COUNT  = 122;  // U2 p5 (+2 recog); U4 F49 (+1);
                                               // SM3 s25 / §86 (+1, the BRK arm);
@@ -237,6 +238,14 @@ package v30_ss_pkg;
   localparam logic [8:0] SSA_B_RD_VAL           = 9'h05C;
   localparam logic [8:0] SSA_B_READY_PREV       = 9'h05D;
   localparam logic [8:0] SSA_B_LAST_UBE         = 9'h05E;
+  // F58: the AD output latch's two lanes, APPENDED past the region's current
+  // top (9'h06A) so nothing is renumbered.  The dense map's two existing hole
+  // terms (9'h038 +1, 9'h066 +4) carry them: i = 102 -> 9'h06B, i = 103 ->
+  // 9'h06C.  0x05F/0x060 are TAKEN (rd_first_hi / rd_was_split) and were the
+  // first thing this append tried; the collision is why the free-code scan
+  // runs before the edit and not after it.
+  localparam logic [8:0] SSA_B_LAST_AD_HI       = 9'h06B;
+  localparam logic [8:0] SSA_B_LAST_AD_LO       = 9'h06C;
 
   // dense-iteration helper (TB/harness): stream index -> address
   // SM3 s21 / F56: the BIU region carries ONE RETIRED CODE, 9'h038, and the
@@ -603,6 +612,8 @@ package v30_ss_pkg;
       SSA_B_RD_VAL:          ss_field_width = 16;
       SSA_B_READY_PREV:      ss_field_width = 1;
       SSA_B_LAST_UBE:        ss_field_width = 1;
+      SSA_B_LAST_AD_HI:      ss_field_width = 4;
+      SSA_B_LAST_AD_LO:      ss_field_width = 16;
       // U2 pass 6 -- the two BIU fields declared AFTER this function used to
       // fall through to `default: 0` for the same reason the whole EU region
       // did: the function was placed before their localparams.  It now sits

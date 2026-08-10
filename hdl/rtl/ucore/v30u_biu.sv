@@ -262,6 +262,10 @@ reg        cmt_was_owed;  // M19's latch as it stood before the grant
 // --- pad retention ---------------------------------------------------------
 reg        last_ube;
 reg [15:0] last_fetch_addr;
+// F58: THE AD OUTPUT LATCH ITSELF, one lane per output enable.  See the
+// always block near `last_ube` and the HALT display in step (e).
+reg  [3:0] last_ad_hi;
+reg [15:0] last_ad_lo;
 
 // --- the queue (M3) --------------------------------------------------------
 reg  [7:0] q_mem [0:5];
@@ -2010,8 +2014,11 @@ always_comb begin
             // S9b: the HALT display drives the address latch AS IT STANDS when
             // the cycle takes the register.  M10(T4): the upper nibble is a
             // LIVE PS, not a constant -- the chip carries IE on it.
-            cmt_addr = {data_ps(2'd2), last_fetch_addr};
-            cmt_data = last_fetch_addr;
+            // F58: the latch as it stands, not a value of the HALT's own.
+            // S9b's "AS IT STANDS when the cycle takes the register" was the
+            // right sentence pointed at the wrong register.
+            cmt_addr = {last_ad_hi, last_ad_lo};
+            cmt_data = last_ad_lo;
             cmt_ube_n = 1'b1; cmt_seg = 2'd2; cmt_noaddr = 1'b0; cmt_odd = 1'b0;
             cmt_wr = 1'b0; cmt_need = 1'b0; cmt_rd_last = 1'b1;
             cmt_fetch = 1'b0; cmt_halt = 1'b1; cmt_pn = 2'd0;
@@ -2283,6 +2290,8 @@ always @(posedge clk) begin
         SSA_B_RD_VAL:       ss_rdata <= r_rd_val;
         SSA_B_READY_PREV:   ss_rdata <= {15'b0, r_ready_prev};
         SSA_B_T1_HALF2:     ss_rdata <= {15'b0, t1_half2};
+        SSA_B_LAST_AD_HI:   ss_rdata <= {12'b0, last_ad_hi};
+        SSA_B_LAST_AD_LO:   ss_rdata <= last_ad_lo;
         default:            ss_rdata <= 16'h0000;
     endcase
 end
@@ -2295,6 +2304,65 @@ always @(posedge clk) begin
     // value is what the comparator stack's idle rows carry.
     else if (srst) last_ube <= 1'b0;
     else if (ce)   last_ube <= ube_n;
+end
+
+// F58 -- THE HALT PSEUDO-CYCLE ANNOUNCES NOTHING OF ITS OWN.
+//
+// `last_ad_*` is the AD OUTPUT LATCH, split into exactly the two lanes the two
+// output enables already split it into: A19-16 is loaded whenever the core
+// drives A19-16 (`ad_oe_addr || ad_oe_ps`) and AD15-0 whenever it drives
+// AD15-0 (`ad_oe_addr || ad_oe_data`).  It is pad retention on the DRIVE side,
+// the same sentence as `last_ube` above one bus over, and it stores nothing
+// the die does not already have to have.
+//
+// WHAT IT IS FOR.  The HALT display used to publish
+// `{data_ps(2'd2), last_fetch_addr}` -- a value of its own, sourced from the
+// prefetcher.  MEASURED on silicon, 1,189 HALT pseudo-cycles over the 725
+// retained fz2 captures, chip leg only: the HALT publishes the value the AD
+// output latch ALREADY HOLDS, on both lanes, 1,189 of 1,189 with no exception.
+// The two rules agree exactly when the last bus cycle before the HALT was a
+// CODE fetch -- because then the last value the core drove on AD15-0 IS the
+// last fetch address -- and that is 1,164 of the 1,189, which is why the HLT
+// sweeps, whose program is the one byte `F4`, cannot tell them apart and why
+// this stood for the whole ucore campaign.  The 25 sites where the last cycle
+// was a data cycle (MEMW 12, MEMR 9, IOW 4) are exactly the 25 HALT displays
+// of the 24 `B1` seeds in the fuzz-v2 failure ledger, with nothing left over.
+//
+// It is NOT F55, which is landed and is not disturbed here: F55 is about who
+// holds the pads for the BODY of the pseudo-cycle (nobody -- all three enables
+// are low and the pads retain), and this is about the value published in the
+// pseudo-cycle's own ADDRESS PHASE, which the core does drive and silicon does
+// drive with it.
+//
+// Falsifier: a capture whose HALT display or HALT T1 carries a value the core
+// had not itself last driven on that lane -- in particular any HALT whose
+// AD15-0 is the DATA of a preceding READ (which the memory drove, not the
+// core), or whose A19-16 is not the preceding cycle's segment status.
+// Second falsifier, on the RENDERING rather than the law: this latch is read
+// by the display decision from its REGISTERED value, so a HALT display whose
+// immediately preceding clock is the only clock of a WITHDRAWN announcement
+// would publish one announcement too far back.  No such site exists in the
+// 1,189; if one is ever captured, the read has to move, not the law.
+always @(posedge clk) begin
+    if (ss_we && ss_addr == SSA_B_LAST_AD_HI) last_ad_hi <= ss_wdata[3:0];
+    // THE RESET VALUE IS THE PRE-WINDOW WALK'S, NOT ZERO.  A golden whose
+    // capture window OPENS on a HALT has no in-window cycle to have driven the
+    // pads, and S9a's backdoor preload already reconstructs the pre-window
+    // state for exactly this reason (`last_fetch_addr_rst`).  Seeding these two
+    // lanes from it makes the window's first clock carry what the part carried
+    // into it.  The walk models FETCHES, which is the case in which the old
+    // rule and this one agree (prereg sec.1.2), so the seed is the old
+    // behaviour exactly and only the in-window evolution is new.
+    // MEASURED: without this, `check_core --opcodes all` reads 168,858/169,000
+    // -- HLT.INT 150/200, HLT.NMI 155/200, HLT.RES 153/200, every one of the
+    // 142 first diverging at ROW 1 on `bus`, with arch 200/200 throughout.
+    else if (srst) last_ad_hi <= data_ps(2'd2);
+    else if (ce && (ad_oe_addr || ad_oe_ps)) last_ad_hi <= ad_o[19:16];
+end
+always @(posedge clk) begin
+    if (ss_we && ss_addr == SSA_B_LAST_AD_LO) last_ad_lo <= ss_wdata;
+    else if (srst) last_ad_lo <= last_fetch_addr_rst;   // see LAST_AD_HI above
+    else if (ce && (ad_oe_addr || ad_oe_data)) last_ad_lo <= ad_o[15:0];
 end
 
 //----------------------------------------------------------------------------

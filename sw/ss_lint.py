@@ -116,11 +116,15 @@ CORES = {
             # Both are BOOKED UNLANDABLE-AS-DESIGNED -- the feed reaches the
             # loader chain through the DATA path off the live READY pin and
             # measured 15.3 MHz on two draws, and the hold is dead without it.
-            "SS_VERSION": 0x8C,   # ucore map v12 (0x80 family: never an FSM stream)
-            "SS_BIU_COUNT": 101,
+            # v13 APPENDS the AD OUTPUT LATCH's two lanes (F58,
+            # SSA_B_LAST_AD_HI/LO at 9'h06B/9'h06C) past the BIU region's top.
+            # Nothing is renumbered; the dense map's existing hole terms carry
+            # them.  v12 was 0x8C / 101 / 122 / 224 / 0x8CE0.
+            "SS_VERSION": 0x8D,   # ucore map v13 (0x80 family: never an FSM stream)
+            "SS_BIU_COUNT": 103,
             "SS_EU_COUNT": 122,
-            "SS_COUNT": 224,
-            "SS_TAG": 0x8CE0,     # (0x8C << 8) | 224
+            "SS_COUNT": 226,
+            "SS_TAG": 0x8DE2,     # (0x8D << 8) | 226
         },
     },
 }
