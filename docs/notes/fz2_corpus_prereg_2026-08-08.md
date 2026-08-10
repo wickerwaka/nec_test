@@ -474,6 +474,15 @@ against, neither derived, and **UNVALIDATED until measured on a disjoint
 population** (§16.2).  C-1's third clause, **0 UNDISPOSITIONED**, is unchanged,
 and **C-2 … C-11 keep their text and their values character for character.**
 
+⚠ **C-3's row above is SUPERSEDED IN ITS RUNTIME CLAUSE ONLY by AMENDMENT A-11
+(§29), 2026-08-09** — *"0 captures with a PS3 entry"* becomes **"runtime 8080
+entries are DETECTED AND DISCARDED"**, scored as the conjunction R1 ∧ R2 ∧ R3 of
+§29.3.  **C-3's GENERATION clause is NOT edited** — *0 forbidden `0F xx` pairs
+on every composed image* stands character for character and is MET at 3,840 /
+3,840 — and **C-1, C-2 and C-4 … C-11 keep their text and their values
+character for character.**  §29.0 states the timing: the runtime clause is
+re-registered **after** it was missed, on the population that missed it.
+
 **Board-time budget, registered.**  At the slower of the two measured rates
 (6.0 /s, §2.1), derated a further 1.5× to 4.0 /s:
 
@@ -4215,3 +4224,187 @@ amendment.
 #12 is the ucore in the tree.  It is not, and it was not at §26 either.  Every
 fabric figure in §26 and §28 is readable against **FLASH #12 and nothing
 else** — the standing rule of this repository.
+
+---
+
+## §29 AMENDMENT A-11 — C-3's RUNTIME CLAUSE IS RE-REGISTERED FROM *"0 captures showing PS3 on a `CODE` T1"* TO **"runtime 8080 entries are DETECTED AND DISCARDED"**, AND THE TIMING IS STATED FIRST
+
+**BY USER DECISION, 2026-08-09.**  Offline sitting: no board, no flash, no
+Quartus.  The **generation clause is NOT EDITED** — *0 forbidden `0F xx` pairs
+on every composed image* stands character for character, and it is **MET at
+3,840 / 3,840**.
+
+### 29.0 THE TIMING, FIRST, BECAUSE IT IS THE THING A READER WILL CHECK
+
+> **THE RUNTIME CLAUSE IS RE-REGISTERED AFTER IT WAS MISSED, ON THE POPULATION
+> THAT MISSED IT.**
+
+The order of events is: §5/§6 registered the runtime clause at **0**; the T12
+capture read **1** (§9.x, `fz2e/509069`) and C-3 scored MISSED; the T13
+re-capture read **2** (§14.1, §14.4); the current corpus reads **2** again
+(§21.6, §22, and every `fz2_bars.json` since); and only then was this amendment
+written.  It is the shape `ucore_provenance.md` §64.1 warns about, and nothing
+below hides behind the fact that it is numbered.
+
+The one protection that A-5 had and this amendment does **not** need: A-5
+re-registered a *threshold*, so a disjoint validation population was required
+before its MET could be a ratchet (§16.2, discharged at §28).  A-11
+re-registers a *predicate*, and the replacement predicate's non-vacuity is
+demonstrated on **`t30-brkem`, a population disjoint from this corpus by
+construction** (§29.5) — the same discipline, discharged in the same sitting
+rather than deferred.
+
+### 29.1 WHY IT IS DEFENSIBLE ANYWAY — THE OLD CLAUSE IS UNMEETABLE BY CONSTRUCTION
+
+This is a mechanism argument, not an inconvenience argument.
+
+The generation clause scrubs forbidden `0F xx` pairs out of `optable.CODE_SPANS`
+**at compose time**.  The image then RUNS.  A random `MEMW` into the code region
+writes one byte, at an arbitrary address, at an arbitrary alignment, **after the
+scrub has run** — and a `0F` already in the region plus a newly-written second
+byte (or a newly-written `0F` beside a byte already there) is a `0F xx` pair the
+scrub never saw and structurally could not have seen.  §6's own C-3 row says
+this in advance: *"the generation clause alone cannot see a pair a runtime write
+creates"*.
+
+So the runtime clause is not a bar on the generator.  **It is a bar on the
+part**, and it asks the part not to do a thing the corpus deliberately gives it
+the means to do — raw's whole-image mode writes into the code region by design,
+and §5's own E-1b arithmetic budgets **9.7 `MEMW` into that region per run** on
+raw seeds.  A clause that a correctly-built corpus is expected to violate is not
+a bar; it is a prediction, and it was falsified twice.
+
+**What the capture-side clause exists FOR is the other thing**: 8080/BRKEM is
+DEFERRED BY USER DECISION, so an entry must be *seen* and *named*, never
+silently scored.  That is D9's binding capture-side clause, and it is what the
+replacement registers.
+
+### 29.2 THE TWO SEEDS, READ OFF THE ARTIFACT — AND **A CORRECTION THE TASK BRIEF DOES NOT CARRY**
+
+Read from `sw/testdata/campaigns/fz2e/results.jsonl` at this commit, not from
+recall.  There are **2** and they are both in the enriched population:
+
+| seed | tier | `ps3_8080` | `ps3_8080_core` | **`arch_ok`** | `mech` | verdict | `bad_rows` |
+|---|---|---|---|---|---|---|---|
+| `fz2e/509069` | soup | **true** | true | **true** | `REACHED` | `FUNCTIONAL` (`func:R@94`) | 1,126 |
+| `fz2e/521059` | raw | **true** | true | **true** | `REACHED` | `KNOWN_ACCEPTED` (`open_bus`) | 2,814 |
+
+`fz2c` (census) carries **0**.  Neither seed has `has_brkem`, and both have
+`no8080: true` at generation, so both pairs were created at RUNTIME — §14.4's
+reading, unchanged.  (§22.x already records that §14.4's second seed was
+`fz2e/534020` and this capture's is `fz2e/521059`; that observation stands and
+is not re-opened.)
+
+**THE DETECTOR IS WORKING ON BOTH.**  Both carry `ps3_8080` **true**.  The
+brief's first requirement is met on the artifact.
+
+**THE BRIEF'S SECOND REQUIREMENT CONTAINS A STATEMENT THAT THE ARTIFACT
+REFUTES, AND IT IS REPORTED HERE RATHER THAN QUIETLY DROPPED.**  The brief
+defines *discarded* as *"every such seed is dispositioned by that class (enters
+no rate's numerator, per the existing E-1 arithmetic which computes over the
+full stratum)"*.  Against `sw/fz2_w1.py`'s C-1 block:
+
+* E-1's numerator is `ok = sum(1 for r in sel if r.get("arch_ok"))` — **seeds
+  that REACHED the terminator** — taken over the full stratum `sel`.
+* The disposition set `_d3 = arch_restart or ps3_8080 or wrote_term` is
+  consulted **only** on `bad = [r for r in sel if not r.get("arch_ok")]`.  It
+  feeds E-1c (the UNDISPOSITIONED count) and it feeds **nothing else**.
+* **Both `ps3_8080` seeds have `arch_ok: true`.**  Both are inside a scored
+  stratum (`fz2e/509069` stratum 21, soup; `fz2e/521059` stratum 33, raw).
+  Therefore **both are in E-1's `reached` numerator, for both tiers**, and
+  `_d3` is never asked about either of them.
+
+**Nothing in the existing arithmetic discards a runtime 8080 entry that
+DUMPED.**  The disposition machinery was built to explain a *non-dump*; these
+two seeds dumped.  The brief's parenthetical is therefore not a description of
+the existing arithmetic — it is a *proposal to change it* — and it cannot be
+both, so this amendment does not pretend otherwise.
+
+### 29.3 THE CLAUSE AS RE-REGISTERED — THREE NAMED COMPONENTS, EACH COMPUTED
+
+C-3 = **generation clause (unchanged)** AND **runtime clause (A-11)**, where the
+runtime clause is the conjunction of:
+
+| id | text | teeth |
+|---|---|---|
+| **R1 — DETECTED** | over **every retained capture in both campaign ids**, the socket-leg predicate `fuzz_campaign._ps3_8080(real, line.win)` recomputed off the banked rows **agrees with the banked `ps3_8080` column**: 0 disagreements.  And the column is present on all 3,840 lines (`ps3_scoreable`) | **YES.**  An independent recomputation from rows.  A detector that silently stopped firing, or a column that stopped being written, fails here |
+| **R2 — DISPOSITIONED BY THE CLASS** | **0** `ps3_8080` seeds counted UNDISPOSITIONED by C-1's arithmetic | **NO — THIS IS A TAUTOLOGY OF THE CODE AND IS DECLARED AS ONE.**  `ps3_8080` is a term of `_d3`, so a `ps3_8080` seed can never be undispositioned.  It is computed and reported for completeness and it is worth **nothing** as evidence.  Saying so is the point |
+| **R3 — IN NO SCORED RATE'S NUMERATOR** | **0** `ps3_8080` seeds inside a scored stratum with `arch_ok` true, i.e. none in E-1's `reached` count | **YES.**  This is the brief's parenthetical taken literally, and it is the only component with teeth on *discard* |
+
+### 29.4 THE READING IS CHOSEN **AGAINST** CONVENIENCE, AND THE VALUES ARE ALREADY KNOWN
+
+This amendment is written after the three components were measured, so it
+registers no prediction and claims none.  **The values are stated here, before
+the rescore, so that the choice of reading can be audited against them:**
+
+```
+R1  0 disagreements over 736 retained captures   (509 fz2c + 227 fz2e)
+R2  0 undispositioned ps3_8080 seeds             (tautological)
+R3  2 ps3_8080 seeds in E-1's reached numerator  (fz2e/509069, fz2e/521059)
+```
+
+* Gate on **{R1, R2}** only — dropping the brief's parenthetical — and C-3 reads
+  **MET**.
+* Gate on **{R1, R2, R3}** — the brief's text taken whole — and C-3 reads
+  **MISSED**.
+
+**THE GATE IS {R1, R2, R3}.**  The reasons, in order:
+
+1. The brief says, of the two seeds, *"if either is NOT discarded, that is a
+   finding and the new clause is MISSED, not MET"*.  R3 is the only component
+   under which "NOT discarded" can be true of anything, so dropping it would
+   make that sentence unreachable.
+2. Dropping R3 **after** measuring it at 2 would be choosing a predicate on the
+   data that decides it — the §64.1 pattern, in the same sitting the amendment
+   invokes §64.1 against the old clause.
+3. {R1, R2} alone is close to vacuous on this corpus: R2 is a tautology and R1
+   is a self-consistency check.  A detect-and-discard clause with no discard
+   component is a detect clause.
+
+**The stricter reading is the one that fails, and it is taken for that reason,
+not in spite of it.**
+
+### 29.5 THE NON-VACUITY DEMONSTRATION — RUN, WITH ITS DENOMINATORS
+
+`python3 sw/fz2_a2_replay.py`, the O-1 / A-2 control, offline, reading only
+checked-in captures.  The detector under A-2's chosen form (**socket leg, T1,
+`CODE`**):
+
+| population | n | fires | what it shows |
+|---|---|---|---|
+| **`t30-brkem`** — `timed_fuzz.native_exclusion`'s own 8080 bank, **disjoint from this corpus** | 116 pairs | **87 / 116** | the predicate still detects genuine 8080 entry.  **This is the live-detector proof** |
+| **CONTROL** — 380 `wr1` + 2 `fz2c-prereg-A1-archive` archived board pairs, no known 8080 entry | 382 pairs | **99 / 382** | it is not a constant-false predicate off the brkem bank either |
+| **this corpus, recomputed off retained rows** (R1) | 736 retained | **2** | it fires in-corpus, and on exactly the seeds the lines name |
+
+The tool's own falsifier block reports `PASS: 0 failure(s)` and additionally
+reproduces O-1: the **core** leg at T1 fires **116/116** and **382/382** (fires
+on everything), and at T2 fires **0/116** (detects nothing) — which is why A-2
+put the clause on the socket leg alone and why neither core-leg form could carry
+a detect-and-discard clause.
+
+### 29.6 WHAT A-11 CHANGES IN THE TREE
+
+1. **`docs/notes/fz2_corpus_prereg_2026-08-08.md`** — this section.  §6's C-3
+   row is superseded **in its runtime clause only**, by the note appended
+   below it; its generation clause is untouched.
+2. **`sw/fz2_w1.py`**, C-3's block only — the `registered` string and the
+   three measured components.  **No other bar's code is touched**, and E-1's
+   arithmetic is **NOT** edited: R3 *reports* that two seeds are in the
+   numerator, it does not remove them.  Removing them would move C-1, which
+   this sitting is not authorised to do.
+3. **`sw/testdata/fz2/fz2_bars.json`** — regenerated.  Registered leaf-diff:
+   **only `ts` and leaves under `bars["C-3"]` may move.**
+
+### 29.7 WHAT IS **NOT** DECIDED HERE, AND BELONGS TO THE COORDINATOR
+
+**Whether a `ps3_8080` seed that DUMPED should be removed from E-1's numerator**
+is a decision about a registered bar, taken after seeing data, and it is not
+taken in a patch.  It would move C-1's four rates and this sitting's leaf-diff
+gate forbids that.  It is named, measured (**2 seeds, one per tier**), and left
+open — the §26.3 habit.
+
+**And the sharper form of the same question, stated because a reader will reach
+it anyway**: `fz2e/509069` is banked `FUNCTIONAL` with **1,126** divergent rows
+and signature `8cb79b8ba571898b`.  If it entered 8080 mode, that divergence is a
+**deferred-feature** divergence.  Nothing in the corpus currently keeps it out
+of the regression bank on that ground.
