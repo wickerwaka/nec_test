@@ -4495,3 +4495,211 @@ measurement tool's output and is on no bar's path — `cmd_bars` does not read i
 The two files this sitting wrote are `docs/notes/fz2_corpus_prereg_2026-08-08.md`
 and `sw/fz2_w1.py`, plus the artifact `sw/testdata/fz2/fz2_bars.json` it
 regenerates.
+
+---
+
+## §31 AMENDMENT A-12 — THE COORDINATOR'S RULING ON §29.7: A RUNTIME 8080 ENTRY IS **DISCARDED**, AND *DISCARDED* MEANS **OUT OF THE DENOMINATOR TOO**.  THE TIMING IS STATED FIRST, AND THE CELL MOVES ARE PRE-REGISTERED BELOW.
+
+**BY USER / COORDINATOR DECISION, 2026-08-09.**  Offline sitting: no board, no
+flash, no Quartus.  **Nothing in C-3's GENERATION clause is edited** — *0
+forbidden `0F xx` pairs on every composed image* stands character for character
+and is MET at 3,840 / 3,840.  **A-11's R1 and R2 are not edited either.**
+
+### 31.0 THE TIMING, FIRST, BECAUSE IT IS THE THING A READER WILL CHECK
+
+> **THIS AMENDMENT IS WRITTEN AND COMMITTED BEFORE THE RESCORE, AND IT
+> PRE-REGISTERS EVERY CELL IT EXPECTS TO MOVE (§31.3).**
+
+The order of events is: A-11 (§29) re-registered C-3's runtime clause as
+R1 ∧ R2 ∧ R3 and **named R3's repair as a coordinator decision it would not take
+in a patch** (§29.7), because taking it moves C-1's four rates and that sitting's
+own leaf-diff gate forbade C-1 moving; §30 scored the clause and it read
+**MISSED on R3, at 2 seeds**; the coordinator then ruled; and this section is
+that ruling, written before the arithmetic is changed.
+
+**What is NOT protected by that order, and is said plainly**: R3's repair is
+being taken *after* R3 was measured at 2, and taking it will make C-3 read MET.
+That is the `ucore_provenance.md` §64.1 shape.  Three things are done about it
+rather than around it:
+
+1. **The cell moves are pre-registered here, before the run** (§31.3), so the
+   rescore is checkable against a number written down first.  A miss is
+   reported as a miss.
+2. **R3′ is written so that it can still fail** (§31.4), and exactly which of
+   its components is a tautology of the code is declared, in R2's idiom.  A
+   discard clause whose every component is true by construction is a detect
+   clause with a longer name.
+3. **The ruling is not "drop R3"** — the reading that would have made C-3 read
+   MET by deletion (§29.4's `{R1, R2}`) is **still rejected**.  The clause keeps
+   three components and gains a fourth requirement (the bank).
+
+### 31.1 THE RULING, AND THE ONE PLACE IT GOES FURTHER THAN A-11 MEASURED
+
+**A `ps3_8080` seed is EXCLUDED.**  Out of every scored rate's **numerator AND
+denominator**, and out of the **promoted regression bank**, with the exclusion
+**printed, never silent**.
+
+A-11 measured R3 as *"0 `ps3_8080` seeds in E-1's `reached` numerator"* —
+numerator only — and the coordinator **rejects that reading as the repair**:
+removing a seed from the numerator while leaving it in the denominator
+*penalises a rate for a seed the rate is not allowed to count*.  Under it, the
+enriched soup rate would have read 1,423 / 1,440 = 98.82 % — a fall of 0.07
+points caused entirely by the bookkeeping of a seed nobody claims is scoreable.
+
+The governing precedent is the campaign's own **excuse precedent**: the scored
+population is a property of the capture, and an 8080-mode capture is not a
+member of it.  8080/BRKEM is **DEFERRED BY USER DECISION 2026-08-05** — *not to
+be tested or considered until a later campaign* — so a capture in which the part
+entered 8080 mode is not evidence about the population this corpus scores, in
+either direction.  It is not a success and it is not a failure; **it is not a
+member.**
+
+### 31.2 THE ARITHMETIC, EXACTLY WHERE IT CHANGES — ONE PREDICATE, ONE PLACE
+
+`sw/fz2_w1.py`, `cmd_bars`, C-1's per-tier loop.  The stratum selection `sel`
+gains one filter:
+
+```
+sel_all = [ ... every line in a registered stratum of this pop/tier ... ]
+sel     = [r for r in sel_all if not r.get("ps3_8080")]      # A-12
+```
+
+and `ok` / `bad` / `_d3` / the stall and long-insn classes are all computed over
+`sel` exactly as before.  **That is the whole change to the arithmetic.**  Three
+consequences, each of which is a fact about this corpus and is checked in §31.3:
+
+* **Nothing in E-1c moves.**  Both seeds have `arch_ok` **true**, so neither was
+  ever in `bad`, so no disposition count and no UNDISPOSITIONED count can move.
+  C-1 stays MISSED on E-1c, which is what it was missed on before.
+* **`fz2c` cannot move at all.**  The census population carries **0**
+  `ps3_8080` lines (§29.2, re-read off the artifact for this section).
+* **The A-6 `mech` census keeps counting them.**  `mech_census`,
+  `mech_undispositioned` and the P3 self-check are computed over `sel_all`, NOT
+  over `sel`.  A census that stopped counting a discarded seed would hide it,
+  and the ruling says *printed, never silent*.  The discarded seeds stay visible
+  in the census and leave only the RATE.
+
+### 31.3 THE PRE-REGISTERED CELL MOVES — WRITTEN BEFORE THE RESCORE IS RUN
+
+Derived from `sw/testdata/campaigns/fz2{c,e}/results.jsonl` at `3ce18eb469`, by
+the same predicate the code will use.  **These are the values the rescore must
+produce; anything else is a MISS and is reported as one.**
+
+| `bars["C-1"].measured.per_tier` cell | before | **after** |
+|---|---|---|
+| `census/soup` `n` · `reached` · `pct` | 480 · 473 · 98.54 | **unchanged, all three** |
+| `census/raw` `n` · `reached` · `pct` | 480 · 403 · 83.96 | **unchanged, all three** |
+| `enriched/soup` `n` | 1440 | **1439** |
+| `enriched/soup` `reached` | 1424 | **1423** |
+| `enriched/soup` `pct` | 98.89 | **98.89** (1423/1439 = 98.8881 %) |
+| `enriched/raw` `n` | 1440 | **1439** |
+| `enriched/raw` `reached` | 1213 | **1212** |
+| `enriched/raw` `pct` | 84.24 | **84.23** (1212/1439 = 84.2251 %) |
+| every `dispositioned*`, `undispositioned*`, `stalled`, `long_insn` cell, all four tiers | — | **unchanged** |
+| `undispositioned` (top level) | 27 | **27** |
+| `undispositioned_3class` · `_4class` · `stalled_total` · `long_insn_total` | — | **unchanged** |
+| `mech_census` · `mech_undispositioned` · `mech_selfcheck` · `classified_from*` | — | **unchanged** (§31.2, computed over `sel_all`) |
+| **NEW** `per_tier.*.excluded_ps3_8080` | absent | **0 · 0 · 1 · 1** (census/soup, census/raw, enriched/soup, enriched/raw) |
+| **NEW** `per_tier.*.n_incl_excluded` | absent | **480 · 480 · 1440 · 1440** |
+| **NEW** `excluded_ps3_8080_total` | absent | **2** |
+| `bars["C-1"].verdict` | `MISSED (rate clauses VALIDATED …)` | **byte-identical** — both rates still clear their bars (98.89 ≥ 90.0, 84.23 ≥ 75.0) and E-1c is still 27 |
+
+| other bars | before | **after** |
+|---|---|---|
+| `bars["C-3"].verdict` | `MISSED` | **`MET`** — *if and only if* R1, R2 and R3′ all hold; the run reports what it reads |
+| `bars["C-11"].measured.replayed` | 623 | **621** |
+| `bars["C-11"].verdict` | `MET` | **`MET`** — 621 ≤ 3,500, census still 480 seed-for-seed, `overlap` still 0 |
+| `pops` (the three decompositions) | — | **unchanged**, see §31.6 |
+| **`FZ2 BARS`** | 8/11 MET, NOT MET C-1, C-3, C-6 | **9/11 MET, NOT MET C-1, C-6** |
+
+**REGISTERED LEAF-DIFF**: the only leaves that may move are `ts`, leaves under
+`bars["C-3"]`, the C-1 cells named above, and `bars["C-11"].measured.replayed`
+plus C-11's new exclusion leaves.  Any other moved leaf is a defect in this
+patch and is reported.
+
+### 31.4 R3′ AS RE-REGISTERED — AND WHICH PART OF IT IS A TAUTOLOGY
+
+R3 becomes **R3′ — DISCARDED**, and it is the conjunction of three computed
+things.  Their teeth are declared individually, because "detected and
+discarded" is worth nothing if the discard half cannot fail:
+
+| component | what it computes | teeth |
+|---|---|---|
+| **R3′a — OUT OF THE RATES** | for every `ps3_8080` line in a registered stratum: it is absent from that tier's `n` **and** from its `reached`, checked by recomputing both counts a second way (`n_incl_excluded − excluded_ps3_8080 == n`, and the per-tier excluded count equals the number of `ps3_8080` lines in that tier) | **PARTLY TAUTOLOGICAL, AND SAID SO.**  That the filtered list contains no filtered element is true by construction.  What is NOT: the two counts are produced by different expressions, so a filter applied in one tier's loop and not another's, or applied to `ok` and not to `n`, fails here |
+| **R3′b — OUT OF THE BANK** | every `ps3_8080` seed that has a file under `tests/v30/fuzz_bank/<cid>/seeds/` is named in that bank's `manifest.json` `excluded_seeds`, with a reason; and **no** banked file is excluded that the campaign results do not show `ps3_8080` for | **YES — THIS IS THE COMPONENT WITH REAL TEETH.**  It is a LIST checked against the ARTIFACT, in both directions.  A re-promotion that banks a new 8080 seed fails it; an over-broad exclusion list fails it |
+| **R3′c — PRINTED** | the exclusion is present in the artifact as a counted, per-tier leaf and on `cmd_bars`' own stdout | it cannot fail silently, which is the whole of what "never silent" buys |
+
+**R1 and R2 are UNCHANGED in text and in code.**  R2 remains declared
+TAUTOLOGICAL and worth nothing; A-12 does not quietly promote it now that it is
+convenient.
+
+### 31.5 THE BANK — RETIREMENT BY STATUS, ONE LEVEL DOWN
+
+Both seeds are **banked today** (checked, not recalled):
+`tests/v30/fuzz_bank/fz2e/seeds/soup_509069_e6e5f2c9b2ec.json.gz` and
+`raw_521059_17de21d60cf3.json.gz` — the first promoted `functional`, the second
+under the `rule_first50:open_bus` rule.
+
+**Nothing is deleted and nothing is moved.**  `sw/bank_status.py` gains the
+per-seed form of the mechanism it already implements per campaign: a
+`manifest.json` key, `excluded_seeds`, naming the file, the seed, the reason and
+the ledger entry.  `bank_status.seed_paths()` — the one predicate every consumer
+computes its population from — drops those files, counts them, and
+`dropped_note()` names them on one loud line with the flag that brings them
+back (`--include-excluded`).  This is the INV-1 property restated: *a predicate
+computed from the artifact cannot drift away from what it describes.*
+
+**It is filed as `EXC-1` in `docs/notes/invalidation_ledger.md`, under its own
+heading**, because it is neither of the two classes already there: nothing is
+wrong with the captures (so it is not an INV) and no better instrument replaced
+them (so it is not a SUP).  They are true silicon of a **deferred feature**.
+
+### 31.6 WHAT IS DELIBERATELY **NOT** DONE, WITH THE NUMBERS IT WOULD HAVE MOVED
+
+1. **`fuzz_bank.promote` is NOT given a `ps3_8080` filter.**  It is a shared
+   module and a silent filter there would change what every future campaign
+   banks, invisibly.  The guard taken instead is **R3′b, which FAILS LOUDLY** if
+   a promotion ever banks an 8080 seed without excluding it.  A falsifier beats
+   a filter.
+2. **The `pops` block — the three decompositions — is NOT filtered.**  It is a
+   diagnostic decomposition, not a scored rate; no bar reads it; and §31.3's
+   leaf-diff forbids it moving.  **Reported so that it is not hidden**: had the
+   exclusion been applied there too, `enriched.captured` would read 2878 (not
+   2880), `rows_exact_mean_pct` **94.54** (not 94.48), `arch_exact_mean_pct`
+   **88.67** (not 88.61) and `unscoreable_total` **272** (not 273) —
+   `fz2e/521059` carries `arch_sim_ok: false`.  Census is identical either way.
+   **If the coordinator wants the decompositions filtered too, that is a further
+   ruling and it moves those four leaves.**
+3. **C-11's registered clause text is NOT edited.**  The bar gains measured
+   leaves only.  Its third clause is about wall time and 621 ≤ 3,500 as surely
+   as 623 did.
+4. **No capture, no `chip_rows`, no result line is edited or removed.**  The two
+   seeds keep their rows, their signatures and their entries in
+   `results.jsonl`; `fz2e/509069` keeps `sig 8cb79b8ba571898b` and its 1,126
+   divergent rows, and they stay findable.
+
+### 31.7 WHAT A-12 CHANGES IN THE TREE
+
+1. **`docs/notes/fz2_corpus_prereg_2026-08-08.md`** — this section.  §29.3's R3
+   row is superseded by §31.4's R3′; §29.7's open decision is CLOSED by §31.1.
+2. **`docs/notes/invalidation_ledger.md`** — the `EXC-1` entry.
+3. **`sw/bank_status.py`** — `excluded_seeds` / `excluded_of()`, the
+   `include_excluded` parameter on `seed_paths()`, and a `dropped_note()` that
+   tells the two exclusion classes apart by name and by flag.
+4. **`sw/check_fuzz_bank.py`** — `--include-excluded`, passed through.  The loud
+   line it already prints now carries the per-seed class too.
+5. **`tests/v30/fuzz_bank/fz2e/manifest.json`** — two `excluded_seeds` records.
+   **No seed file, sig index or result shard is touched.**
+6. **`sw/fz2_w1.py`** — C-1's `sel` filter and its four new counted leaves;
+   C-3's R3 → R3′; C-11's exclusion leaves.
+7. **`sw/testdata/fz2/fz2_bars.json`** — regenerated, against §31.3.
+
+### 31.8 THE GATES THIS SITTING IS REGISTERED AGAINST
+
+`python3 sw/fz2_w1.py lint` PASS · `python3 sw/test_fuzz_classify.py` PASS ·
+`python3 sw/test_fuzz_accept.py` PASS · `python3 sw/check_fuzz_bank.py` **PASS
+with the exclusion printed** (and its BEFORE run recorded, so "stays PASS" is a
+comparison and not an assertion) · the leaf-diff of §31.3 · `bars` run twice,
+byte-equal apart from `ts` · and **`python3 sw/fz2_a2_replay.py` re-run** — the
+detector must still fire on `t30-brkem`, where 8080 entry genuinely exists.  A
+discard clause is only as good as the detector under it.
