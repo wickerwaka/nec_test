@@ -1914,10 +1914,65 @@ assign eu_post_hold = (vector_early && vector_tail && !eu_direct_fetch &&
                       (row_post_now && (rdq_n == 2'd2) && !eu_slot_busy);
 assign eu_halt_irq = irq_halt_entry;
 assign eu_vector_post = eu_post && vector_first;
+// P4'-space -- THE GHOST READ'S SPACE IS THE DECODE STANDING AT ITS OWN T1.
+//
+// The 8F mod==3 ghost is the one cycle in this machine that reaches the bus
+// with no decode of its own behind it: the register-form POP has no memory
+// operand, and the row that posts it (0058) belongs to the 8F, whose SR field
+// is memory.  `acc_io` is `row_io`, a MICRO-ROW field, so the ucore announces
+// MEMR and only reaches IOR at pop+2, once the SUCCESSOR's own row is standing.
+// MEASURED on all four seats (fz2_p4p5_results sec.1): `eu_bs` is MEMW at the
+// ghost's display AND at its T1, and first reads IOR at pop+2.
+//
+// Silicon announces the space from the decode standing at the cycle's OWN T1,
+// which is the successor opcode at pop+0, and the only pop+0 carrier here is
+// `q_byte`.  The CLASS it is read with is not a new one: `row_io` above is
+// `(e_sr == IO) && (xop == F || xop == 6)`, and those two `xop` values ARE the
+// die's I/O class -- E4-E7 / EC-EF and 6C-6F.  So the space rail gets that same
+// class one clock earlier, off the byte being popped, qualified by the cycle's
+// DIRECTION: the announcement is a READ, so the pop+0 opcode's own direction
+// bit (bit 1, the 8086/V30 encoding's `d`) must be CLEAR.
+//
+// MEASURED, chip IOR / core MEMR at the fork on all four:
+//   fz2c/410028 @2994 successor ED   fz2e/520066 @1249 successor EC
+//   fz2e/527055 @655  successor 6D   fz2e/528030 @423  successor EC
+// and `6F`/OUTM -- the identical `xop == 6` with bit 1 SET -- is the control:
+// silicon says MEMR there, and `!q_byte[1]` says so without naming an opcode.
+//
+// THE ADDRESS IS DELIBERATELY NOT TOUCHED, AND THAT IS A MEASUREMENT.  Routing
+// this through `acc_io` would also strip the segment from `acc_phys_base`, and
+// silicon does NOT: on three of the four seats the chip's ghost T1 address
+// ALREADY AGREES with the core's (4070e, f79b0, fd93c) while the status
+// disagrees.  On this cycle the space rail reaches the STATUS encoder and not
+// the address adder.  (`fz2e/520066` also forks on the address; that half is
+// the ghost-address cone and is not this landing's.)
+//
+// `q_ripe` is the same guard the pop+0 WIDTH rail uses one block up: with no
+// ripe byte there is no decode standing, and the row's own space wins.  The
+// PLA lookup is declared here rather than shared with that block so that this
+// landing and the ghost-address work stay textually independent.
+//
+// !! THE OVER-FIRE IS NAMED, NOT FITTED AROUND.  `xop == F` also selects `F0`
+// (LOCK) and `xop == 6` also selects `F9` (STC), both with bit 1 clear.  The
+// ordinary path excludes them with the micro-row's `e_sr`, WHICH DOES NOT
+// EXIST AT pop+0 -- there is no ROM row yet.  Taking the PLA class unqualified
+// is therefore a PREDICTION, not a fit, and an F0/F9 exclusion is deliberately
+// NOT written.
+//
+// FALSIFIER: (a) a capture in which an 8F mod==3 ghost whose pop+0 successor
+// is an I/O READ opcode is announced MEMR by the chip; (b) one in which the
+// same ghost with an F0 or F9 successor is announced MEMR -- that refutes the
+// unqualified class and sends the predicate to a narrower carrier; (c) one in
+// which a 6E/6F successor makes the ghost IOR.
+// (docs/notes/fz2_w4_prereg_2026-08-10.md sec.2)
+wire [13:0] ghost_t1_pla = pla3_native(q_byte);
+wire ghost_space_io = ghost_read_stale_alu && q_ripe && !q_byte[1] &&
+                      ((pla3_xop(ghost_t1_pla) == 4'hF) ||
+                       (pla3_xop(ghost_t1_pla) == 4'h6));
 assign eu_bs   = vector_early ? BS_MEMR
                : pr_active   ? BS_MEMR
                : row_is_inta ? BS_INTA
-               : row_is_read ? (acc_io ? BS_IOR : BS_MEMR)
+               : row_is_read ? ((acc_io || ghost_space_io) ? BS_IOR : BS_MEMR)
                              : (acc_io ? BS_IOW : BS_MEMW);
 assign eu_addr = vector_early ? vector_phys_early
                : pr_active ? pr_phys : (row_is_inta ? 20'd0 : acc_phys);
