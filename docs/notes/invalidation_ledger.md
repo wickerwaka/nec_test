@@ -638,6 +638,70 @@ vacuous without anyone noticing.
 
 ---
 
+# EXCLUDED SEEDS — **NOT** INVALIDATIONS AND **NOT** SUPERSESSIONS
+
+**Opened 2026-08-09.** A third class, opened because filing it as either of the
+two above would say something untrue. An excluded seed's capture is **true
+silicon** (so it is not an INV) and **no better instrument replaced it** (so it
+is not a SUP). It is a true capture **of a feature this project has deferred**,
+and therefore not a member of the population any rate is computed over.
+
+| | INVALIDATION (INV-n) | SUPERSESSION (SUP-n) | **EXCLUSION (EXC-n)** |
+|---|---|---|---|
+| what is wrong with the capture | something | nothing | **nothing** |
+| named rig defect | required | NONE | **NONE** |
+| the predicate | `timed_fuzz.f46_invalidated` | `bank_status.is_superseded` | **`bank_status.excluded_of`, over the manifest** |
+| granularity | per capture | per campaign | **per seed** |
+| the disposition | out of every gate set, permanently | out of the DEFAULT replayed population; back with `--include-superseded` | **out of every scored rate's NUMERATOR AND DENOMINATOR, and out of the replayed bank; back with `--include-excluded`** |
+| what it says | this measurement was not of what we thought | a better instrument exists | **this is a true measurement of something we are not scoring** |
+
+## EXC-1 — THE TWO RUNTIME 8080 ENTRIES IN `fz2e`
+
+**Opened 2026-08-09, branch `fuzz-v2-on-relanding`. Status: EXCLUDED BY STATUS.
+No rig defect. Nothing moved, renamed or deleted.**
+
+| | |
+|---|---|
+| the seeds | **`fz2e/509069`** (soup, `FUNCTIONAL`, `sig 8cb79b8ba571898b`, 1,126 divergent rows) and **`fz2e/521059`** (raw, `KNOWN_ACCEPTED/open_bus`, 2,814 divergent rows) |
+| the files | `tests/v30/fuzz_bank/fz2e/seeds/soup_509069_e6e5f2c9b2ec.json.gz` and `raw_521059_17de21d60cf3.json.gz` — **exactly where they have always been, byte for byte** |
+| what changed | `tests/v30/fuzz_bank/fz2e/manifest.json` gained an `excluded_seeds` list. **No seed file, sig index, result shard, `chip_rows` or `results.jsonl` line was touched.** |
+| the argument | `fz2_corpus_prereg_2026-08-08.md` **§31** (AMENDMENT A-12), the coordinator's ruling on §29.7 |
+| the tree it was set on | `as_of_commit` `20816b9462` |
+
+### WHY
+
+Both seeds entered **8080 mode at RUNTIME** — a `MEMW` into the code region
+manufactured a `0F xx` pair after the compose-time scrub had run (§29.1), and
+`fuzz_campaign._ps3_8080` detected it on both. **8080/BRKEM is DEFERRED BY USER
+DECISION 2026-08-05**, *not to be tested or considered until a later campaign*.
+A capture in which the part entered a deferred mode is evidence about neither
+side of the ledger: it is not a success and it is not a failure, **it is not a
+member**. Scoring one — in a numerator, in a denominator, or in a regression
+bank that fails a future landing on a deferred feature's divergence — is what
+this entry stops.
+
+### WHICH RIG DEFECT
+
+# **NONE.**
+
+The captures are true silicon, taken from the socket, and they stay true. Every
+row in them remains readable and re-scoreable; `--include-excluded` replays them
+in full.
+
+### THE FALSIFIER
+
+**FALSIFIED IF** a `ps3_8080` seed is ever found inside a scored rate or inside
+the replayed bank while this entry stands — which is exactly what C-3's **R3′b**
+computes, in both directions, on every `fz2_w1 bars` run: every `ps3_8080` seed
+with a banked file must be named in `excluded_seeds`, **and** no banked file may
+be excluded that the campaign results do not show `ps3_8080` for. A list that
+drifts away from the artifact it describes fails, loudly.
+
+**ALSO FALSIFIED IF** any consumer drops an excluded seed **without printing the
+exclusion**.
+
+---
+
 ## AUDITED AND **NOT** INVALIDATED
 
 Recorded because an unexamined suspicion is indistinguishable from an

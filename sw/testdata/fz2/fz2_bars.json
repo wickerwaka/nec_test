@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-10T00:24:56Z",
+ "ts": "2026-08-10T00:49:02Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -12,6 +12,8 @@
       "n": 480,
       "reached": 473,
       "pct": 98.54,
+      "excluded_ps3_8080": 0,
+      "n_incl_excluded": 480,
       "dispositioned": 6,
       "dispositioned_4class": 6,
       "dispositioned_3class": 0,
@@ -25,6 +27,8 @@
       "n": 480,
       "reached": 403,
       "pct": 83.96,
+      "excluded_ps3_8080": 0,
+      "n_incl_excluded": 480,
       "dispositioned": 72,
       "dispositioned_4class": 59,
       "dispositioned_3class": 4,
@@ -35,9 +39,11 @@
       "undispositioned_3class": 73
      },
      "enriched/soup": {
-      "n": 1440,
-      "reached": 1424,
+      "n": 1439,
+      "reached": 1423,
       "pct": 98.89,
+      "excluded_ps3_8080": 1,
+      "n_incl_excluded": 1440,
       "dispositioned": 15,
       "dispositioned_4class": 10,
       "dispositioned_3class": 1,
@@ -48,9 +54,11 @@
       "undispositioned_3class": 15
      },
      "enriched/raw": {
-      "n": 1440,
-      "reached": 1213,
-      "pct": 84.24,
+      "n": 1439,
+      "reached": 1212,
+      "pct": 84.23,
+      "excluded_ps3_8080": 1,
+      "n_incl_excluded": 1440,
       "dispositioned": 207,
       "dispositioned_4class": 152,
       "dispositioned_3class": 20,
@@ -93,7 +101,8 @@
      "rows": 22,
      "mech": 58,
      "mech_inconclusive": 20
-    }
+    },
+    "excluded_ps3_8080_total": 2
    },
    "verdict": "MISSED (rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw 80.83 %; \u00a716.2 / A-9)",
    "finding": null
@@ -127,8 +136,8 @@
    "finding": null
   },
   "C-3": {
-   "statement": "8080-free: the GENERATION clause unchanged, and the RUNTIME clause re-registered by A-11 to DETECTED AND DISCARDED",
-   "registered": "GENERATION (unchanged, A-11 does not edit it): 0 forbidden `0F xx` pairs on every composed image.  RUNTIME (A-11, prereg \u00a729.3): runtime 8080 entries are DETECTED AND DISCARDED, scored as R1 AND R2 AND R3 -- R1 0 disagreements between the banked `ps3_8080` column and the socket-leg predicate recomputed off retained rows; R2 0 `ps3_8080` seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no evidential weight); R3 0 `ps3_8080` seeds in E-1's `reached` numerator.  Non-vacuity is demonstrated beside this run on the disjoint `t30-brkem` bank by `sw/fz2_a2_replay.py` (\u00a729.5)",
+   "statement": "8080-free: the GENERATION clause unchanged, and the RUNTIME clause re-registered by A-11 to DETECTED AND DISCARDED, with A-12's ruling on what DISCARDED means",
+   "registered": "GENERATION (unchanged, neither A-11 nor A-12 edits it): 0 forbidden `0F xx` pairs on every composed image.  RUNTIME (A-11 \u00a729.3 as amended by A-12 \u00a731.4): runtime 8080 entries are DETECTED AND DISCARDED, scored as R1 AND R2 AND R3' -- R1 0 disagreements between the banked `ps3_8080` column and the socket-leg predicate recomputed off retained rows; R2 0 `ps3_8080` seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no evidential weight); R3' DISCARDED = (a) every `ps3_8080` seed out of its tier's NUMERATOR AND DENOMINATOR, recomputed a second way, (b) every banked `ps3_8080` seed named in its bank's `excluded_seeds` with a reason AND no over-exclusion in that class -- a list checked against the artifact in both directions, (c) the exclusion counted in C-1's own `measured` and printed on stdout.  Non-vacuity is demonstrated beside this run on the disjoint `t30-brkem` bank by `sw/fz2_a2_replay.py` (\u00a729.5)",
    "measured": {
     "bad_0f_pairs": 0,
     "seeds": 3840,
@@ -148,8 +157,8 @@
      "TAUTOLOGICAL": true,
      "ok": true
     },
-    "R3_no_rate_numerator": {
-     "in_reached_numerator": 2,
+    "R3_discarded": {
+     "in_scored_strata": 2,
      "seeds": [
       {
        "seed": "fz2e/509069",
@@ -157,7 +166,8 @@
        "stratum": 21,
        "verdict": "FUNCTIONAL",
        "bad_rows": 1126,
-       "mech": "REACHED"
+       "mech": "REACHED",
+       "arch_ok": true
       },
       {
        "seed": "fz2e/521059",
@@ -165,14 +175,32 @@
        "stratum": 33,
        "verdict": "KNOWN_ACCEPTED",
        "bad_rows": 2814,
-       "mech": "REACHED"
+       "mech": "REACHED",
+       "arch_ok": true
       }
      ],
-     "ok": false
+     "a_out_of_rates": {
+      "disagreements": 0,
+      "detail": [],
+      "c1_excluded_total": 2,
+      "PARTLY_TAUTOLOGICAL": true,
+      "ok": true
+     },
+     "b_out_of_bank": {
+      "banked_and_excluded": 2,
+      "banked_not_excluded": [],
+      "excluded_not_justified": [],
+      "ok": true
+     },
+     "c_printed": {
+      "c1_excluded_total": 2,
+      "ok": true
+     },
+     "ok": true
     }
    },
-   "verdict": "MISSED",
-   "finding": "A-11 / prereg \u00a729.2: the RUNTIME clause is MISSED on R3.  Both `ps3_8080` seeds have `arch_ok` true, so both are in E-1's `reached` numerator and C-1's disposition set `_d3` -- which is consulted only on the not-`arch_ok` residue -- is never asked about either.  THE DETECTOR IS WORKING (R1 0 disagreements); what is absent is any machinery that DISCARDS a runtime 8080 entry which DUMPED.  Whether to remove such a seed from E-1's numerator moves C-1's four rates and is a coordinator decision (\u00a729.7), not a patch."
+   "verdict": "MET",
+   "finding": null
   },
   "C-4": {
    "statement": "era",
@@ -1009,8 +1037,13 @@
      "enriched": 0
     },
     "total": 623,
-    "replayed": 623,
+    "replayed": 621,
     "all_banked_incl_superseded": 3865,
+    "excluded": {
+     "census": 0,
+     "enriched": 2
+    },
+    "replayed_incl_excluded": 623,
     "superseded_cids": [
      "mc1",
      "mc2",

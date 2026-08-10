@@ -1928,6 +1928,12 @@ def cmd_bars(a):
         }
 
     # ---- C-1: CONTAINMENT, the E-1 VALUE ----------------------------------
+    # Carried to C-3's R3' (A-12): the per-tier table and the exclusion total
+    # C-1 ACTUALLY computed, so R3' can check the discard a SECOND way instead
+    # of re-asserting the filter it is supposed to be auditing.  `None` when
+    # C-1 is NOT SCOREABLE, and R3' then reports itself unverifiable rather
+    # than passing on an absent check.
+    c1_m = c1_excl = None
     if not _need(allines, "wrote_term"):
         bar("C-1", "containment (E-1)",
             f"soup >= {E1['soup']} %, raw >= {E1['raw']} %, "
@@ -1968,11 +1974,34 @@ def cmd_bars(a):
         mech_all = Counter()
         mech_undisp = Counter()
         mech_p3 = {"arch_ok_vs_mech": 0, "stalled_vs_mech": 0, "absent": 0}
+        excl_total = 0
         for pop in POPS:
             for tier in TIERS:
-                sel = [r for r in lines[pop]
-                       if _stratum_of(CID[pop], r["k"]) is not None
-                       and STRATA[_stratum_of(CID[pop], r["k"])]["tier"] == tier]
+                sel_all = [r for r in lines[pop]
+                           if _stratum_of(CID[pop], r["k"]) is not None
+                           and STRATA[_stratum_of(CID[pop], r["k"])]["tier"] == tier]
+                # AMENDMENT A-12 (prereg §31), 2026-08-09 -- THE COORDINATOR'S
+                # RULING ON §29.7.  A `ps3_8080` seed is EXCLUDED: out of every
+                # scored rate's NUMERATOR **AND DENOMINATOR**, and out of the
+                # promoted bank, with the exclusion PRINTED, never silent.
+                #
+                # A-11's R3 measured "in no numerator" and the ruling REJECTS
+                # numerator-only removal: it would penalise a rate for a seed
+                # the rate is not allowed to count (§31.1 -- enriched soup would
+                # have read 1423/1440 = 98.82 %).  The governing precedent is
+                # the excuse precedent: the scored population is a property of
+                # the capture, and 8080/BRKEM is DEFERRED BY USER DECISION
+                # 2026-08-05, so an 8080-mode capture is not a member.  It is
+                # not a success and not a failure -- IT IS NOT A MEMBER.
+                #
+                # ONE PREDICATE, ONE PLACE.  Everything below -- `ok`, `bad`,
+                # `_d3`, the stall class, the long-insn class, E-1c -- is
+                # computed over `sel` exactly as before.  Neither excluded seed
+                # is in `bad` (both are `arch_ok`), so no disposition count and
+                # no UNDISPOSITIONED count can move; §31.3 pre-registers that.
+                sel = [r for r in sel_all if not r.get("ps3_8080")]
+                nexcl = len(sel_all) - len(sel)
+                excl_total += nexcl
                 ok = sum(1 for r in sel if r.get("arch_ok"))
                 bad = [r for r in sel if not r.get("arch_ok")]
                 def _d3(r):
@@ -1980,7 +2009,13 @@ def cmd_bars(a):
                                 or r.get("wrote_term"))
                 d3 = [r for r in bad if _d3(r)]
                 rest = [r for r in bad if not _d3(r)]
-                for r in sel:
+                # THE A-6 CENSUS KEEPS COUNTING THE EXCLUDED SEEDS -- `sel_all`,
+                # NOT `sel` (A-12 / §31.2).  A census that stopped counting a
+                # discarded seed would HIDE it, and the ruling says "printed,
+                # never silent".  The discarded seeds leave the RATE and stay
+                # in the census, so `mech_census`, `mech_undispositioned` and
+                # the P3 self-check do not move at all.
+                for r in sel_all:
                     mech_all[str(r.get("mech"))] += 1
                     if "mech" not in r:
                         mech_p3["absent"] += 1
@@ -2020,6 +2055,11 @@ def cmd_bars(a):
                 m[f"{pop}/{tier}"] = {
                     "n": len(sel), "reached": ok,
                     "pct": round(100.0 * ok / len(sel), 2) if sel else None,
+                    # A-12: both are kept permanently beside the rate, so what
+                    # the exclusion removed stays visible instead of absorbed --
+                    # the habit A-4 and A-7 established for their classes.
+                    "excluded_ps3_8080": nexcl,
+                    "n_incl_excluded": len(sel_all),
                     "dispositioned": disp5,
                     "dispositioned_4class": dispst,
                     "dispositioned_3class": disp, "stalled": nstall,
@@ -2029,6 +2069,13 @@ def cmd_bars(a):
                     "undispositioned_3class": len(bad) - disp}
         met = all(v["pct"] is not None
                   and v["pct"] >= E1[k.split("/")[1]] for k, v in m.items())
+        c1_m, c1_excl = m, excl_total
+        # R3'c: THE EXCLUSION IS PRINTED, not only banked in a JSON leaf.
+        per = " ".join(f"{k}:{v['excluded_ps3_8080']}"
+                       for k, v in sorted(m.items()))
+        print(f"== C-1: A-12 EXCLUDED {excl_total} `ps3_8080` seed(s) from "
+              f"every scored rate, NUMERATOR AND DENOMINATOR ({per})"
+              "  [EXC-1, prereg §31]")
         bar("C-1", "containment measured as TERMINATOR-REACHED (E-1's "
             "predicate), with the escape count kept as a diagnostic",
             f"soup >= {E1['soup']} %, raw >= {E1['raw']} %, per population "
@@ -2051,7 +2098,8 @@ def cmd_bars(a):
              "stalled_total": undisp3 - undisp4,
              "long_insn_total": undisp4 - undisp,
              "classified_from": dict(src),
-             "classified_from_long_insn": dict(src_li)},
+             "classified_from_long_insn": dict(src_li),
+             "excluded_ps3_8080_total": excl_total},
             _c1_verdict(met, undisp))
 
     # ---- C-2: the ARCH COLUMN IS NON-VACUOUS ------------------------------
@@ -2133,25 +2181,47 @@ def cmd_bars(a):
     #      detect-and-discard clause whose discard half is a tautology is the
     #      vacuity pattern this campaign has struck ten times.
     #
-    #   R3 IN NO SCORED RATE'S NUMERATOR -- 0 `ps3_8080` seeds inside a scored
-    #      stratum with `arch_ok` true, i.e. none in E-1's `reached` count.
-    #      This is the task brief's own gloss on "discarded", taken literally,
-    #      and it is the ONLY component with teeth on the DISCARD half.
+    #   R3' DISCARDED -- AMENDMENT A-12 (prereg §31), 2026-08-09, THE
+    #      COORDINATOR'S RULING ON §29.7.  A-11's R3 asked only that no
+    #      `ps3_8080` seed sit in E-1's `reached` NUMERATOR, and it read 2 and
+    #      C-3 was MISSED (§30).  The ruling is that such a seed is EXCLUDED --
+    #      out of every scored rate's numerator AND DENOMINATOR, and out of the
+    #      promoted bank, with the exclusion PRINTED.  Numerator-only removal is
+    #      REJECTED: it penalises a rate for a seed the rate is not allowed to
+    #      count.  R3' is that ruling, in three computed parts:
     #
-    # §29.2 IS A FINDING AGAINST THE BRIEF, AND IT IS REPORTED RATHER THAN
-    # DROPPED.  The brief glosses "discarded" as "enters no rate's numerator,
-    # PER THE EXISTING E-1 ARITHMETIC".  It is not a description of the existing
-    # arithmetic: E-1's numerator is `arch_ok` over the FULL stratum, `_d3` is
-    # consulted ONLY on the not-`arch_ok` residue and feeds E-1c alone, and BOTH
-    # `ps3_8080` seeds have `arch_ok` TRUE.  Nothing here discards a runtime
-    # 8080 entry that DUMPED.  R3 therefore REPORTS the two seeds; it does NOT
-    # remove them.  Removing them would move C-1's four rates, and that is a
-    # decision about a registered bar that belongs to the coordinator (§29.7).
+    #        R3'a OUT OF THE RATES -- every `ps3_8080` line in a registered
+    #             stratum is absent from that tier's `n` AND from its `reached`,
+    #             CHECKED A SECOND WAY: `n` and `reached` are recomputed here
+    #             from `sel_all` minus the `ps3_8080` lines and compared against
+    #             what C-1 actually wrote.  PARTLY TAUTOLOGICAL AND SAID SO --
+    #             that a filtered list holds no filtered element is true by
+    #             construction; that TWO expressions agree is not, so a filter
+    #             applied to `ok` but not to `n`, or in one tier's loop and not
+    #             another's, FAILS HERE.
+    #        R3'b OUT OF THE BANK -- BOTH DIRECTIONS, and this is the component
+    #             with real teeth.  Every `ps3_8080` seed with a file under
+    #             `tests/v30/fuzz_bank/<cid>/seeds/` must be named in that
+    #             bank's `manifest.json` `excluded_seeds` WITH A REASON; and no
+    #             file excluded in class `ps3_8080` may be one the campaign
+    #             results do not show `ps3_8080` for.  A LIST CHECKED AGAINST
+    #             THE ARTIFACT, which is the INV-1 property: a re-promotion that
+    #             banks a new 8080 seed fails, an over-broad list fails, and a
+    #             record naming a file that is not there fails.
+    #        R3'c PRINTED -- the exclusion exists as a counted per-tier leaf in
+    #             C-1's own `measured` and on this command's stdout.  It cannot
+    #             fail silently, which is all "never silent" buys.
     #
-    # THE GATE IS R1 AND R2 AND R3 -- the reading that FAILS.  §29.4: dropping
-    # R3 after measuring it at 2 would be choosing a predicate on the data that
-    # decides it, which is `ucore_provenance.md` §64.1 in the same sitting this
-    # amendment invokes §64.1 against the old clause.
+    # §29.2's FINDING AGAINST THE BRIEF STANDS AND IS NOT REWRITTEN: before
+    # A-12 nothing in the arithmetic discarded a runtime 8080 entry that DUMPED,
+    # because `_d3` is consulted ONLY on the not-`arch_ok` residue and both
+    # seeds are `arch_ok`.  A-12 is the machinery §29.2 said was absent.
+    #
+    # THE GATE IS R1 AND R2 AND R3' -- and §29.4's rejected reading STAYS
+    # rejected: the fix is not to DROP the discard component after measuring it
+    # at 2, which would be `ucore_provenance.md` §64.1, but to DO the discard.
+    # A-12 is nonetheless taken AFTER R3 was measured and it makes C-3 read MET;
+    # §31.0 states that timing first and §31.3 pre-registers every cell it moves.
     #
     # NON-VACUITY IS NOT ASSERTED HERE, IT IS DEMONSTRATED BESIDE THIS RUN by
     # `python3 sw/fz2_a2_replay.py` on the DISJOINT `t30-brkem` bank (§29.5).
@@ -2185,34 +2255,103 @@ def cmd_bars(a):
                 r1_detail.append({"seed": ref["seed"], "rows": got,
                                   "line": bool(ref.get("ps3_8080"))})
     r1_norows = len(allines) - r1_scored
-    # ---- R2 and R3
+    # ---- R2 (unchanged by A-12) and R3' (A-12 / prereg §31.4)
     r2_undisp = 0
-    r3_in_num = []
+    r3_seeds = []
+    ps3_n = Counter()             # ps3_8080 lines per "<pop>/<tier>"
+    ps3_ok = Counter()            # ... of which `arch_ok`
     for pop, r in ps3_lines:
         j = _stratum_of(CID[pop], r["k"])
         if j is None:
             continue
-        if r.get("arch_ok"):
-            r3_in_num.append({"seed": r["seed"],
-                              "tier": STRATA[j]["tier"], "stratum": j,
-                              "verdict": r.get("verdict"),
-                              "bad_rows": r.get("bad_rows"),
-                              "mech": r.get("mech")})
-        elif not (r.get("arch_restart") or r.get("ps3_8080")
-                  or r.get("wrote_term")):
+        key = f"{pop}/{STRATA[j]['tier']}"
+        ps3_n[key] += 1
+        ps3_ok[key] += bool(r.get("arch_ok"))
+        r3_seeds.append({"seed": r["seed"], "tier": STRATA[j]["tier"],
+                         "stratum": j, "verdict": r.get("verdict"),
+                         "bad_rows": r.get("bad_rows"), "mech": r.get("mech"),
+                         "arch_ok": bool(r.get("arch_ok"))})
+        if not r.get("arch_ok") and not (r.get("arch_restart")
+                                         or r.get("ps3_8080")
+                                         or r.get("wrote_term")):
             r2_undisp += 1
+    # ---- R3'a: the rates, RECOMPUTED A SECOND WAY from the lines
+    r3a_detail = []
+    for key in sorted(f"{pop}/{tier}" for pop in POPS for tier in TIERS):
+        pop, tier = key.split("/")
+        sel_all = [r for r in lines[pop]
+                   if _stratum_of(CID[pop], r["k"]) is not None
+                   and STRATA[_stratum_of(CID[pop], r["k"])]["tier"] == tier]
+        got = (c1_m or {}).get(key)
+        want = {"n": len(sel_all) - ps3_n[key],
+                "reached": sum(1 for r in sel_all if r.get("arch_ok"))
+                - ps3_ok[key],
+                "excluded_ps3_8080": ps3_n[key],
+                "n_incl_excluded": len(sel_all)}
+        if got is None or any(got.get(f) != v for f, v in want.items()):
+            r3a_detail.append({"tier": key, "want": want,
+                               "got": {f: (got or {}).get(f) for f in want}})
+    r3a_ok = (c1_m is not None) and not r3a_detail
+    # ---- R3'b: the BANK, both directions, list against artifact
+    r3b_missing, r3b_extra = [], []
+    for pop in POPS:
+        cid = CID[pop]
+        ps3_ks = {r["k"] for r in lines[pop] if r.get("ps3_8080")}
+        d = ROOT / "tests" / "v30" / "fuzz_bank" / cid / "seeds"
+        files = {q.name for q in d.glob("*.json.gz")} if d.exists() else set()
+        excl = bs.excluded_of(cid)
+        for name in sorted(files):
+            try:
+                k = int(name.split("_")[1])
+            except (IndexError, ValueError):                    # noqa: PERF203
+                continue
+            if k in ps3_ks and name not in excl:
+                r3b_missing.append({"cid": cid, "file": name, "k": k,
+                                    "why": "ps3_8080 seed is BANKED and NOT "
+                                           "excluded"})
+        for name, recx in sorted(excl.items()):
+            if recx.get("class") != "ps3_8080":
+                continue                    # a future EXC of another class
+            if name not in files:
+                r3b_extra.append({"cid": cid, "file": name,
+                                  "why": "excluded record names a file that is "
+                                         "not in the bank"})
+                continue
+            if int(name.split("_")[1]) not in ps3_ks:
+                r3b_extra.append({"cid": cid, "file": name,
+                                  "why": "excluded as `ps3_8080` but the "
+                                         "campaign results do not show it"})
+            if not (recx.get("reason") or "").strip():
+                r3b_extra.append({"cid": cid, "file": name,
+                                  "why": "excluded with no reason on the "
+                                         "record"})
+    r3b_banked_excluded = sum(1 for pop in POPS
+                              for x in bs.excluded_of(CID[pop]).values()
+                              if x.get("class") == "ps3_8080")
+    r3b_ok = not r3b_missing and not r3b_extra
+    # ---- R3'c: PRINTED, and counted where C-1 computes it
+    r3c_ok = (c1_m is not None and c1_excl == len(r3_seeds)
+              and all("excluded_ps3_8080" in v for v in c1_m.values()))
     scoreable = _need(allines, "ps3_8080")
-    r1_ok, r2_ok, r3_ok = (r1_dis == 0), (r2_undisp == 0), (not r3_in_num)
+    r1_ok, r2_ok = (r1_dis == 0), (r2_undisp == 0)
+    r3_ok = r3a_ok and r3b_ok and r3c_ok
+    met = pairs == 0 and r1_ok and r2_ok and r3_ok
     bar("C-3", "8080-free: the GENERATION clause unchanged, and the RUNTIME "
-        "clause re-registered by A-11 to DETECTED AND DISCARDED",
-        "GENERATION (unchanged, A-11 does not edit it): 0 forbidden `0F xx` "
-        "pairs on every composed image.  RUNTIME (A-11, prereg §29.3): runtime "
-        "8080 entries are DETECTED AND DISCARDED, scored as R1 AND R2 AND R3 "
-        "-- R1 0 disagreements between the banked `ps3_8080` column and the "
-        "socket-leg predicate recomputed off retained rows; R2 0 `ps3_8080` "
-        "seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no evidential weight); "
-        "R3 0 `ps3_8080` seeds in E-1's `reached` numerator.  Non-vacuity is "
-        "demonstrated beside this run on the disjoint `t30-brkem` bank by "
+        "clause re-registered by A-11 to DETECTED AND DISCARDED, with A-12's "
+        "ruling on what DISCARDED means",
+        "GENERATION (unchanged, neither A-11 nor A-12 edits it): 0 forbidden "
+        "`0F xx` pairs on every composed image.  RUNTIME (A-11 §29.3 as amended "
+        "by A-12 §31.4): runtime 8080 entries are DETECTED AND DISCARDED, "
+        "scored as R1 AND R2 AND R3' -- R1 0 disagreements between the banked "
+        "`ps3_8080` column and the socket-leg predicate recomputed off retained "
+        "rows; R2 0 `ps3_8080` seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no "
+        "evidential weight); R3' DISCARDED = (a) every `ps3_8080` seed out of "
+        "its tier's NUMERATOR AND DENOMINATOR, recomputed a second way, (b) "
+        "every banked `ps3_8080` seed named in its bank's `excluded_seeds` with "
+        "a reason AND no over-exclusion in that class -- a list checked against "
+        "the artifact in both directions, (c) the exclusion counted in C-1's "
+        "own `measured` and printed on stdout.  Non-vacuity is demonstrated "
+        "beside this run on the disjoint `t30-brkem` bank by "
         "`sw/fz2_a2_replay.py` (§29.5)",
         {"bad_0f_pairs": pairs, "seeds": len(jobs), "ps3_8080": ps3,
          "ps3_scoreable": scoreable,
@@ -2224,21 +2363,33 @@ def cmd_bars(a):
                          "ok": r1_ok},
          "R2_dispositioned": {"undispositioned_ps3": r2_undisp,
                               "TAUTOLOGICAL": True, "ok": r2_ok},
-         "R3_no_rate_numerator": {"in_reached_numerator": len(r3_in_num),
-                                  "seeds": r3_in_num, "ok": r3_ok}},
-        "NOT SCOREABLE" if not scoreable else
-        ("MET" if (pairs == 0 and r1_ok and r2_ok and r3_ok) else "MISSED"),
-        None if (pairs == 0 and r1_ok and r2_ok and r3_ok) else
-        ("A-11 / prereg §29.2: the RUNTIME clause is MISSED on R3.  Both "
-         "`ps3_8080` seeds have `arch_ok` true, so both are in E-1's `reached` "
-         "numerator and C-1's disposition set `_d3` -- which is consulted only "
-         "on the not-`arch_ok` residue -- is never asked about either.  THE "
-         "DETECTOR IS WORKING (R1 0 disagreements); what is absent is any "
-         "machinery that DISCARDS a runtime 8080 entry which DUMPED.  Whether "
-         "to remove such a seed from E-1's numerator moves C-1's four rates "
-         "and is a coordinator decision (§29.7), not a patch."
+         "R3_discarded": {"in_scored_strata": len(r3_seeds),
+                          "seeds": r3_seeds,
+                          "a_out_of_rates": {"disagreements": len(r3a_detail),
+                                             "detail": r3a_detail,
+                                             "c1_excluded_total": c1_excl,
+                                             "PARTLY_TAUTOLOGICAL": True,
+                                             "ok": r3a_ok},
+                          "b_out_of_bank": {"banked_and_excluded":
+                                            r3b_banked_excluded,
+                                            "banked_not_excluded":
+                                            r3b_missing,
+                                            "excluded_not_justified":
+                                            r3b_extra, "ok": r3b_ok},
+                          "c_printed": {"c1_excluded_total": c1_excl,
+                                        "ok": r3c_ok},
+                          "ok": r3_ok}},
+        "NOT SCOREABLE" if not scoreable else ("MET" if met else "MISSED"),
+        None if met else
+        ("A-12 / prereg §31.4: the RUNTIME clause is MISSED on R3' -- the "
+         "DISCARD half.  R3'a (out of numerator AND denominator, recomputed a "
+         f"second way) {'ok' if r3a_ok else 'FAILED'}; R3'b (banked and "
+         f"excluded, list against artifact, both directions) {'ok' if r3b_ok else 'FAILED'}; "
+         f"R3'c (counted and printed) {'ok' if r3c_ok else 'FAILED'}.  See the "
+         "components above; the detector itself is R1."
          if (pairs == 0 and r1_ok and r2_ok) else
-         "A-11: see the R1/R2/R3 components above for which clause failed."))
+         "A-11/A-12: see the R1/R2/R3' components above for which clause "
+         "failed."))
 
     # ---- C-4: ERA ----------------------------------------------------------
     eras = Counter(json.dumps(r.get("era"), sort_keys=True) for r in allines)
@@ -2452,7 +2603,17 @@ def cmd_bars(a):
     # it, `replayed` was 3,865 and the clause was breached by 365 seeds while
     # `total` read 623.
     replayed = len(bs.seed_paths()[0])
-    all_banked = len(bs.seed_paths(include_superseded=True)[0])
+    # A-12 / EXC-1: `replayed` is the population REPLAYED PER GATE RUN, so it
+    # follows the per-seed exclusions as well as the campaign supersessions --
+    # that is the clause's whole point.  `all_banked_incl_superseded` is the
+    # count of everything IN the bank and must therefore ask for both classes
+    # back; an exclusion is not a deletion and this leaf is the one that says
+    # so.  The two exclusion counts are reported beside them, never implied by
+    # the difference.
+    all_banked = len(bs.seed_paths(include_superseded=True,
+                                   include_excluded=True)[0])
+    excluded = {pop: len(bs.excluded_of(CID[pop])) for pop in POPS}
+    replayed_incl_excluded = len(bs.seed_paths(include_excluded=True)[0])
     bar("C-11", "bank integrity: the census bank IS the frozen rule and the "
         "two populations are never pooled",
         "census bank == the 480 enumerated seeds, seed for seed; 0 `_capped` "
@@ -2462,6 +2623,8 @@ def cmd_bars(a):
          "census_exact": exact, "enriched_banked": len(banked["enriched"]),
          "capped": capped, "total": total,
          "replayed": replayed, "all_banked_incl_superseded": all_banked,
+         "excluded": excluded,
+         "replayed_incl_excluded": replayed_incl_excluded,
          "superseded_cids": [c for c in bs.bank_cids(include_superseded=True)
                              if bs.is_superseded(c)],
          "overlap": len(set(banked["census"]) & set(banked["enriched"]))},

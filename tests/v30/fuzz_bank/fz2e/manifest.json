@@ -19,5 +19,33 @@
   "FUNCTIONAL": 17,
   "TIMING": 3,
   "KNOWN_ACCEPTED": 139
- }
+ },
+ "excluded_seeds": [
+  {
+   "file": "soup_509069_e6e5f2c9b2ec.json.gz",
+   "seed": "fz2e/509069",
+   "k": 509069,
+   "tier": "soup",
+   "class": "ps3_8080",
+   "banked_verdict": "FUNCTIONAL",
+   "sig": "8cb79b8ba571898b",
+   "reason": "ps3_8080 -- the part entered 8080 mode AT RUNTIME (a MEMW into the code region manufactured a `0F xx` pair after the compose-time scrub had run).  8080/BRKEM is DEFERRED BY USER DECISION 2026-08-05, so this capture is not a member of the scored population: it is out of every scored rate's numerator AND denominator and out of the replayed bank.  The capture is TRUE SILICON and is retained byte-identical; `--include-excluded` replays it.",
+   "ledger": "docs/notes/invalidation_ledger.md#EXC-1",
+   "prereg": "docs/notes/fz2_corpus_prereg_2026-08-08.md#31",
+   "as_of_commit": "20816b9462"
+  },
+  {
+   "file": "raw_521059_17de21d60cf3.json.gz",
+   "seed": "fz2e/521059",
+   "k": 521059,
+   "tier": "raw",
+   "class": "ps3_8080",
+   "banked_verdict": "KNOWN_ACCEPTED",
+   "sig": "8a2834450efdb892",
+   "reason": "ps3_8080 -- the part entered 8080 mode AT RUNTIME (a MEMW into the code region manufactured a `0F xx` pair after the compose-time scrub had run).  8080/BRKEM is DEFERRED BY USER DECISION 2026-08-05, so this capture is not a member of the scored population: it is out of every scored rate's numerator AND denominator and out of the replayed bank.  The capture is TRUE SILICON and is retained byte-identical; `--include-excluded` replays it.",
+   "ledger": "docs/notes/invalidation_ledger.md#EXC-1",
+   "prereg": "docs/notes/fz2_corpus_prereg_2026-08-08.md#31",
+   "as_of_commit": "20816b9462"
+  }
+ ]
 }

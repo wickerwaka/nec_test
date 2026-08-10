@@ -87,7 +87,7 @@ def replay_classify(entry, engine):
     return sha, v.verdict, v.sig, v.sub
 
 
-def check(strict=False, include_superseded=False):
+def check(strict=False, include_superseded=False, include_excluded=False):
     # RESOLVE THE TB BINARY FIRST, AND EAGERLY.  `check_seq.tb_bin()` builds if
     # the content key moved and then asserts the artifact-layer postcondition
     # (sw/artifact.py) -- this gate is INCARNATION #3's home, the one that
@@ -108,7 +108,16 @@ def check(strict=False, include_superseded=False):
     # `--include-superseded` replays it in full (`sw/bank_status.py`,
     # `docs/notes/invalidation_ledger.md` § SUP-1).  The exclusion is announced
     # on its own line, never silently.
-    seeds, dropped = bs.seed_paths(include_superseded=include_superseded)
+    #
+    # AND THE SAME, ONE LEVEL DOWN: an individual seed named in its bank's
+    # `excluded_seeds` leaves the REPLAYED POPULATION while the campaign stays
+    # ACTIVE (EXC-1, prereg §31 / A-12).  A banked capture of a DEFERRED
+    # feature must not fail a landing on that feature's divergence, and it must
+    # not do so SILENTLY either -- `dropped_note` names the class, the count and
+    # the flag that brings it back, and the two classes are never merged into
+    # one word.
+    seeds, dropped = bs.seed_paths(include_superseded=include_superseded,
+                                   include_excluded=include_excluded)
     note = bs.dropped_note(dropped)
     if note:
         print(f"check_fuzz_bank: {note}", flush=True)
@@ -118,9 +127,10 @@ def check(strict=False, include_superseded=False):
             # tree has been retired, this gate has gone vacuous and must say so
             # loudly rather than exit 0 on an empty population -- the exact
             # failure mode `standing_gates.md` was written against.
-            print("check_fuzz_bank: FAIL | 0 seeds -- EVERY bank is SUPERSEDED "
-                  "and no ACTIVE bank exists.  A gate with an empty population "
-                  "is vacuous, not green.")
+            print("check_fuzz_bank: FAIL | 0 seeds -- every bank is "
+                  "SUPERSEDED or every seed EXCLUDED, and nothing is left to "
+                  "replay.  A gate with an empty population is vacuous, not "
+                  "green.")
             return 1
         print("check_fuzz_bank: no banked seeds")
         return 0
@@ -172,8 +182,12 @@ def main():
                     help="also replay banks marked SUPERSEDED in their "
                          "manifest (retirement is not deletion -- this is how "
                          "a pre-v2 figure is re-derived)")
+    ap.add_argument("--include-excluded", action="store_true",
+                    help="also replay individual seeds named in a bank's "
+                         "`excluded_seeds` (EXC-1: exclusion is not deletion "
+                         "-- the captures are true silicon and are retained)")
     a = ap.parse_args()
-    return check(a.strict, a.include_superseded)
+    return check(a.strict, a.include_superseded, a.include_excluded)
 
 
 if __name__ == "__main__":

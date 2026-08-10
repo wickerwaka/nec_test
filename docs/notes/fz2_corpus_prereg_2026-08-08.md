@@ -4703,3 +4703,173 @@ comparison and not an assertion) · the leaf-diff of §31.3 · `bars` run twice,
 byte-equal apart from `ts` · and **`python3 sw/fz2_a2_replay.py` re-run** — the
 detector must still fire on `t30-brkem`, where 8080 entry genuinely exists.  A
 discard clause is only as good as the detector under it.
+
+---
+
+## §32 THE A-12 RESCORE AS RUN — **EVERY PRE-REGISTERED CELL LANDED ON ITS REGISTERED VALUE**, C-3 READS **MET**, AND THE DISCARD HALF IS SHOWN TO BE ABLE TO FAIL — THREE WAYS
+
+**Offline.**  No board, no flash, no Quartus.  Run after `20816b9462` (§31) was
+committed.  ⚠ **A concurrent board session was writing files ON THE BARS PATH
+throughout, including the corpus itself — §32.7 reports it, and it is the one
+thing in this section a reader must carry.**
+
+### 32.1 THE PRE-REGISTERED CELLS, MEASURED — `sw/testdata/fz2/fz2_bars.json`, 2026-08-10T00:49:02Z
+
+| cell | registered (§31.3) | measured | |
+|---|---|---|---|
+| `census/soup` `n` · `reached` · `pct` | unchanged 480 · 473 · 98.54 | 480 · 473 · 98.54 | **HIT** |
+| `census/raw` `n` · `reached` · `pct` | unchanged 480 · 403 · 83.96 | 480 · 403 · 83.96 | **HIT** |
+| `enriched/soup` `n` | 1439 | **1439** | **HIT** |
+| `enriched/soup` `reached` | 1423 | **1423** | **HIT** |
+| `enriched/soup` `pct` | 98.89 | **98.89** | **HIT** |
+| `enriched/raw` `n` | 1439 | **1439** | **HIT** |
+| `enriched/raw` `reached` | 1212 | **1212** | **HIT** |
+| `enriched/raw` `pct` | 84.23 | **84.23** | **HIT** |
+| every disposition / UNDISPOSITIONED / stall / long-insn cell | unchanged | **not in the leaf-diff at all** | **HIT** |
+| `undispositioned` (top level) | 27 | **27** | **HIT** |
+| `mech_census` · `mech_undispositioned` · `mech_selfcheck` · `classified_from*` | unchanged | **not in the leaf-diff**; `mech_census` still totals **3,840** | **HIT** |
+| `per_tier.*.excluded_ps3_8080` | 0 · 0 · 1 · 1 | **0 · 0 · 1 · 1** | **HIT** |
+| `per_tier.*.n_incl_excluded` | 480 · 480 · 1440 · 1440 | **480 · 480 · 1440 · 1440** | **HIT** |
+| `excluded_ps3_8080_total` | 2 | **2** | **HIT** |
+| `bars["C-1"].verdict` | byte-identical | **byte-identical** — `MISSED (rate clauses VALIDATED on fz2v/960 …)` | **HIT** |
+| `bars["C-3"].verdict` | `MET` iff R1 ∧ R2 ∧ R3′ | **`MET`** | **HIT** |
+| `bars["C-11"].measured.replayed` | 621 | **621** | **HIT** |
+| `bars["C-11"].verdict` | `MET` | **`MET`** | **HIT** |
+| `pops` | unchanged | **not in the leaf-diff** | **HIT** |
+| **`FZ2 BARS`** | **9/11 MET, NOT MET C-1, C-6** | **`FZ2 BARS: 9/11 MET   NOT MET: C-1,C-6`** | **HIT** |
+
+**No cell missed its registered value, and no cell moved that was not
+registered as moving** — with the one declared exception in §32.7, which is not
+this patch's.
+
+### 32.2 C-3's THREE COMPONENTS AS THEY READ
+
+| id | registered | measured | reads |
+|---|---|---|---|
+| **generation** (unedited by A-11 and A-12 alike) | 0 forbidden `0F xx` pairs on every composed image | `bad_0f_pairs` **0** over **3,840** regenerated images, `gen_drift` 0 | **MET** |
+| **R1 — DETECTED** | 0 disagreements, rows-recomputed vs the banked column | **736** retained captures scored (509 `fz2c` + 227 `fz2e`), predicate fires on **2**, **0** disagreements; **3,104** lines keep no rows and are COUNTED, never extrapolated over | **MET** |
+| **R2 — DISPOSITIONED** | 0 `ps3_8080` seeds UNDISPOSITIONED | **0**, and the artifact still carries `"TAUTOLOGICAL": true` beside it.  **A-12 did not quietly promote R2 now that it is convenient** | **MET, and worth nothing** |
+| **R3′ — DISCARDED** | (a) out of numerator AND denominator, recomputed a second way · (b) out of the bank, list against artifact both directions · (c) counted and printed | **a** 0 disagreements over all four tiers, `c1_excluded_total` 2 · **b** `banked_and_excluded` **2**, `banked_not_excluded` **[]**, `excluded_not_justified` **[]** · **c** ok, and the line is on stdout | **MET** |
+
+`bars["C-3"].finding` is now `None`: §30's finding was *"nothing discards a
+runtime 8080 entry that dumped"*, and A-12 is the machinery it named.
+
+### 32.3 THE DISCARD HALF CAN FAIL — **THREE FALSIFIERS, RUN, EACH ONE RED**
+
+A clause that reads MET on the day it is written is worth exactly as much as
+the demonstration that it could have read MISSED.  Three perturbations, each
+one a full `bars` run, each one reverted:
+
+| perturbation | what it models | result |
+|---|---|---|
+| **drop `fz2e/509069` from `excluded_seeds`** | a banked 8080 seed that nobody excluded — the shape a future re-promotion would take | **C-3 MISSED**, `R3′b ok false`, `banked_not_excluded` names the file and the k, `FZ2 BARS 8/11`.  R3′a and R3′c stayed green, which is the right separation: the rate filter reads the RESULT LINE, the bank check reads the MANIFEST |
+| **add an `excluded_seeds` record for `fz2e/518000`**, a banked seed the results do not show `ps3_8080` for | an over-broad exclusion list — a bank quietly shrinking itself | **C-3 MISSED**, `R3′b ok false`, `excluded_not_justified` names it with *"excluded as `ps3_8080` but the campaign results do not show it"* |
+| **patch `cmd_bars` to remove the seeds from `ok` ONLY** (`sel` left whole) | **exactly the reading A-12 REJECTS** — numerator-only removal | **C-3 MISSED**, `R3′a ok false`, **2 disagreements**, `want n 1439 / got n 1440` on both enriched tiers — and `enriched/soup` `pct` read **98.82 %**, which is the number §31.1 predicted for that reading before it was ever run |
+
+The third is the load-bearing one: it shows R3′a is not the tautology it would
+be if it merely re-asserted the filter, and it reproduces §31.1's arithmetic
+independently.
+
+### 32.4 THE NON-VACUITY RE-RUN — THE DETECTOR IS STILL LIVE
+
+`python3 sw/fz2_a2_replay.py` → **`PASS: 0 failure(s)`**, all five assertions
+`ok`.  For A-2's chosen form (socket leg, T1, `CODE`):
+
+* **`t30-brkem` — 87 / 116 capture pairs**, the disjoint population where 8080
+  entry is known to exist.  **The detector fires where 8080 entry exists.**
+* CONTROL (380 `wr1` + 2 `fz2c-prereg-A1-archive`) — 99 / 382.
+* This corpus, recomputed off rows — **2 / 736 retained** (R1).
+* O-1 reproduces: the **core** leg at T1 fires 116/116 and 382/382, at T2 fires
+  0/116.
+
+### 32.5 THE LEAF-DIFF, AND THE GATES
+
+**Against the committed artifact of §30** (leaf counting descends lists, so
+these totals are not comparable with §30.3's 251/264, which did not):
+
+```
+leaves before 1075   after 1097
+CHANGED 11   REMOVED 14   ADDED 36
+```
+
+* **CHANGED 11** — the 5 C-1 cells of §31.3, `C-11.measured.replayed`, C-3's
+  `registered` / `statement` / `verdict` / `finding`, and `ts`.
+* **REMOVED 14** — the whole of `R3_no_rate_numerator`, replaced by
+  `R3_discarded`.
+* **ADDED 36** — C-1's 9 exclusion leaves, C-11's 3, and 24 under
+  `bars["C-3"].measured.R3_discarded`.
+
+**Every changed, removed and added leaf is inside the §31.3 registration.**
+
+| gate | result |
+|---|---|
+| `python3 sw/fz2_w1.py lint` | **`FZ2 LINT PASS: 0 hit(s); 48 stratum rows checked`**, rc 0 |
+| `python3 sw/test_fuzz_classify.py` | **`PASS: 0 failure(s)`**, rc 0 |
+| `python3 sw/test_fuzz_accept.py` | **`PASS: 0 failure(s)`**, rc 0 |
+| `python3 sw/fz2_a2_replay.py` | **`PASS: 0 failure(s)`**, rc 0 |
+| `python3 sw/check_fuzz_bank.py` **BEFORE** | `PASS \| 623 banked seeds \| stable 623 improved 0 worse 0 \| gen_drift 0 regen_err 0` |
+| `python3 sw/check_fuzz_bank.py` **AFTER** | **`PASS \| 621 banked seeds \| stable 621 improved 0 worse 0 \| gen_drift 0 regen_err 0 \| float-floor 0 \| new-sig TIMING 0`**, with the loud line `EXCLUDED seeds: 2 seed(s) in 1 ACTIVE campaign(s) (fz2e:2) -- pass --include-excluded to include them (… § EXC-1)` printed beside the SUPERSEDED one, rc 0 |
+| reproducibility | `bars` run twice at 00:45:05 and 00:45:31 → **`ts` the only differing leaf**; the cosmetic-cleanup rebuild at 00:49:02 → again **`ts` only** |
+
+**"Stays PASS" is a comparison here, not an assertion**: the BEFORE run was
+taken on the unmodified tree at the start of the sitting, and both runs are
+retained.
+
+### 32.6 TWO THINGS CHECKED THAT THE BRIEF DID NOT ASK FOR
+
+1. **The A-9 VALIDATION POPULATION CARRIES NO `ps3_8080` SEED.**
+   `sw/testdata/campaigns/fz2v/results.jsonl` — 960 lines, the column present
+   on all 960, **0 fires**.  So A-12's arithmetic does not move `fz2v_score.json`
+   and **the `VALIDATED` marker's own numbers (soup 98.12 %, raw 80.83 %) are
+   untouched** — which is why `sw/fz2_val.py` is deliberately NOT edited: a
+   no-op edit there would rewrite `fz2v_score.json`, and `_validation()` gates
+   the marker on that file's content.  **NAMED, NOT DISPOSED**: if a future
+   validation population ever contains one, nothing in R3′ would see it, because
+   R1 and R3′ scan `fz2c` + `fz2e` only.
+2. **The archived populations carry them too and are on no bar's path**:
+   `fz2e-A5-archive` 2, `fz2e-INV2-archive` 1, `fz2c-prereg-A1-archive` 2.
+   Nothing is done to them; they are archives.
+
+### 32.7 THE CONCURRENT WRITER — **AND IT IS ON THE BARS PATH, INCLUDING THE CORPUS**
+
+Reported as a finding, with the evidence, because it bears on whether a
+reviewer can reproduce anything in this section.
+
+A board session (FLASH #13) was running throughout and landed two commits over
+this sitting's own (`edb67a1cb1`, `f18ad478b9`).  **The task brief states that
+that session "does not touch bars".  The artifact refutes it, twice:**
+
+1. **`sw/testdata/fz2/fz2_control.json` was rewritten at 2026-08-10T00:49:51Z**,
+   between this sitting's last two `bars` runs.  `cmd_bars` READS it — it is
+   C-6's `control_leg`.  The run started at 00:49:30 picked up the new copy and
+   its C-6 `control_leg` subtree (37 leaves: the leg sha256s, `gen_git`, the
+   `div_guards` timestamps and `tree_dirty`) differs from the run started at
+   00:49:02 for that reason and no other.  **C-6's own scored leaves and its
+   verdict are IDENTICAL across all three runs** (`hold_rows_exact` 4636,
+   `hold_rows_off` 2, verdict `MISSED`).
+   **THE COMMITTED ARTIFACT IS THE 00:49:02 RUN** — the last one whose every
+   input was the committed tree.  Committing the later one would have embedded,
+   in a scored artifact, sha256s of another session's uncommitted in-flight
+   capture.
+2. **THE CORPUS ITSELF WAS BEING REWRITTEN MINUTES LATER.**  At
+   2026-08-10T00:50:50Z `sw/testdata/campaigns/fz2e/results.jsonl`,
+   `fz2e/coverage.json` and `fz2e/captures/` were **GONE** from the working tree
+   and `fz2c/results.jsonl` had been truncated from 960 lines to 353 and was
+   growing — a new capture running under the `fz2c` / `fz2e` campaign ids.
+   **This corpus is what C-1, C-3, C-4, C-5 and C-7 are computed from.**
+
+**WHAT THIS MEANS FOR A REVIEWER, STATED PLAINLY**: `python3 sw/fz2_w1.py bars`
+run against the working tree AFTER 00:50:50Z **will not reproduce §32.1** — it
+will score a partial or absent corpus.  The numbers above were taken at
+00:49:02Z against the corpus **as committed**, and that is provable from the
+artifact's own contents: `C-4.measured.lines` **3840**, `C-5.measured.seeds`
+**3840**, `pops.census.captured` **960**, `pops.enriched.captured` **2880**.
+To reproduce, restore the committed corpus
+(`git checkout -- sw/testdata/campaigns/fz2c sw/testdata/campaigns/fz2e`) —
+**which must not be done while that session is writing.**
+
+**Nothing was done about it here.**  No file of the other session was read,
+written, staged or restored; every commit of this sitting stages EXPLICIT
+PATHS.  Restoring the corpus under a running capture would corrupt that
+session's work, and choosing between two sessions' work is not a patch's
+decision.  **It is reported to the coordinator.**
