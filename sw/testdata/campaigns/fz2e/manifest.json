@@ -1,12 +1,12 @@
 {
  "cid": "fz2e",
- "created": "2026-08-10T00:50:50Z",
- "gen_git": "f18ad478b9",
+ "created": "2026-08-10T14:29:28Z",
+ "gen_git": "2fa3dd33b3",
  "flash_pin": {
-  "ts": "2026-08-10T00:45:43Z",
+  "ts": "2026-08-10T14:27:59Z",
   "sof_path": "/home/wickerwaka/src/nec_test/hdl/output_files_ucore/nec_test_ucore.sof",
-  "sha256": "e4a2056a2de53c1ff2b7482bfc39822e42971bc987c479bca98b7b7f2f36545b",
-  "git_describe": "f18ad478b9-dirty",
+  "sha256": "060215e43c5de9b397dec0d5d8d5f4577705ee4ebd60d7d7229b15fbb3bca33b",
+  "git_describe": "2fa3dd33b3-dirty",
   "verify": "OK"
  },
  "axes": {

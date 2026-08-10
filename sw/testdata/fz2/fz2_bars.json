@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-10T02:50:20Z",
+ "ts": "2026-08-10T14:52:46Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -27,22 +27,22 @@
       "undispositioned_3class": 7
      },
      "census/raw": {
-      "n": 479,
+      "n": 480,
       "reached": 402,
-      "pct": 83.92,
-      "excluded_ps3_8080": 1,
+      "pct": 83.75,
+      "excluded_ps3_8080": 0,
       "n_incl_excluded": 480,
-      "dispositioned": 77,
-      "dispositioned_5class": 72,
-      "dispositioned_4class": 58,
+      "dispositioned": 78,
+      "dispositioned_5class": 73,
+      "dispositioned_4class": 59,
       "dispositioned_3class": 4,
-      "stalled": 54,
+      "stalled": 55,
       "long_insn": 14,
       "row_matched": 5,
       "undispositioned": 0,
       "undispositioned_5class": 5,
       "undispositioned_4class": 19,
-      "undispositioned_3class": 73
+      "undispositioned_3class": 74
      },
      "enriched/soup": {
       "n": 1439,
@@ -63,10 +63,10 @@
       "undispositioned_3class": 15
      },
      "enriched/raw": {
-      "n": 1439,
-      "reached": 1212,
-      "pct": 84.23,
-      "excluded_ps3_8080": 1,
+      "n": 1440,
+      "reached": 1213,
+      "pct": 84.24,
+      "excluded_ps3_8080": 0,
       "n_incl_excluded": 1440,
       "dispositioned": 227,
       "dispositioned_5class": 209,
@@ -83,8 +83,8 @@
     },
     "undispositioned": 0,
     "mech_census": {
-     "REACHED": 3503,
-     "STALLED": 208,
+     "REACHED": 3502,
+     "STALLED": 209,
      "OTHER": 5,
      "LONG_INSN": 80,
      "NEAR": 10,
@@ -98,14 +98,14 @@
      "stalled_vs_mech": 0,
      "absent": 0
     },
-    "undispositioned_3class": 302,
+    "undispositioned_3class": 303,
     "undispositioned_4class": 100,
     "undispositioned_5class": 25,
-    "stalled_total": 202,
+    "stalled_total": 203,
     "long_insn_total": 75,
     "row_matched_total": 25,
     "classified_from": {
-     "line": 302
+     "line": 303
     },
     "classified_from_long_insn": {
      "line": 100
@@ -113,7 +113,7 @@
     "classified_from_row_matched": {
      "line": 25
     },
-    "excluded_ps3_8080_total": 3
+    "excluded_ps3_8080_total": 1
    },
    "verdict": "MET (rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw 80.83 %; \u00a716.2 / A-9)",
    "finding": null
@@ -122,7 +122,7 @@
    "statement": "the arch column is non-vacuous -- demonstrated, not assumed",
    "registered": "MAGIC == 0x5EED on every dump; each of the other 14 STORE_ORDER words takes >= 2 distinct values across the corpus",
    "measured": {
-    "dumps": 3513,
+    "dumps": 3512,
     "magic_constant": true,
     "distinct": {
      "AW": 2855,
@@ -152,13 +152,13 @@
    "measured": {
     "bad_0f_pairs": 0,
     "seeds": 3840,
-    "ps3_8080": 3,
+    "ps3_8080": 1,
     "ps3_scoreable": true,
     "generation_ok": true,
     "R1_detected": {
-     "retained_scored": 725,
-     "no_rows_not_recomputable": 3115,
-     "rows_recompute_fires": 3,
+     "retained_scored": 677,
+     "no_rows_not_recomputable": 3163,
+     "rows_recompute_fires": 1,
      "disagreements": 0,
      "detail": [],
      "ok": true
@@ -169,17 +169,8 @@
      "ok": true
     },
     "R3_discarded": {
-     "in_scored_strata": 3,
+     "in_scored_strata": 1,
      "seeds": [
-      {
-       "seed": "fz2c/408029",
-       "tier": "raw",
-       "stratum": 8,
-       "verdict": "KNOWN_ACCEPTED",
-       "bad_rows": 3074,
-       "mech": "REACHED",
-       "arch_ok": true
-      },
       {
        "seed": "fz2e/509069",
        "tier": "soup",
@@ -188,21 +179,12 @@
        "bad_rows": 1126,
        "mech": "REACHED",
        "arch_ok": true
-      },
-      {
-       "seed": "fz2e/523042",
-       "tier": "raw",
-       "stratum": 35,
-       "verdict": "KNOWN_ACCEPTED",
-       "bad_rows": 2789,
-       "mech": "REACHED",
-       "arch_ok": true
       }
      ],
      "a_out_of_rates": {
       "disagreements": 0,
       "detail": [],
-      "c1_excluded_total": 3,
+      "c1_excluded_total": 1,
       "PARTLY_TAUTOLOGICAL": true,
       "ok": true
      },
@@ -216,7 +198,7 @@
       "ok": true
      },
      "c_printed": {
-      "c1_excluded_total": 3,
+      "c1_excluded_total": 1,
       "ok": true
      },
      "ok": true
@@ -263,135 +245,90 @@
      "stage": "fz2 C-6 control legs",
      "host": "root@mister-nec",
      "prereg": "\u00a76 C-6 (a)(b)(c); the legs are \u00a724",
-     "gen_git": "f18ad478b9",
+     "gen_git": "2fa3dd33b3",
      "tree_dirty": [
       {
        "status": " M",
-       "path": "docs/notes/invalidation_ledger.md",
-       "sha256": "4e6fcbd203c7e85b1f9ce98e6aebbe11dd966b9708d227a4f3664af4793e4d2e"
-      },
-      {
-       "status": " M",
-       "path": "sw/bank_status.py",
-       "sha256": "d03d034436e0590dd1c46ad4e30eba3d7360d1b8199c3ec9c32f6ed87c6609ec"
-      },
-      {
-       "status": " M",
-       "path": "sw/check_fuzz_bank.py",
-       "sha256": "f26fb55404797945ca58523bd67836a7da10c91d5900d5f009383849e72694e5"
-      },
-      {
-       "status": " M",
-       "path": "sw/f13_formfab.py",
-       "sha256": "20827b29f80b2609350daedea8a7c9329a2549b6ee7646beebb8c08f1dc8218a"
-      },
-      {
-       "status": " M",
-       "path": "sw/fz2_w1.py",
-       "sha256": "981864e488e3d1c419e4972ae2123f82c7403cb7d9bc3a9cc650efeeaa7513af"
-      },
-      {
-       "status": " M",
        "path": "sw/testdata/flash_log.jsonl",
-       "sha256": "22ee4e78202ff3e6e13adba7eac2f87421fe6a59188a45de86f9997f3fc2688a"
-      },
-      {
-       "status": " M",
-       "path": "sw/testdata/fz2/fz2_bars.json",
-       "sha256": "c17a6d60c7b6f57c807f09129588a9219b2b351f875cdc773777182cb47ad380"
-      },
-      {
-       "status": " M",
-       "path": "sw/testdata/fz2/fz2_control.json",
-       "sha256": "8bfecd4acaab5f8acaf9ddef679e2af78de0aea713c0b26fc48a1cab732de131"
+       "sha256": "ffd31f5a1a028161caea6043f3e5d78171af35c7fd48b7ce0eec204f22f75108"
       },
       {
        "status": " M",
        "path": "sw/testdata/fz2/fz2_preflight.json",
-       "sha256": "db89ef406112abb6986f2f1541cfff5e9d0b45ac5df4e716d35ed49c8e09cf1c"
-      },
-      {
-       "status": " M",
-       "path": "sw/testdata/fz2/fz2_statusanom.json",
-       "sha256": "4b9118d5e0ea36bdd3a680445689f10e477cfdf1235bb1e9bf13733e970adbf8"
-      },
-      {
-       "status": " M",
-       "path": "tests/v30/fuzz_bank/fz2e/manifest.json",
-       "sha256": "790f6db30e1812e9e2cb359d1a48a96bc4e8874d0536ac11a4c414fcf9e3c7c6"
+       "sha256": "8b387e8245f977ab2e72d8f568f405db40415942508043e08ebad0d271a13262"
       }
      ],
-     "started": "2026-08-10T00:50:30Z",
+     "started": "2026-08-10T14:28:22Z",
      "div_guards": [
       {
        "tag": "control-start",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:31Z"
+       "ts": "2026-08-10T14:28:22Z"
       },
       {
        "tag": "control-P1",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:31Z"
+       "ts": "2026-08-10T14:28:22Z"
       },
       {
        "tag": "control-P2",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:31Z"
+       "ts": "2026-08-10T14:28:23Z"
       },
       {
        "tag": "control-P3",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:31Z"
+       "ts": "2026-08-10T14:28:23Z"
       },
       {
        "tag": "control-P4",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:31Z"
+       "ts": "2026-08-10T14:28:23Z"
       },
       {
        "tag": "control-P5",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:31Z"
+       "ts": "2026-08-10T14:28:23Z"
       },
       {
        "tag": "control-V1",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:32Z"
+       "ts": "2026-08-10T14:28:23Z"
       },
       {
        "tag": "control-V2",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:32Z"
+       "ts": "2026-08-10T14:28:23Z"
       },
       {
        "tag": "control-N1",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:32Z"
+       "ts": "2026-08-10T14:28:23Z"
       },
       {
        "tag": "control-end",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T00:50:32Z"
+       "ts": "2026-08-10T14:28:24Z"
       }
      ],
      "legs": [
@@ -475,7 +412,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
        "n_rows": 4063,
-       "sha256": "d78f0243534fdd4569ee44549a35e77e19f37390197373bab8e38fccec5554db"
+       "sha256": "78457f65f77b4c215e75eaa5f95d9f0c5e7eb35c649b5962dcfa5af6d1724642"
       },
       {
        "leg": "P2",
@@ -535,7 +472,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
        "n_rows": 4063,
-       "sha256": "7472de6748546e34fdc1b57dc075d356b95245259496660efd8233c765c94611"
+       "sha256": "edeb457a226c1806925ee0e158729dedc99455a2d4cfaa9c52f1308096024c66"
       },
       {
        "leg": "P3",
@@ -595,7 +532,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
        "n_rows": 4063,
-       "sha256": "14737767cc3f849ad6fc5857a4c3fe781245bbd61a45366dbb6b5c060bd143e7"
+       "sha256": "70ccf660867206718cdd77df5cb43be6310667a58ffd6dc31d7121a35e6d0c98"
       },
       {
        "leg": "P4",
@@ -655,7 +592,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
        "n_rows": 4063,
-       "sha256": "c1040afd1f8d9beba9461ab939df2b616588dfc19511fa2a0d8de828d61956c0"
+       "sha256": "916131b47d82e72d004e02925041c14102e1d2946037ec882e63d73a69d486c3"
       },
       {
        "leg": "P5",
@@ -715,7 +652,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
        "n_rows": 4063,
-       "sha256": "1e7a2b3119056e1ecce298e68518b43088a0d55281440598d8c2d14e1c5dede5"
+       "sha256": "ec1f6193fa5b564d1f5a21ff58076bd44254158c2b52ed5e4f3d9699b5f56154"
       },
       {
        "leg": "V1",
@@ -779,7 +716,7 @@
        "fired": 4,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
        "n_rows": 4063,
-       "sha256": "fc6483498a18fe4d20cfb2e91c1da835d5f18befe8575230749556a7a82d14fc"
+       "sha256": "6eee47da29e1a98442ad07a0d8c4d6883e9befb1a10bc56063f0cbf50417f292"
       },
       {
        "leg": "V2",
@@ -843,7 +780,7 @@
        "fired": 4,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
        "n_rows": 4063,
-       "sha256": "9d2dbcbc793fbab276821dedf03489a87bcd3b6d5f0a03fea8545253c8579461"
+       "sha256": "2688d98e58377c788d8d239d868cbc175e5f46396bf153e35ca5caa13c30b6dd"
       },
       {
        "leg": "N1",
@@ -895,49 +832,49 @@
        "fired": 4,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
        "n_rows": 4063,
-       "sha256": "419036070c64e827bd5e1cbbd60fb1ccc929ecb74621a8bea97b14e8670f10ff"
+       "sha256": "f24813de09921b9e547431bd677ef5c75a9c405bece39f9c25ac3e3aacd5af43"
       }
      ],
      "retained": {
       "P1": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
        "n_rows": 4063,
-       "sha256": "d78f0243534fdd4569ee44549a35e77e19f37390197373bab8e38fccec5554db"
+       "sha256": "78457f65f77b4c215e75eaa5f95d9f0c5e7eb35c649b5962dcfa5af6d1724642"
       },
       "P2": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
        "n_rows": 4063,
-       "sha256": "7472de6748546e34fdc1b57dc075d356b95245259496660efd8233c765c94611"
+       "sha256": "edeb457a226c1806925ee0e158729dedc99455a2d4cfaa9c52f1308096024c66"
       },
       "P3": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
        "n_rows": 4063,
-       "sha256": "14737767cc3f849ad6fc5857a4c3fe781245bbd61a45366dbb6b5c060bd143e7"
+       "sha256": "70ccf660867206718cdd77df5cb43be6310667a58ffd6dc31d7121a35e6d0c98"
       },
       "P4": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
        "n_rows": 4063,
-       "sha256": "c1040afd1f8d9beba9461ab939df2b616588dfc19511fa2a0d8de828d61956c0"
+       "sha256": "916131b47d82e72d004e02925041c14102e1d2946037ec882e63d73a69d486c3"
       },
       "P5": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
        "n_rows": 4063,
-       "sha256": "1e7a2b3119056e1ecce298e68518b43088a0d55281440598d8c2d14e1c5dede5"
+       "sha256": "ec1f6193fa5b564d1f5a21ff58076bd44254158c2b52ed5e4f3d9699b5f56154"
       },
       "V1": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
        "n_rows": 4063,
-       "sha256": "fc6483498a18fe4d20cfb2e91c1da835d5f18befe8575230749556a7a82d14fc"
+       "sha256": "6eee47da29e1a98442ad07a0d8c4d6883e9befb1a10bc56063f0cbf50417f292"
       },
       "V2": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
        "n_rows": 4063,
-       "sha256": "9d2dbcbc793fbab276821dedf03489a87bcd3b6d5f0a03fea8545253c8579461"
+       "sha256": "2688d98e58377c788d8d239d868cbc175e5f46396bf153e35ca5caa13c30b6dd"
       },
       "N1": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
        "n_rows": 4063,
-       "sha256": "419036070c64e827bd5e1cbbd60fb1ccc929ecb74621a8bea97b14e8670f10ff"
+       "sha256": "f24813de09921b9e547431bd677ef5c75a9c405bece39f9c25ac3e3aacd5af43"
       }
      },
      "stimulus": {
@@ -971,7 +908,7 @@
      "failing_legs": [],
      "div_guards_unpinned": [],
      "verdict": "MET",
-     "finished": "2026-08-10T00:50:32Z"
+     "finished": "2026-08-10T14:28:24Z"
     },
     "pin_level_clause": "A-8: per directive, on the pin that directive names",
     "c6b": {
@@ -1110,12 +1047,11 @@
      "stratum": "cen/soup/noevt/fix0",
      "n": 80,
      "captured": 80,
-     "rows_exact": 77,
-     "arch_exact": 76,
+     "rows_exact": 80,
+     "arch_exact": 79,
      "unscoreable": 1,
      "verdicts": {
-      "SUCCESS": 77,
-      "FUNCTIONAL": 3
+      "SUCCESS": 80
      }
     },
     {
@@ -1135,12 +1071,11 @@
      "stratum": "cen/soup/noevt/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 79,
-     "arch_exact": 78,
+     "rows_exact": 80,
+     "arch_exact": 79,
      "unscoreable": 1,
      "verdicts": {
-      "SUCCESS": 79,
-      "FUNCTIONAL": 1
+      "SUCCESS": 80
      }
     },
     {
@@ -1188,12 +1123,12 @@
      "stratum": "cen/raw/noevt/fix0",
      "n": 80,
      "captured": 80,
-     "rows_exact": 73,
+     "rows_exact": 74,
      "arch_exact": 65,
      "unscoreable": 12,
      "verdicts": {
-      "SUCCESS": 73,
-      "KNOWN_ACCEPTED": 7
+      "SUCCESS": 74,
+      "KNOWN_ACCEPTED": 6
      }
     },
     {
@@ -1201,12 +1136,12 @@
      "stratum": "cen/raw/noevt/wrand3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 71,
-     "arch_exact": 59,
+     "rows_exact": 73,
+     "arch_exact": 60,
      "unscoreable": 15,
      "verdicts": {
-      "KNOWN_ACCEPTED": 9,
-      "SUCCESS": 71
+      "KNOWN_ACCEPTED": 7,
+      "SUCCESS": 73
      }
     },
     {
@@ -1214,12 +1149,12 @@
      "stratum": "cen/raw/noevt/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 73,
-     "arch_exact": 59,
+     "rows_exact": 76,
+     "arch_exact": 60,
      "unscoreable": 19,
      "verdicts": {
-      "KNOWN_ACCEPTED": 7,
-      "SUCCESS": 73
+      "KNOWN_ACCEPTED": 4,
+      "SUCCESS": 76
      }
     },
     {
@@ -1227,12 +1162,12 @@
      "stratum": "cen/raw/stim/fix0",
      "n": 80,
      "captured": 80,
-     "rows_exact": 73,
+     "rows_exact": 75,
      "arch_exact": 69,
      "unscoreable": 10,
      "verdicts": {
-      "SUCCESS": 73,
-      "KNOWN_ACCEPTED": 7
+      "SUCCESS": 75,
+      "KNOWN_ACCEPTED": 5
      }
     },
     {
@@ -1240,12 +1175,12 @@
      "stratum": "cen/raw/stim/wrand3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 69,
+     "rows_exact": 73,
      "arch_exact": 61,
-     "unscoreable": 15,
+     "unscoreable": 16,
      "verdicts": {
-      "KNOWN_ACCEPTED": 11,
-      "SUCCESS": 69
+      "KNOWN_ACCEPTED": 7,
+      "SUCCESS": 73
      }
     },
     {
@@ -1253,18 +1188,17 @@
      "stratum": "cen/raw/stim/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 79,
+     "rows_exact": 80,
      "arch_exact": 71,
      "unscoreable": 9,
      "verdicts": {
-      "SUCCESS": 79,
-      "KNOWN_ACCEPTED": 1
+      "SUCCESS": 80
      }
     }
    ],
-   "rows_exact_mean_pct": 94.48,
-   "arch_exact_mean_pct": 88.44,
-   "unscoreable_total": 87
+   "rows_exact_mean_pct": 96.25,
+   "arch_exact_mean_pct": 89.06,
+   "unscoreable_total": 88
   },
   "enriched": {
    "cid": "fz2e",
@@ -1413,13 +1347,12 @@
      "stratum": "enr/soup/stim/fix2",
      "n": 80,
      "captured": 80,
-     "rows_exact": 78,
-     "arch_exact": 78,
+     "rows_exact": 79,
+     "arch_exact": 79,
      "unscoreable": 1,
      "verdicts": {
-      "SUCCESS": 78,
-      "TIMING": 1,
-      "FUNCTIONAL": 1
+      "SUCCESS": 79,
+      "TIMING": 1
      }
     },
     {
@@ -1427,13 +1360,13 @@
      "stratum": "enr/soup/stim/fix3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 75,
-     "arch_exact": 75,
+     "rows_exact": 77,
+     "arch_exact": 77,
      "unscoreable": 2,
      "verdicts": {
-      "SUCCESS": 75,
-      "FUNCTIONAL": 3,
-      "KNOWN_ACCEPTED": 2
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 2,
+      "FUNCTIONAL": 1
      }
     },
     {
@@ -1441,13 +1374,13 @@
      "stratum": "enr/soup/stim/wrand1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 76,
+     "rows_exact": 77,
      "arch_exact": 78,
      "unscoreable": 1,
      "verdicts": {
-      "SUCCESS": 76,
+      "SUCCESS": 77,
       "FUNCTIONAL": 1,
-      "KNOWN_ACCEPTED": 3
+      "KNOWN_ACCEPTED": 2
      }
     },
     {
@@ -1468,12 +1401,12 @@
      "stratum": "enr/soup/stim/wrand7",
      "n": 80,
      "captured": 80,
-     "rows_exact": 77,
+     "rows_exact": 78,
      "arch_exact": 79,
      "unscoreable": 1,
      "verdicts": {
-      "SUCCESS": 77,
-      "KNOWN_ACCEPTED": 3
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
      }
     },
     {
@@ -1481,12 +1414,12 @@
      "stratum": "enr/soup/stim/wrand15",
      "n": 80,
      "captured": 80,
-     "rows_exact": 74,
-     "arch_exact": 77,
+     "rows_exact": 75,
+     "arch_exact": 78,
      "unscoreable": 1,
      "verdicts": {
-      "SUCCESS": 74,
-      "FUNCTIONAL": 3,
+      "SUCCESS": 75,
+      "FUNCTIONAL": 2,
       "TIMING": 1,
       "KNOWN_ACCEPTED": 2
      }
@@ -1496,12 +1429,12 @@
      "stratum": "enr/soup/stim/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 79,
-     "arch_exact": 79,
+     "rows_exact": 78,
+     "arch_exact": 78,
      "unscoreable": 1,
      "verdicts": {
-      "SUCCESS": 79,
-      "FUNCTIONAL": 1
+      "SUCCESS": 78,
+      "FUNCTIONAL": 2
      }
     },
     {
@@ -1509,12 +1442,12 @@
      "stratum": "enr/raw/noevt/fix0",
      "n": 80,
      "captured": 80,
-     "rows_exact": 62,
+     "rows_exact": 64,
      "arch_exact": 65,
      "unscoreable": 8,
      "verdicts": {
-      "SUCCESS": 62,
-      "KNOWN_ACCEPTED": 18
+      "SUCCESS": 64,
+      "KNOWN_ACCEPTED": 16
      }
     },
     {
@@ -1522,12 +1455,12 @@
      "stratum": "enr/raw/noevt/fix1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 73,
+     "rows_exact": 76,
      "arch_exact": 60,
      "unscoreable": 19,
      "verdicts": {
-      "SUCCESS": 73,
-      "KNOWN_ACCEPTED": 7
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
      }
     },
     {
@@ -1535,12 +1468,12 @@
      "stratum": "enr/raw/noevt/fix2",
      "n": 80,
      "captured": 80,
-     "rows_exact": 73,
+     "rows_exact": 74,
      "arch_exact": 67,
      "unscoreable": 11,
      "verdicts": {
-      "KNOWN_ACCEPTED": 6,
-      "SUCCESS": 73,
+      "KNOWN_ACCEPTED": 5,
+      "SUCCESS": 74,
       "FUNCTIONAL": 1
      }
     },
@@ -1549,12 +1482,12 @@
      "stratum": "enr/raw/noevt/fix3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 71,
-     "arch_exact": 60,
+     "rows_exact": 76,
+     "arch_exact": 63,
      "unscoreable": 14,
      "verdicts": {
-      "SUCCESS": 71,
-      "KNOWN_ACCEPTED": 9
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
      }
     },
     {
@@ -1562,12 +1495,12 @@
      "stratum": "enr/raw/noevt/wrand1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 73,
-     "arch_exact": 64,
+     "rows_exact": 76,
+     "arch_exact": 67,
      "unscoreable": 11,
      "verdicts": {
-      "SUCCESS": 73,
-      "KNOWN_ACCEPTED": 7
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
      }
     },
     {
@@ -1575,12 +1508,12 @@
      "stratum": "enr/raw/noevt/wrand3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 76,
+     "rows_exact": 78,
      "arch_exact": 70,
      "unscoreable": 10,
      "verdicts": {
-      "SUCCESS": 76,
-      "KNOWN_ACCEPTED": 4
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
      }
     },
     {
@@ -1614,12 +1547,12 @@
      "stratum": "enr/raw/noevt/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 75,
+     "rows_exact": 78,
      "arch_exact": 69,
      "unscoreable": 11,
      "verdicts": {
-      "SUCCESS": 75,
-      "KNOWN_ACCEPTED": 5
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
      }
     },
     {
@@ -1627,12 +1560,12 @@
      "stratum": "enr/raw/stim/fix0",
      "n": 80,
      "captured": 80,
-     "rows_exact": 73,
+     "rows_exact": 74,
      "arch_exact": 62,
      "unscoreable": 16,
      "verdicts": {
-      "SUCCESS": 73,
-      "KNOWN_ACCEPTED": 7
+      "SUCCESS": 74,
+      "KNOWN_ACCEPTED": 6
      }
     },
     {
@@ -1640,12 +1573,12 @@
      "stratum": "enr/raw/stim/fix1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 72,
-     "arch_exact": 66,
+     "rows_exact": 75,
+     "arch_exact": 67,
      "unscoreable": 12,
      "verdicts": {
-      "SUCCESS": 72,
-      "KNOWN_ACCEPTED": 8
+      "SUCCESS": 75,
+      "KNOWN_ACCEPTED": 5
      }
     },
     {
@@ -1653,12 +1586,12 @@
      "stratum": "enr/raw/stim/fix2",
      "n": 80,
      "captured": 80,
-     "rows_exact": 72,
-     "arch_exact": 67,
+     "rows_exact": 75,
+     "arch_exact": 69,
      "unscoreable": 10,
      "verdicts": {
-      "SUCCESS": 72,
-      "KNOWN_ACCEPTED": 8
+      "SUCCESS": 75,
+      "KNOWN_ACCEPTED": 5
      }
     },
     {
@@ -1666,12 +1599,12 @@
      "stratum": "enr/raw/stim/fix3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 72,
-     "arch_exact": 61,
+     "rows_exact": 73,
+     "arch_exact": 62,
      "unscoreable": 17,
      "verdicts": {
-      "SUCCESS": 72,
-      "KNOWN_ACCEPTED": 8
+      "SUCCESS": 73,
+      "KNOWN_ACCEPTED": 7
      }
     },
     {
@@ -1679,12 +1612,12 @@
      "stratum": "enr/raw/stim/wrand1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 72,
+     "rows_exact": 74,
      "arch_exact": 65,
      "unscoreable": 11,
      "verdicts": {
-      "KNOWN_ACCEPTED": 8,
-      "SUCCESS": 72
+      "KNOWN_ACCEPTED": 6,
+      "SUCCESS": 74
      }
     },
     {
@@ -1692,12 +1625,12 @@
      "stratum": "enr/raw/stim/wrand3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 74,
+     "rows_exact": 75,
      "arch_exact": 68,
      "unscoreable": 11,
      "verdicts": {
-      "KNOWN_ACCEPTED": 6,
-      "SUCCESS": 74
+      "KNOWN_ACCEPTED": 5,
+      "SUCCESS": 75
      }
     },
     {
@@ -1718,12 +1651,12 @@
      "stratum": "enr/raw/stim/wrand15",
      "n": 80,
      "captured": 80,
-     "rows_exact": 77,
+     "rows_exact": 78,
      "arch_exact": 66,
      "unscoreable": 13,
      "verdicts": {
-      "SUCCESS": 77,
-      "KNOWN_ACCEPTED": 3
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
      }
     },
     {
@@ -1731,17 +1664,17 @@
      "stratum": "enr/raw/stim/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 74,
+     "rows_exact": 76,
      "arch_exact": 67,
      "unscoreable": 11,
      "verdicts": {
-      "SUCCESS": 74,
-      "KNOWN_ACCEPTED": 6
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
      }
     }
    ],
-   "rows_exact_mean_pct": 94.86,
-   "arch_exact_mean_pct": 89.55,
+   "rows_exact_mean_pct": 96.18,
+   "arch_exact_mean_pct": 90.0,
    "unscoreable_total": 250
   }
  }
