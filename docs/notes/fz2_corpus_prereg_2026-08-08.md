@@ -6013,3 +6013,54 @@ them from this survey would be fitting.
   and nothing here re-opens it.
 * No board contact was made, no bitstream was touched, no RTL was touched, no
   capture constant moved, and `sw/testdata/fz2/fz2_bars.json` was not rewritten.
+
+### 38.9 ADDENDUM TO A-15, FORWARD-ONLY — **`B2` IS NOT A HALT FAMILY.  IT IS `C1` DOWNSTREAM, AND THE MISSED-TRAP POPULATION IS 40, NOT 29.**
+
+Written and committed AFTER §38.1-§38.8 and separately from them; **nothing
+above is edited, the failure ledger file is byte-identical and its sha256
+`c86f49b896c39673…` still holds, and the §38.5 partition still sums to 198.**
+This section corrects §38.6's reading of `B2` and enlarges §38.7's item #3.
+The correction was forced by reading the raw rows of a `B2` exemplar, which is
+what §38.6 said `B2` still needed.
+
+`fz2e/521036`, first divergence at row 2980: the **core** issues a `HALT` status
+at row 2981 and the **chip** does not — which is what put the seed in `B2`.  But
+four rows further on the chip runs `MEMR` at **`0x00004`**, the vector-1 entry,
+and the core never does.  The core did not "halt instead"; it **missed the
+single-step trap and then executed the next instruction, which happened to be a
+HALT.**
+
+**Measured over the whole ledger.**  The predicate *"the chip reads a vector-1
+within `[fb-8, fb+60]` and the core reads no vector there"* holds on **40 of the
+198**, and on **39 of those 40** the chip's whole-window vector-1 count exceeds
+the core's.  The chip's unmatched vector-1 read sits at **`fb+3` … `fb+6` on 32
+of the 40** (`+3` 12, `+6` 12, `+4` 8), `fb+1`/`+5`/`+8`/`+10` on the rest.  By
+family the 40 are **`C1` 29 + `B2` 10 + `B1` 1**; by banked verdict, 33
+`KNOWN_ACCEPTED` and 7 `FUNCTIONAL`.
+
+**THE NAMED POPULATION (40), so a later sitting can pre-register against it:**
+
+    fz2c/400007 fz2c/400019 fz2c/400022 fz2c/402075 fz2c/406073 fz2c/407019
+    fz2c/407024 fz2c/407057 fz2c/407064 fz2c/408079 fz2c/409062 fz2c/410000
+    fz2c/410053 fz2c/410062 fz2e/507064 fz2e/512021 fz2e/512027 fz2e/518039
+    fz2e/518044 fz2e/518046 fz2e/518072 fz2e/519032 fz2e/521012 fz2e/521036
+    fz2e/521054 fz2e/521062 fz2e/522047 fz2e/522051 fz2e/522071 fz2e/522075
+    fz2e/528035 fz2e/529017 fz2e/529036 fz2e/529040 fz2e/529055 fz2e/530024
+    fz2e/530030 fz2e/531000 fz2e/531036 fz2e/535042
+
+**WHAT MOVES IN THE FIX PLAN.**  §38.7 item #3 (`C1`) is re-registered at a
+**yield of 40 seeds, 20.2 % of the ledger**, which makes it the single largest
+mechanism in the corpus and moves it to **first** in yield terms.  Its ordering
+against #1 and #2 is left where §38.7 put it, and deliberately: #1 and #2 are
+register-side changes with a smaller blast radius, and #3's counter-population
+discipline (§38.6, the four seeds named there) has not changed.  **§38.7's
+`B2/D*` "unresolved, 40 seeds" line is reduced to `D1/D2/D3`, 30 seeds**, and
+the ledger's unresolved total falls from 81 to **71**.
+
+**WHAT THIS DOES NOT CHANGE.**  The `B2` label stays in
+`fz2_failure_ledger_2026-08-09.json` exactly as banked — the partition is a
+record of how the bus structure classified each seed and it is not rewritten
+because a later reading grouped two of its cells.  No cause is established; the
+predicate in §38.6's `C1` entry is still a candidate with the same falsifier.
+No board, no bitstream, no RTL, no capture constant, and `fz2_bars.json` still
+untouched.
