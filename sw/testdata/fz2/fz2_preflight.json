@@ -1,70 +1,70 @@
 {
  "stage": "fz2 preflight",
  "host": "root@mister-nec",
- "gen_git": "77838ef777",
+ "gen_git": "ddaed64457",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
- "ts": "2026-08-10T17:57:37Z",
+ "ts": "2026-08-10T20:30:04Z",
  "div_guards": [
   {
    "tag": "preflight",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-10T17:57:42Z"
+   "ts": "2026-08-10T20:30:09Z"
   },
   {
    "tag": "preflight-end",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-10T17:57:43Z"
+   "ts": "2026-08-10T20:30:10Z"
   }
  ],
  "capture_path_gaps": [],
- "uptime": "17:57:38  up 28 days 22:23,  0 users,  load average: 0.00, 0.00, 0.00",
+ "uptime": "20:30:04  up 29 days  0:56,  0 users,  load average: 0.08, 0.00, 0.02",
  "board_procs": [],
  "single_writer": "OK",
  "local_serve_procs": [],
  "flash_log_tail": {
-  "sha256": "2dc38a17d6c3e77de9f69983dbdca41bee682d25db3128ba924548822283f3e6",
-  "ts": "2026-08-10T17:56:19Z",
-  "git_describe": "77838ef777",
+  "sha256": "fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c",
+  "ts": "2026-08-10T20:27:33Z",
+  "git_describe": "ddaed64457-dirty",
   "verify": "OK"
  },
  "resident_rig": {
   "gap": [],
-  "why": "receipt c0ed51936233\u2026, 'fz2 FLASH#15 RETENTION ret_draw2'",
-  "receipt": "c0ed51936233ee24d572affb29711de4813a933412a68062b24357bfa24984c8",
-  "flash_sha256": "2dc38a17d6c3e77de9f69983dbdca41bee682d25db3128ba924548822283f3e6"
+  "why": "receipt f88783b66cf4\u2026, 'F16 wave-3 RETENTION draw 2 of 2'",
+  "receipt": "f88783b66cf4a1eed7ce6b31d207f45786b8f02eed113abc676c7f5c54e97afd",
+  "flash_sha256": "fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c"
  },
  "manifests": {
   "fz2c": {
-   "sof_sha256": "2dc38a17d6c3e77de9f69983dbdca41bee682d25db3128ba924548822283f3e6",
-   "flash_ts": "2026-08-10T17:56:19Z",
-   "flash_git": "77838ef777",
+   "sof_sha256": "fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c",
+   "flash_ts": "2026-08-10T20:27:33Z",
+   "flash_git": "ddaed64457-dirty",
    "flash_verify": "OK",
    "rtl": {
-    "receipt_id": "c0ed51936233ee24d572affb29711de4813a933412a68062b24357bfa24984c8",
-    "inputs_sha256": "dd51681ba98f3c67835e264d80791d909b09e1833347287e5d339aa02cad1a8c",
+    "receipt_id": "f88783b66cf4a1eed7ce6b31d207f45786b8f02eed113abc676c7f5c54e97afd",
+    "inputs_sha256": "4ae89fb63557a1a0bec4ab8b9d0c7fb8060671e2379ce11c737a04a98ac59250",
     "n_files": 88,
-    "label": "fz2 FLASH#15 RETENTION ret_draw2"
+    "label": "F16 wave-3 RETENTION draw 2 of 2"
    },
-   "gen_git": "77838ef777",
+   "gen_git": "ddaed64457",
    "rig_evt_hold_bits": 12,
    "rules_version": "1.0"
   },
   "fz2e": {
-   "sof_sha256": "2dc38a17d6c3e77de9f69983dbdca41bee682d25db3128ba924548822283f3e6",
-   "flash_ts": "2026-08-10T17:56:19Z",
-   "flash_git": "77838ef777",
+   "sof_sha256": "fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c",
+   "flash_ts": "2026-08-10T20:27:33Z",
+   "flash_git": "ddaed64457-dirty",
    "flash_verify": "OK",
    "rtl": {
-    "receipt_id": "c0ed51936233ee24d572affb29711de4813a933412a68062b24357bfa24984c8",
-    "inputs_sha256": "dd51681ba98f3c67835e264d80791d909b09e1833347287e5d339aa02cad1a8c",
+    "receipt_id": "f88783b66cf4a1eed7ce6b31d207f45786b8f02eed113abc676c7f5c54e97afd",
+    "inputs_sha256": "4ae89fb63557a1a0bec4ab8b9d0c7fb8060671e2379ce11c737a04a98ac59250",
     "n_files": 88,
-    "label": "fz2 FLASH#15 RETENTION ret_draw2"
+    "label": "F16 wave-3 RETENTION draw 2 of 2"
    },
-   "gen_git": "77838ef777",
+   "gen_git": "ddaed64457",
    "rig_evt_hold_bits": 12,
    "rules_version": "1.0"
   }

@@ -5,12 +5,12 @@ One snippet per seed in the fz2 true-failure ledger: the assembly the CHIP was e
 ## How to regenerate this, exactly
 
 ```
-python3 sw/fz2_failview.py --ledger sw/testdata/fz2/fz2_failure_ledger_f15_2026-08-10.json --control sw/testdata/fz2/fz2_failure_ledger_f14_2026-08-10.json:-F14-archive --split docs/notes/fz2_atlas --index docs/notes/fz2_failure_atlas_2026-08-10.md --json sw/testdata/fz2/fz2_failview_coverage_2026-08-10.json
+python3 sw/fz2_failview.py --ledger sw/testdata/fz2/fz2_failure_ledger_f16_2026-08-10.json --split docs/notes/fz2_atlas --index docs/notes/fz2_failure_atlas_2026-08-10.md
 ```
 
-* ledger `sw/testdata/fz2/fz2_failure_ledger_f15_2026-08-10.json` sha256 `5cbc2c5e53c17b37…`, derived 2026-08-10T18:10:35Z by `sw/fz2_ledger.py` — **NOT committed at generation time**: it is a working-tree file, and the sha256 above is what this atlas was built from
+* ledger `sw/testdata/fz2/fz2_failure_ledger_f16_2026-08-10.json` sha256 `f74d77748adcad52…`, derived 2026-08-10T20:42:55Z by `sw/fz2_ledger.py` — **NOT committed at generation time**: it is a working-tree file, and the sha256 above is what this atlas was built from
 * corpus `fz2c`, `fz2e` (live dirs), 3840 seeds, 116 failures, seed match 96.9776 %
-* bitstream `.sof` sha256 `2dc38a17d6c3e77d…`, flashed 2026-08-10T17:56:19Z from `77838ef777`, RTL receipt `c0ed51936233ee24…` (fz2 FLASH#15 RETENTION ret_draw2)
+* bitstream `.sof` sha256 `fed558c0e61173ae…`, flashed 2026-08-10T20:27:33Z from `ddaed64457-dirty`, RTL receipt `f88783b66cf4a1ee…` (F16 wave-3 RETENTION draw 2 of 2)
 * every capture is sha256-gated against the ledger before a row is read; every image is re-derived through `fuzz_campaign.compose_case` and gated on `image_sha256`
 
 ## What a snippet is, and what it is not
@@ -32,13 +32,9 @@ python3 sw/fz2_failview.py --ledger sw/testdata/fz2/fz2_failure_ledger_f15_2026-
 | image re-derived to the banked sha256 | 116 / 116 |
 | forks with no instruction in dispatch (`NO-DISPATCH`) | 0 |
 | captures unreadable / sha-drifted | 0 |
-| bus bytes disagreeing with the re-derived image | 4 (in 2 seed(s)) |
+| bus bytes disagreeing with the re-derived image | 44 (in 3 seed(s)) |
 
 No seed was left unhandled.
-
-### Acceptance control — the same derivation on a different corpus
-
-The reconstruction claim is checked a second time, in this same run, against `sw/testdata/fz2/fz2_failure_ledger_f14_2026-08-10.json` (sha256 `d7dacbd5f4babcc4…`) over the `-F14-archive` corpus: **fork row reproduced 145 / 145**, `diverging_rows` 145 / 145, image re-derived 145 / 145, `NO-DISPATCH` 0, captures unreadable 0. That population selected nothing here — it is a different bitstream era and a different failure set — so it is a control and not a fit.
 
 ## Families
 
@@ -55,10 +51,10 @@ The reconstruction claim is checked a second time, in this same run, against `sw
 | C4 other-vector delivery | 1 | [c4](fz2_atlas/c4.md) |
 | D1 chip fetched, core did not | 10 | [d1](fz2_atlas/d1.md) |
 | D2 core fetched, chip did not | 10 | [d2](fz2_atlas/d2.md) |
-| D3 both fetched, different address | 10 | [d3](fz2_atlas/d3.md) |
+| D3 both fetched, different address | 8 | [d3](fz2_atlas/d3.md) |
 | E1 same-status data cycle, different address | 41 | [e1](fz2_atlas/e1.md) |
 | E2 different-status data cycle | 4 | [e2](fz2_atlas/e2.md) |
-| NEW/UNCLASSIFIED | 1 | [new_unclassified](fz2_atlas/new_unclassified.md) |
+| NEW/UNCLASSIFIED | 3 | [new_unclassified](fz2_atlas/new_unclassified.md) |
 
 **A1 qs-pop one clock late** — 5 seed(s).  First diverging column: `qs` 3, `bs+data` 2.  Tiers: raw 3, soup 2.  Wait source: wrand 3, fixed 2.  Median `first_bad` row 3040 (range 327–3326); median diverging rows 424.  Terminator: REACHED 5.  Architectural dump differs on 0 of 5.  The label is the ledger's; these numbers are this family's own seeds, and no mechanism is asserted here that the ledger does not carry.
 
@@ -82,11 +78,11 @@ The reconstruction claim is checked a second time, in this same run, against `sw
 
 **D2 core fetched, chip did not** — 10 seed(s).  First diverging column: `qs` 4, `bs+data` 3, `bs` 3.  Tiers: soup 5, raw 5.  Wait source: wrand 5, fixed 4, wvec 1.  Median `first_bad` row 933 (range 288–1759); median diverging rows 1267.  Terminator: REACHED 10.  Architectural dump differs on 4 of 10.  The label is the ledger's; these numbers are this family's own seeds, and no mechanism is asserted here that the ledger does not carry.
 
-**D3 both fetched, different address** — 10 seed(s).  First diverging column: `data` 8, `bs+data` 2.  Tiers: raw 10.  Wait source: fixed 7, wrand 3.  Median `first_bad` row 881 (range 156–3048); median diverging rows 1011.  Terminator: REACHED 7, STALLED 1, WINDOW 1, LONG_INSN 1.  Architectural dump differs on 7 of 10.  The label is the ledger's; these numbers are this family's own seeds, and no mechanism is asserted here that the ledger does not carry.
+**D3 both fetched, different address** — 8 seed(s).  First diverging column: `data` 6, `bs+data` 2.  Tiers: raw 8.  Wait source: fixed 5, wrand 3.  Median `first_bad` row 881 (range 328–3048); median diverging rows 2177.  Terminator: REACHED 5, STALLED 1, WINDOW 1, LONG_INSN 1.  Architectural dump differs on 6 of 8.  The label is the ledger's; these numbers are this family's own seeds, and no mechanism is asserted here that the ledger does not carry.
 
 **E1 same-status data cycle, different address** — 41 seed(s).  First diverging column: `data` 35, `qs` 3, `bs` 2, `bs+data` 1.  Tiers: raw 38, soup 3.  Wait source: fixed 24, wrand 11, wvec 6.  Median `first_bad` row 571 (range 236–3164); median diverging rows 404.  Terminator: REACHED 33, STALLED 4, LONG_INSN 3, BUDGET 1.  Architectural dump differs on 23 of 41.  The label is the ledger's; these numbers are this family's own seeds, and no mechanism is asserted here that the ledger does not carry.
 
 **E2 different-status data cycle** — 4 seed(s).  First diverging column: `bs` 2, `t` 1, `bs+data` 1.  Tiers: raw 3, soup 1.  Wait source: fixed 4.  Median `first_bad` row 655 (range 345–1249); median diverging rows 9.  Terminator: REACHED 3, STALLED 1.  Architectural dump differs on 2 of 4.  The label is the ledger's; these numbers are this family's own seeds, and no mechanism is asserted here that the ledger does not carry.
 
-**NEW/UNCLASSIFIED** — 1 seed(s).  First diverging column: `qs` 1.  Tiers: raw 1.  Wait source: wrand 1.  Median `first_bad` row 3029 (range 3029–3029); median diverging rows 2.  Terminator: REACHED 1.  Architectural dump differs on 0 of 1.  The label is the ledger's; these numbers are this family's own seeds, and no mechanism is asserted here that the ledger does not carry.
+**NEW/UNCLASSIFIED** — 3 seed(s).  First diverging column: `bs+data+t` 1, `qs` 1, `data` 1.  Tiers: raw 2, soup 1.  Wait source: wrand 3.  Median `first_bad` row 1090 (range 695–3029); median diverging rows 502.  Terminator: REACHED 3.  Architectural dump differs on 2 of 3.  The label is the ledger's; these numbers are this family's own seeds, and no mechanism is asserted here that the ledger does not carry.
 
