@@ -763,6 +763,14 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `vsys_ret`, b3 **`chip_f9` 178/178 / `core_f9` 176/178**, `use_core=0` chip
   proof **MATCH 800** after everything, `div_guard` PINNED throughout, 0
   transport errors, `board_idle()` clean, `flash_log.jsonl` **12 entries**.
+  ⚠ **THE NEXT CLAUSE IS THE FLASH #9 SNAPSHOT AND IS STALE TWICE OVER — F55
+  LANDED at SM3 sitting 20 (`39ac08ccd4`, ten registered bars met, in fabric
+  since FLASH #10), and the F58 landing (`b245334d7c`, fuzz-v2 survey family
+  B1) closed the ADJACENT mechanism: the HALT pseudo-cycle announces nothing
+  of its own — it publishes the AD output latch as it stands (write data
+  after a write, T1 address after a read), measured 1,189/1,189 HALT cycles
+  with zero exceptions.  A survey brief was misled by reading this paragraph
+  as current; it is kept as history, not as state.**
   **AND IT PRODUCED F55, BOOKED NOT LANDED**: `halt_hold` keeps `ad_oe_addr`
   asserted for the whole HALT pseudo-cycle, so the ucore DRIVES an address
   silicon leaves there by RETENTION — invisible on `tb_v30_core` (whose
