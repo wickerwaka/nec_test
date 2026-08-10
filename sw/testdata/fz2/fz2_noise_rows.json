@@ -1,0 +1,52 @@
+{
+ "tool": "fz2_noise.rows",
+ "pair": [
+  "A5",
+  "F12"
+ ],
+ "seeds_with_both_captures": 730,
+ "scored": 730,
+ "clean": 727,
+ "moved": [
+  {
+   "seed": "fz2c/411076",
+   "window": 4000,
+   "chip_bad": 3312,
+   "chip_flick": 0,
+   "chip_first": 684,
+   "core_bad": 0,
+   "core_first": null,
+   "bad_rows_A": 0,
+   "bad_rows_B": 3312
+  },
+  {
+   "seed": "fz2e/521059",
+   "window": 4000,
+   "chip_bad": 1189,
+   "chip_flick": 0,
+   "chip_first": 696,
+   "core_bad": 0,
+   "core_first": null,
+   "bad_rows_A": 2280,
+   "bad_rows_B": 2814
+  },
+  {
+   "seed": "fz2e/526025",
+   "window": 4000,
+   "chip_bad": 2850,
+   "chip_flick": 0,
+   "chip_first": 691,
+   "core_bad": 0,
+   "core_first": null,
+   "bad_rows_A": 2843,
+   "bad_rows_B": 374
+  }
+ ],
+ "skipped": 0,
+ "chip_only": [
+  "fz2c/411076",
+  "fz2e/521059",
+  "fz2e/526025"
+ ],
+ "core_only": []
+}

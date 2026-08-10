@@ -1,0 +1,1419 @@
+{
+ "tool": "fz2_m10_step0.control",
+ "seed": 20260810,
+ "rows_per_seed": 200,
+ "A": {
+  "n": 23200,
+  "lea": 2131,
+  "direct": 28
+ },
+ "B": {
+  "n": 108,
+  "lea": 6,
+  "direct": 0
+ },
+ "per": [
+  {
+   "row": 933,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/404041",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 221,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/404049",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 244,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/404071",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 527,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/405002",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 1331,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/405013",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 215,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/405025",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 636,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/405072",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 478,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/406006",
+   "in_residual": true,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 3526,
+   "lea": true,
+   "n_lea": 1,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/406046",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 470,
+   "lea": true,
+   "n_lea": 1,
+   "direct": true,
+   "dest": "BW",
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW",
+     "IX"
+    ]
+   },
+   "seed": "fz2c/406054",
+   "in_residual": true,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 249,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "IX"
+    ]
+   },
+   "seed": "fz2c/406063",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 1574,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/406073",
+   "in_residual": false,
+   "family": "B2 HALT entry (one leg only)"
+  },
+  {
+   "row": 3045,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/407000",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 3048,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/407036",
+   "in_residual": false,
+   "family": "D3 both fetched, different address"
+  },
+  {
+   "row": 1947,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/407064",
+   "in_residual": false,
+   "family": "B1 HALT-cycle address"
+  },
+  {
+   "row": 3053,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/407065",
+   "in_residual": false,
+   "family": "A1 qs-pop one clock late"
+  },
+  {
+   "row": 1594,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/407067",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 1617,
+   "lea": true,
+   "n_lea": 1,
+   "direct": true,
+   "dest": "BP",
+   "ea": {
+    "seg": "SS",
+    "regs": [
+     "BP"
+    ]
+   },
+   "seed": "fz2c/408019",
+   "in_residual": true,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 720,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/408021",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 432,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/408068",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 1565,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "SS",
+    "regs": [
+     "BP",
+     "IY"
+    ]
+   },
+   "seed": "fz2c/409025",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 1544,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/409065",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 820,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/409077",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 1192,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/410008",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 2994,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/410028",
+   "in_residual": false,
+   "family": "C3 NMI(vec2) entry"
+  },
+  {
+   "row": 227,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2c/410047",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 515,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/501066",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 1547,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/501069",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 562,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/509036",
+   "in_residual": false,
+   "family": "A1 qs-pop one clock late"
+  },
+  {
+   "row": 971,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/510043",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 319,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/510048",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 378,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/511014",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 345,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/512038",
+   "in_residual": false,
+   "family": "E2 different-status data cycle"
+  },
+  {
+   "row": 1475,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/512056",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 288,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/512062",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 695,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/513017",
+   "in_residual": false,
+   "family": "NEW/UNCLASSIFIED"
+  },
+  {
+   "row": 656,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/513019",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 543,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/513026",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 327,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/513055",
+   "in_residual": false,
+   "family": "A1 qs-pop one clock late"
+  },
+  {
+   "row": 235,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/514044",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 326,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/514072",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 410,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/515047",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 364,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/515056",
+   "in_residual": false,
+   "family": "A2 qs-pop other offset"
+  },
+  {
+   "row": 584,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/516001",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 1759,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/516026",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 1199,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/516029",
+   "in_residual": false,
+   "family": "A2 qs-pop other offset"
+  },
+  {
+   "row": 472,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/516065",
+   "in_residual": false,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "row": 1811,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/516066",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 719,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/517046",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 739,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW",
+     "IY"
+    ]
+   },
+   "seed": "fz2e/518004",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 1336,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "SS",
+    "regs": [
+     "BP",
+     "IX"
+    ]
+   },
+   "seed": "fz2e/518006",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 3326,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/518009",
+   "in_residual": false,
+   "family": "A1 qs-pop one clock late"
+  },
+  {
+   "row": 281,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/518022",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 489,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/518033",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 429,
+   "lea": true,
+   "n_lea": 1,
+   "direct": true,
+   "dest": "BP",
+   "ea": {
+    "seg": "SS",
+    "regs": [
+     "BP",
+     "IX"
+    ]
+   },
+   "seed": "fz2e/518038",
+   "in_residual": true,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 2371,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/518039",
+   "in_residual": false,
+   "family": "C1 vector-1 trap MISSED by core"
+  },
+  {
+   "row": 2608,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/518044",
+   "in_residual": false,
+   "family": "B2 HALT entry (one leg only)"
+  },
+  {
+   "row": 748,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW"
+    ]
+   },
+   "seed": "fz2e/518050",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 571,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "IX"
+    ]
+   },
+   "seed": "fz2e/518053",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 325,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/518067",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 236,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/519016",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 559,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/519072",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 642,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/520000",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 491,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/520005",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 960,
+   "lea": true,
+   "n_lea": 2,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/520013",
+   "in_residual": false,
+   "family": "D3 both fetched, different address"
+  },
+  {
+   "row": 253,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/520040",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 700,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "IY"
+    ]
+   },
+   "seed": "fz2e/520062",
+   "in_residual": false,
+   "family": "D3 both fetched, different address"
+  },
+  {
+   "row": 1249,
+   "lea": true,
+   "n_lea": 1,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/520066",
+   "in_residual": false,
+   "family": "E2 different-status data cycle"
+  },
+  {
+   "row": 362,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/521016",
+   "in_residual": false,
+   "family": "D3 both fetched, different address"
+  },
+  {
+   "row": 2168,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/521049",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 1235,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/521059",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 3164,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/522003",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 396,
+   "lea": true,
+   "n_lea": 1,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "IX"
+    ]
+   },
+   "seed": "fz2e/522019",
+   "in_residual": true,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 377,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/522029",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 3040,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/523045",
+   "in_residual": false,
+   "family": "A1 qs-pop one clock late"
+  },
+  {
+   "row": 319,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/524007",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 352,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/524030",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 457,
+   "lea": true,
+   "n_lea": 1,
+   "direct": true,
+   "dest": "IX",
+   "ea": {
+    "seg": "SS",
+    "regs": [
+     "BP",
+     "IX"
+    ]
+   },
+   "seed": "fz2e/524034",
+   "in_residual": true,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 750,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/524055",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 1167,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/525017",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 279,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW",
+     "IX"
+    ]
+   },
+   "seed": "fz2e/526054",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 938,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/527008",
+   "in_residual": false,
+   "family": "D3 both fetched, different address"
+  },
+  {
+   "row": 3312,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/527017",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 404,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/527037",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 655,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/527055",
+   "in_residual": false,
+   "family": "E2 different-status data cycle"
+  },
+  {
+   "row": 3167,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/527065",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 628,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW"
+    ]
+   },
+   "seed": "fz2e/528008",
+   "in_residual": false,
+   "family": "D3 both fetched, different address"
+  },
+  {
+   "row": 1383,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW"
+    ]
+   },
+   "seed": "fz2e/528010",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 423,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/528030",
+   "in_residual": false,
+   "family": "E2 different-status data cycle"
+  },
+  {
+   "row": 296,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/528053",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 908,
+   "lea": true,
+   "n_lea": 1,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/529009",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 1069,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/529034",
+   "in_residual": false,
+   "family": "A2 qs-pop other offset"
+  },
+  {
+   "row": 611,
+   "lea": true,
+   "n_lea": 1,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/529067",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 442,
+   "lea": true,
+   "n_lea": 1,
+   "direct": true,
+   "dest": "BW",
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW",
+     "IY"
+    ]
+   },
+   "seed": "fz2e/530001",
+   "in_residual": true,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 1448,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW"
+    ]
+   },
+   "seed": "fz2e/530017",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 304,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "IY"
+    ]
+   },
+   "seed": "fz2e/530020",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 352,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW"
+    ]
+   },
+   "seed": "fz2e/530034",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 1402,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/530046",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 2233,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": []
+   },
+   "seed": "fz2e/530070",
+   "in_residual": false,
+   "family": "C4 other-vector delivery"
+  },
+  {
+   "row": 1510,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/531018",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 3218,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/531030",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 1313,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/531032",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 1012,
+   "lea": true,
+   "n_lea": 1,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "IY"
+    ]
+   },
+   "seed": "fz2e/531039",
+   "in_residual": false,
+   "family": "A3 cycle-time slip (non-qs)"
+  },
+  {
+   "row": 434,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW",
+     "IX"
+    ]
+   },
+   "seed": "fz2e/532000",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 328,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": [
+     "BW",
+     "IX"
+    ]
+   },
+   "seed": "fz2e/532012",
+   "in_residual": false,
+   "family": "D3 both fetched, different address"
+  },
+  {
+   "row": 3032,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/532021",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 3029,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/532032",
+   "in_residual": false,
+   "family": "NEW/UNCLASSIFIED"
+  },
+  {
+   "row": 2653,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/532066",
+   "in_residual": false,
+   "family": "A2 qs-pop other offset"
+  },
+  {
+   "row": 1678,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/533025",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 881,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": {
+    "seg": "DS",
+    "regs": []
+   },
+   "seed": "fz2e/533028",
+   "in_residual": false,
+   "family": "D3 both fetched, different address"
+  },
+  {
+   "row": 1090,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/534041",
+   "in_residual": false,
+   "family": "NEW/UNCLASSIFIED"
+  },
+  {
+   "row": 1067,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/534060",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 1291,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/534062",
+   "in_residual": false,
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "row": 1138,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/535004",
+   "in_residual": false,
+   "family": "D1 chip fetched, core did not"
+  },
+  {
+   "row": 296,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/535027",
+   "in_residual": true,
+   "family": "E1 same-status data cycle, different address"
+  },
+  {
+   "row": 1708,
+   "lea": false,
+   "n_lea": 0,
+   "direct": false,
+   "dest": null,
+   "ea": null,
+   "seed": "fz2e/535036",
+   "in_residual": false,
+   "family": "E1 same-status data cycle, different address"
+  }
+ ]
+}

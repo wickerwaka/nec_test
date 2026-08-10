@@ -1,0 +1,320 @@
+{
+ "tool": "fz2_m10_step0",
+ "ledger": "/home/wickerwaka/src/nec_test/sw/testdata/fz2/fz2_failure_ledger_f16_2026-08-10.json",
+ "residual": "/home/wickerwaka/src/nec_test/sw/testdata/fz2/fz2_m10_solve_residual.json",
+ "n": 8,
+ "rows": [
+  {
+   "seed": "fz2c/406006",
+   "fork_row": 478,
+   "chip_addr": 359279,
+   "core_addr": 504783,
+   "dispatch_bytes": "0f 3b 2a 8c",
+   "lea_mod3": [],
+   "n_lea_mod3": 0,
+   "status": "EA-NOT-DECODED",
+   "taint": {
+    "direct": false,
+    "dest": null,
+    "carriers": null
+   }
+  },
+  {
+   "seed": "fz2c/406054",
+   "fork_row": 470,
+   "chip_addr": 5772,
+   "core_addr": 20905,
+   "dispatch_bytes": "ff b8 2b 1a",
+   "lea_mod3": [
+    {
+     "gi": 54,
+     "dist": 3,
+     "f_row": 437,
+     "bytes": "8d dc",
+     "dest": "BW",
+     "rm": "SP"
+    }
+   ],
+   "n_lea_mod3": 1,
+   "ea": {
+    "seg": "DS",
+    "seg_override": null,
+    "regs": [
+     "BW",
+     "IX"
+    ],
+    "disp": 6699,
+    "mod": 2,
+    "rm": 0
+   },
+   "core_ea_reproduced": true,
+   "core_ea_offset": 39449,
+   "chip_offset_needed": 24316,
+   "delta": 50403,
+   "delta_signed": -15133,
+   "delta_carriers": [
+    "BW",
+    "IX"
+   ],
+   "status": "SOLVED",
+   "taint": {
+    "direct": true,
+    "dest": "BW",
+    "dist": 3,
+    "carriers": [
+     "BW",
+     "IX"
+    ]
+   }
+  },
+  {
+   "seed": "fz2c/408019",
+   "fork_row": 1617,
+   "chip_addr": 569654,
+   "core_addr": 563610,
+   "dispatch_bytes": "29 96 23 ca",
+   "lea_mod3": [
+    {
+     "gi": 56,
+     "dist": 21,
+     "f_row": 1034,
+     "bytes": "8d eb",
+     "dest": "BP",
+     "rm": "BW"
+    }
+   ],
+   "n_lea_mod3": 1,
+   "ea": {
+    "seg": "SS",
+    "seg_override": null,
+    "regs": [
+     "BP"
+    ],
+    "disp": 51747,
+    "mod": 2,
+    "rm": 6
+   },
+   "core_ea_reproduced": true,
+   "core_ea_offset": 42682,
+   "chip_offset_needed": 48726,
+   "delta": 6044,
+   "delta_signed": 6044,
+   "delta_carriers": [
+    "BP"
+   ],
+   "status": "SOLVED",
+   "taint": {
+    "direct": true,
+    "dest": "BP",
+    "dist": 21,
+    "carriers": [
+     "BP"
+    ]
+   }
+  },
+  {
+   "seed": "fz2e/518038",
+   "fork_row": 429,
+   "chip_addr": 595547,
+   "core_addr": 591940,
+   "dispatch_bytes": "c1 62 06 9a",
+   "lea_mod3": [
+    {
+     "gi": 45,
+     "dist": 6,
+     "f_row": 357,
+     "bytes": "8d ee",
+     "dest": "BP",
+     "rm": "IX"
+    }
+   ],
+   "n_lea_mod3": 1,
+   "ea": {
+    "seg": "SS",
+    "seg_override": null,
+    "regs": [
+     "BP",
+     "IX"
+    ],
+    "disp": 6,
+    "mod": 1,
+    "rm": 2
+   },
+   "core_ea_reproduced": true,
+   "core_ea_offset": 22276,
+   "chip_offset_needed": 25883,
+   "delta": 3607,
+   "delta_signed": 3607,
+   "delta_carriers": [
+    "BP",
+    "IX"
+   ],
+   "status": "SOLVED",
+   "taint": {
+    "direct": true,
+    "dest": "BP",
+    "dist": 6,
+    "carriers": [
+     "BP",
+     "IX"
+    ]
+   }
+  },
+  {
+   "seed": "fz2e/522019",
+   "fork_row": 396,
+   "chip_addr": 554419,
+   "core_addr": 543411,
+   "dispatch_bytes": "11 6c 9c",
+   "lea_mod3": [
+    {
+     "gi": 29,
+     "dist": 7,
+     "f_row": 326,
+     "bytes": "8d c7",
+     "dest": "AW",
+     "rm": "IY"
+    }
+   ],
+   "n_lea_mod3": 1,
+   "ea": {
+    "seg": "DS",
+    "seg_override": null,
+    "regs": [
+     "IX"
+    ],
+    "disp": 65436,
+    "mod": 1,
+    "rm": 4
+   },
+   "core_ea_reproduced": true,
+   "core_ea_offset": 53155,
+   "chip_offset_needed": 64163,
+   "delta": 11008,
+   "delta_signed": 11008,
+   "delta_carriers": [
+    "IX"
+   ],
+   "status": "SOLVED",
+   "taint": {
+    "direct": false,
+    "dest": "AW",
+    "dist": 7,
+    "carriers": [
+     "IX"
+    ]
+   }
+  },
+  {
+   "seed": "fz2e/524034",
+   "fork_row": 457,
+   "chip_addr": 762445,
+   "core_addr": 784228,
+   "dispatch_bytes": "84 82 84 65",
+   "lea_mod3": [
+    {
+     "gi": 24,
+     "dist": 4,
+     "f_row": 414,
+     "bytes": "8d f4",
+     "dest": "IX",
+     "rm": "SP"
+    }
+   ],
+   "n_lea_mod3": 1,
+   "ea": {
+    "seg": "SS",
+    "seg_override": null,
+    "regs": [
+     "BP",
+     "IX"
+    ],
+    "disp": 25988,
+    "mod": 2,
+    "rm": 2
+   },
+   "core_ea_reproduced": true,
+   "core_ea_offset": 55540,
+   "chip_offset_needed": 33757,
+   "delta": 43753,
+   "delta_signed": -21783,
+   "delta_carriers": [
+    "BP",
+    "IX"
+   ],
+   "status": "SOLVED",
+   "taint": {
+    "direct": true,
+    "dest": "IX",
+    "dist": 4,
+    "carriers": [
+     "BP",
+     "IX"
+    ]
+   }
+  },
+  {
+   "seed": "fz2e/530001",
+   "fork_row": 442,
+   "chip_addr": 921298,
+   "core_addr": 886465,
+   "dispatch_bytes": "86 79 68",
+   "lea_mod3": [
+    {
+     "gi": 24,
+     "dist": 7,
+     "f_row": 351,
+     "bytes": "8d d8",
+     "dest": "BW",
+     "rm": "AW"
+    }
+   ],
+   "n_lea_mod3": 1,
+   "ea": {
+    "seg": "DS",
+    "seg_override": null,
+    "regs": [
+     "BW",
+     "IY"
+    ],
+    "disp": 104,
+    "mod": 1,
+    "rm": 1
+   },
+   "core_ea_reproduced": true,
+   "core_ea_offset": 21377,
+   "chip_offset_needed": 56210,
+   "delta": 34833,
+   "delta_signed": -30703,
+   "delta_carriers": [
+    "BW",
+    "IY"
+   ],
+   "status": "SOLVED",
+   "taint": {
+    "direct": true,
+    "dest": "BW",
+    "dist": 7,
+    "carriers": [
+     "BW",
+     "IY"
+    ]
+   }
+  },
+  {
+   "seed": "fz2e/535027",
+   "fork_row": 296,
+   "chip_addr": 991276,
+   "core_addr": 605954,
+   "dispatch_bytes": "a4",
+   "lea_mod3": [],
+   "n_lea_mod3": 0,
+   "status": "EA-NOT-DECODED",
+   "taint": {
+    "direct": false,
+    "dest": null,
+    "carriers": null
+   }
+  }
+ ]
+}

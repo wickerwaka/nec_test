@@ -1,0 +1,73 @@
+{
+ "tool": "fz2_noise.ledger",
+ "pair": [
+  "A5",
+  "F12"
+ ],
+ "scored": 3840,
+ "moves": {
+  "MATCHED->FAILURE": [
+   "fz2c/405055",
+   "fz2c/411076",
+   "fz2e/518059",
+   "fz2e/523040",
+   "fz2e/528016",
+   "fz2e/530063",
+   "fz2e/531045"
+  ],
+  "FAILURE->DISCARD": [
+   "fz2e/521059"
+  ],
+  "DISCARD->MATCHED": [
+   "fz2e/534020"
+  ],
+  "FAILURE->MATCHED": [
+   "fz2e/534022"
+  ]
+ },
+ "total": 10,
+ "class_counts": {
+  "A5": {
+   "MATCHED": 3630,
+   "FAILURE": 208,
+   "DISCARD": 2
+  },
+  "F12": {
+   "MATCHED": 3625,
+   "FAILURE": 213,
+   "DISCARD": 2
+  }
+ },
+ "fired_moved": [
+  "fz2c/405055",
+  "fz2c/411076",
+  "fz2e/518059",
+  "fz2e/519056",
+  "fz2e/521059",
+  "fz2e/523040",
+  "fz2e/526025",
+  "fz2e/528016",
+  "fz2e/530063",
+  "fz2e/531045",
+  "fz2e/534020",
+  "fz2e/534022"
+ ],
+ "flip_nmi_row_moved": [
+  "fz2c/405055",
+  "fz2c/411076",
+  "fz2e/523040",
+  "fz2e/531045",
+  "fz2e/534020",
+  "fz2e/534022"
+ ],
+ "flip_escaped": [
+  "fz2c/411076",
+  "fz2e/523040",
+  "fz2e/530063",
+  "fz2e/531045",
+  "fz2e/521059",
+  "fz2e/534020",
+  "fz2e/534022"
+ ],
+ "population_escaped": 1112
+}
