@@ -1495,18 +1495,51 @@ wire [13:0] ghost_next_pla = pla3_native(q_byte);
 wire ghost_next_byte = q_ripe &&
                        (pla3_byte_only(ghost_next_pla) ||
                         (pla3_w_from_bit0(ghost_next_pla) && !q_byte[0]));
-// At a completely idle fetch hand-off, the two byte-slice boundaries have
-// different owners.  The predecessor's width leaves the untouched high lane
-// charged; the successor's width leaves the low byte boundary charged.
-// Current-socket value-only mutations expose the two independent terms:
-// predecessor byte C000 else 8000, successor byte 0080 else 0000.
-wire [15:0] ghost_relax = eu_ghost_full ? 16'hFFFF
-                         : eu_ghost_idle ? ((pe_op8 ? 16'hC000 : 16'h8000) |
-                                            (ghost_next_byte ? 16'h0080 : 16'h0000))
-                         : 16'h0000;
+// WAVE-4 / V1 -- `ghost_relax` DELETED.  The AND IS UNCONDITIONAL.
+//
+// It used to read
+//    ghost_relax = eu_ghost_full ? FFFF
+//                : eu_ghost_idle ? ((pe_op8 ? C000 : 8000) |
+//                                   (ghost_next_byte ? 0080 : 0000))
+//                : 0000;
+//    ghost_bus_off = ... : (ghost_off & (gpr[R_SP] | ghost_relax));
+// -- a four-constant mask table whose whole job was to SUPPRESS the AND on
+// selected bits.  M10's register-file solve (14 freezes, 3,208 named
+// expressions, NO free parameter, expected accidental fits 0.003/freeze)
+// measured the opposite from outside the fit: on `fz2c/410008`,
+// `fz2e/519016` and `fz2e/520040` the CHIP performs the AND and the core does
+// not, and `SS:(ghost_off & SP)` -- evaluated with THIS module's own
+// `ghost_off` -- reproduces the chip exactly at freezes -3 and -2.  Every
+// chip-side fit on those seats is a wired AND; not one is a single term and
+// not one is an OR.
+//
+// A wired-AND of two live drivers on one internal bus is a simple system.
+// A four-constant relax mask is what you write when you have not found it.
+//
+// WHAT WAS MEASURED AND WHAT WAS NOT -- the ladder, so the next sitting does
+// not re-run it (`fz2_w4_ghostaddr_results_2026-08-10.md` §2).  Four cumulative
+// variants were built and scored on 654 replayed seeds:
+//
+//   V1  this one, `ghost_relax` deleted                    +2 closed,  0 LOST
+//   V2  V1 + the `(eu_ghost_idle && !q_ripe) ? SP` arm     +2 closed,  1 LOST
+//   V3  V2 + the `ghost_uses_mul_hi` arm  -- ONE TERM      identical to V2
+//   V4  V3 + the `pe_opc_reg == 8'h8e` case               identical to V2
+//
+// V3 and V4 score BYTE-IDENTICALLY to V2, so `ghost_uses_mul_hi` (the 0104
+// PLA class, fitted on the v1 `mc2` banks that SUP-1 retired) and the `8E`
+// special case are BOTH INERT on this corpus.  They are left standing because
+// "inert on 654 seeds" is not "dead", and deleting a case on the strength of a
+// population that never reaches it would be the same mistake in the other
+// direction.  The seed V2 loses is `fz2c/410034`.
+//
+// THE AND IS NOT UNIVERSAL AND THIS LANDING DOES NOT CLAIM IT IS.  M10 §5.2
+// measures `fz2e/530034` performing NO and at all and taking a different rail,
+// and `fz2e/526054` forking on the SEGMENT with identical offsets.  The two
+// free choices left standing are WHICH RAIL and WHETHER THE AND HAPPENS; only
+// the second is settled here, and only in the direction "not by a mask".
 wire [15:0] ghost_bus_off = ghost_uses_mul_hi ? (tmpa & opr)
                             : (eu_ghost_idle && !q_ripe) ? gpr[R_SP]
-                            : (ghost_off & (gpr[R_SP] | ghost_relax));
+                            : (ghost_off & gpr[R_SP]);
 wire [15:0] acc_off  = ghost_read_stale_alu ? ghost_bus_off
                        : row_is_wb          ? wb_ea : ind_now;
 wire [19:0] acc_phys_base = acc_io ? {4'd0, acc_off}
