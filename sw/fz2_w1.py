@@ -83,6 +83,7 @@ import check_seq                                          # noqa: E402
 import fuzz_campaign as fzc                               # noqa: E402
 import fuzz_classify as fc                                # noqa: E402
 import fz2_longinsn                                        # noqa: E402
+import fz2_rowmatch                                        # noqa: E402
 import fz2_stall                                          # noqa: E402
 import testimage as ti                                    # noqa: E402
 import v30ctl                                             # noqa: E402
@@ -1942,7 +1943,7 @@ def cmd_bars(a):
             "NOT SCOREABLE")
     else:
         m = {}
-        undisp = undisp3 = undisp4 = 0
+        undisp = undisp3 = undisp4 = undisp5 = 0
         # AMENDMENT A-4 -- the FOURTH declared discard class.  Nothing about
         # any bar's text or value moves; §3.4's list gains one row.  The
         # three-term figure is computed and reported BESIDE the four-term one
@@ -1959,6 +1960,12 @@ def cmd_bars(a):
         # four-class figure is kept beside the five-class one permanently, so
         # what this class buys stays visible instead of being absorbed.
         src_li = Counter()
+        # AMENDMENT A-14 -- the SIXTH disposition, BY USER RULING.  Same shape
+        # as A-4's and A-7's arrival and the same protections (sec.36.5): an
+        # independent non-vacuity falsifier in BOTH directions, no rate touched,
+        # and the five-class figure kept permanently beside the six-class one so
+        # what this disposition buys stays visible instead of being absorbed.
+        src_rm = Counter()
         # AMENDMENT A-6's CENSUS COLUMN, REPORTED AND NOT USED AS A CLASS.
         # `mech` is read off the result line as a banked field; this file does
         # not import `term_mechanism`, and the disposition set below is the
@@ -2031,7 +2038,7 @@ def cmd_bars(a):
                     if r.get("stalled") is not None and \
                             bool(r["stalled"]) != (r.get("mech") == "STALLED"):
                         mech_p3["stalled_vs_mech"] += 1
-                nstall = nlong = 0
+                nstall = nlong = nrow = 0
                 for r in rest:
                     st, _, how = fz2_stall.resolve(r, capidx[pop])
                     src[how] += 1
@@ -2045,13 +2052,28 @@ def cmd_bars(a):
                     li, _, lihow = fz2_longinsn.resolve(r, capidx[pop])
                     src_li[lihow] += 1
                     nlong += bool(li)
-                    if not li:
+                    if li:
+                        continue
+                    # AMENDMENT A-14 (prereg sec.36) -- THE SIXTH DISPOSITION,
+                    # BY USER RULING.  Asked LAST, of a seed none of the five
+                    # declared classes took, so what it buys is exactly the
+                    # residue and is visible as the gap between
+                    # `undispositioned_5class` and `undispositioned`.  It reads
+                    # the campaign's OWN comparator leaves and owns no second
+                    # comparator; `fz2_rowmatch falsify` is its non-vacuity
+                    # bar in both directions (F1 divergence, F2 window).
+                    rm, _, rmhow = fz2_rowmatch.resolve(r)
+                    src_rm[rmhow] += 1
+                    nrow += bool(rm)
+                    if not rm:
                         mech_undisp[str(r.get("mech"))] += 1
                 disp, dispst = len(d3), len(d3) + nstall
                 disp5 = dispst + nlong
+                disp6 = disp5 + nrow
                 undisp3 += len(bad) - disp
                 undisp4 += len(bad) - dispst
-                undisp += len(bad) - disp5
+                undisp5 += len(bad) - disp5
+                undisp += len(bad) - disp6
                 m[f"{pop}/{tier}"] = {
                     "n": len(sel), "reached": ok,
                     "pct": round(100.0 * ok / len(sel), 2) if sel else None,
@@ -2060,11 +2082,14 @@ def cmd_bars(a):
                     # the habit A-4 and A-7 established for their classes.
                     "excluded_ps3_8080": nexcl,
                     "n_incl_excluded": len(sel_all),
-                    "dispositioned": disp5,
+                    "dispositioned": disp6,
+                    "dispositioned_5class": disp5,
                     "dispositioned_4class": dispst,
                     "dispositioned_3class": disp, "stalled": nstall,
                     "long_insn": nlong,
-                    "undispositioned": len(bad) - disp5,
+                    "row_matched": nrow,
+                    "undispositioned": len(bad) - disp6,
+                    "undispositioned_5class": len(bad) - disp5,
                     "undispositioned_4class": len(bad) - dispst,
                     "undispositioned_3class": len(bad) - disp}
         met = all(v["pct"] is not None
@@ -2080,7 +2105,9 @@ def cmd_bars(a):
             "predicate), with the escape count kept as a diagnostic",
             f"soup >= {E1['soup']} %, raw >= {E1['raw']} %, per population "
             f"{E1_A5}; and 0 UNDISPOSITIONED non-dumping seeds (E-1c, "
-            "UNTOUCHED by A-5)",
+            "UNTOUCHED by A-5; RE-REGISTERED by A-14 / user ruling "
+            "2026-08-09 -- UNDISPOSITIONED now means no dump AND no "
+            "explanation AND the two legs do not agree)",
             # `undispositioned_3class` is what this bar read before A-4 and
             # `undispositioned_4class` what it read before A-7; BOTH are kept
             # on the record permanently, so what each class buys stays visible
@@ -2095,10 +2122,13 @@ def cmd_bars(a):
              "mech_selfcheck": mech_p3,
              "undispositioned_3class": undisp3,
              "undispositioned_4class": undisp4,
+             "undispositioned_5class": undisp5,
              "stalled_total": undisp3 - undisp4,
-             "long_insn_total": undisp4 - undisp,
+             "long_insn_total": undisp4 - undisp5,
+             "row_matched_total": undisp5 - undisp,
              "classified_from": dict(src),
              "classified_from_long_insn": dict(src_li),
+             "classified_from_row_matched": dict(src_rm),
              "excluded_ps3_8080_total": excl_total},
             _c1_verdict(met, undisp))
 

@@ -5308,3 +5308,267 @@ bar of 0. Its two rate clauses read **MET and VALIDATED** (soup 98.12 %, raw
 (`mech_undispositioned`: `BUDGET` 12 · `NEAR` 9 · `OTHER` 4) and are named, not
 hidden. **C-1 is the campaign's one standing MISSED bar and it is reported as
 one.**
+
+## §36 AMENDMENT A-14 — **THE USER RULES: A NON-DUMPING SEED WHOSE TWO LEGS AGREE IS A SUCCESS.**  E-1c's MEANING IS RE-REGISTERED, AND THE TIMING IS STATED FIRST
+
+### 36.0 THE TIMING, FIRST, BECAUSE IT IS THE THING A READER WILL CHECK
+
+**This amendment is written after E-1c failed, and it is written because the
+USER ruled on what E-1c should mean.**  §35 is the run that failed it,
+committed (`399ba6729d`) before a line of this was drafted, and §35.7 names the
+25 seeds' census labels in that commit.
+
+Three things about the timing, stated plainly rather than argued away:
+
+1. **The ruling is the user's, not this sitting's.**  It arrived mid-task, in
+   the middle of an offline diagnosis whose plan was the opposite one — probe
+   the 25 on the board, make the `BUDGET` seeds dump under an earlier
+   terminator and the `NEAR` seeds disposition under a later one.  That plan
+   was **NOT** committed; there is no pre-registration under the old framework
+   to supersede, and no board time was spent under it.  This is the first
+   registered word on the subject.
+2. **The measurement came before the amendment, ON THE COORDINATOR'S OWN
+   INSTRUCTION**, and it is the ordering that matters here: *"Measure first,
+   offline: of the 25, how many carry a clean chip-vs-core comparison?"*  The
+   answer — §36.4 — is **25 of 25**.  The cell moves pre-registered at §36.6
+   are therefore **ARITHMETIC CONSEQUENCES of a measurement already in hand**,
+   not predictions about an unseen run, and this document says so rather than
+   dressing them as the latter.  What §36.7's rescore tests is that the scored
+   path computes what the measurement says it must, and **nothing else moves**.
+3. **It cannot be the fitting pattern, because it is not fitted to the 25.**
+   The predicate is the campaign's own comparator's own leaves, applied to
+   every line in the corpus; it takes **312 of the 327 non-dumping seeds** and
+   **rejects 15** — the 14 whose legs diverge and the 1 whose comparison window
+   is short.  A rule invented to clear a residue of 25 would not reject
+   anything.  §36.5 is that check, run in both directions.
+
+**AND WHAT IT DOES NOT DO.**  It does not touch E-1's two RATE clauses, which
+measure TERMINATOR-REACHED, were re-registered at A-5 and **VALIDATED at A-9 on
+the disjoint `fz2v`/960**; they keep measuring exactly what they measured, on
+exactly the population they measured it on, and **not one of the four rate
+cells moves by a hundredth** (§36.6).  It does not touch A-4's or A-7's
+predicates, does not move `ENTRY_MAX`, `TERM_CLOCKS` or any capture constant,
+does not re-capture anything, and does not touch a bar other than C-1.
+
+### 36.1 THE RULING, VERBATIM
+
+> **"If these seeds are matching between real CPU and core, then it doesn't
+> matter if they aren't producing the final state dump."**
+
+The coordinator's transmission of it, also verbatim:
+
+> Chip-vs-core row agreement IS the success criterion.  The dump is enrichment
+> — architectural evidence where it exists, diagnostic where legs diverge — not
+> a gate.  This is consistent with the project's standing #1 priority
+> (physical-vs-core match) and it is the user's decision to make.
+
+It is consistent with `CLAUDE.md`'s correctness target — *"SILICON MATCH is the
+only correctness bar"* — and with the standing #1 priority recorded in memory
+as *"arbitrary-wait accuracy > w0; target = random-wait physical-vs-core
+match"*.  E-1c was written before that target had a direct instrument in this
+corpus; it does now, and it is the row comparison.
+
+### 36.2 WHAT E-1c MEANT, AND WHAT IT MEANS NOW
+
+| | BEFORE (A-6 / A-7 era) | AFTER (this amendment) |
+|---|---|---|
+| the clause | 0 UNDISPOSITIONED non-dumping seeds | **unchanged: = 0** |
+| UNDISPOSITIONED means | no dump **AND** no explanation | no dump **AND** no explanation **AND the two legs do not agree** |
+| the disposition set | five declared classes | **six** — the five, plus `ROW_MATCHED` asked LAST |
+| what clears it | a dump, or one of five named mechanisms | **also**: the socket and fabric-core legs agreeing over the comparator's full window |
+
+**THE BAR ITSELF DOES NOT MOVE.**  It is still `= 0`, it is still *"the clause
+that is not a rate"*, and it still cannot be met by discarding: `ROW_MATCHED`
+is not a discard, it is a POSITIVE measurement, and §16.5's argument for why
+E-1c must not be lowered is untouched because **E-1c is not lowered**.
+
+### 36.3 WHY THE RATE CLAUSES ARE NOT TOUCHED, AND MUST NOT BE
+
+E-1's two rate clauses count `arch_ok` — the terminator was reached and an
+architectural dump was read.  That is a different question from *"did the two
+legs agree"*, it is the question the A-9 validation was run on, and moving it
+would invalidate that validation.  **They stay at soup ≥ 90.0 % / raw ≥ 75.0 %,
+measured over the same denominators, and A-14 must move neither.**  Their
+values after this amendment are predicted UNCHANGED at §36.6 and that
+prediction is load-bearing: if a rate cell moves, A-14 has reached something it
+had no business reaching.
+
+### 36.4 THE MEASUREMENT — ALL 25, AND THE WINDOW EACH WAS COMPARED OVER
+
+Every one of the 25 undispositioned seeds carries `verdict = SUCCESS`,
+`bad_rows = 0`, `flick = 0`, `first_bad = null`, `func_mismatch = false`,
+`truncated = false`, no alarms, no rule hits — **and `win = 4000` on all 25**,
+which is `fuzz_classify.diff_rows`' own `limit` and therefore the largest window
+the comparator will ever run.
+
+**THE WINDOW IS AN ARITHMETIC PROOF, NOT AN ASSERTION.**  On a seed with no
+done marker `diff_rows` sets `n = min(len(real), len(sim), 4000)`.  `win = 4000`
+therefore proves **both legs carried at least 4,000 rows** and that nothing
+shortened the comparison.  (The captures are 4,063 rows; 4,000 is the
+comparator's ceiling, not the capture's.)
+
+| census label | n | seeds |
+|---|---|---|
+| `BUDGET` | 12 | `fz2c/410009` `fz2c/411039` `fz2e/511010` `fz2e/524013` `fz2e/524063` `fz2e/525043` `fz2e/526051` `fz2e/528044` `fz2e/530031` `fz2e/534001` `fz2e/535011` `fz2e/535050` |
+| `NEAR` | 9 | `fz2c/406078` `fz2c/408072` `fz2c/411070` `fz2e/519025` `fz2e/525019` `fz2e/525055` `fz2e/525056` `fz2e/526044` `fz2e/534025` |
+| `OTHER` | 4 | `fz2c/405062` `fz2e/524040` `fz2e/525046` `fz2e/528072` |
+
+**AND THE SUB-LABEL `window_truncated` IS A FALSE FRIEND — READ THIS BEFORE
+QUOTING IT.**  20 of the 25 carry `sub = "window_truncated"` and 3 carry
+`sub = "runaway_both"`.  Neither says the comparison window was truncated.
+`fuzz_classify.classify` assigns those two strings, by tier, when **neither leg
+produced a done marker inside the window** — they are set AFTER the full
+4,000-row comparison has run and are a statement about the DONE MARKER, not
+about the window.  The remaining 2 (`fz2c/410009`, `fz2e/524013`) read `clean`.
+
+**RECOMPUTED FROM THE ROWS, NOT TRUSTED FROM THE LINE.**  5 of the 25 have a
+banked capture (`fz2c/405062`, `fz2c/406078`, `fz2c/408072`, `fz2c/411070`,
+`fz2e/535050`).  For each, `fuzz_classify.diff_rows` was re-run over the banked
+rows under the tier's own window policy: **`len(real) = len(sim) = 4063`,
+`win = 4000`, `bad = 0`, `flick = 0`, `first = None` on all five, identical to
+the line — 0 disagreements.**  This is A-13's own lesson applied
+prospectively: where the rows exist, check the column against them.
+
+### 36.5 THE PREDICATE, AND ITS FALSIFIERS — REGISTERED BEFORE THE RESCORE
+
+`sw/fz2_rowmatch.py` is the class's own file (the A-4 / A-7 shape:
+detector + falsifier + resolver).  It owns **no comparator of its own** and
+reads only the leaves `fuzz_classify.classify` already writes.  A line is
+`ROW_MATCHED` iff **all** of:
+
+1. `win >= SCORER_WINDOW` (= 4,000, `fuzz_campaign.SCORER_WINDOW`, registered at
+   A-6 — **no new constant and no new threshold**).  **THE NON-DEGENERACY
+   CLAUSE**: a match over a short window is not evidence.
+2. `verdict == SUCCESS` — the comparator's own verdict.  A `KNOWN_ACCEPTED`
+   seed's legs DIVERGE and are accepted under a named rule; that is a different
+   disposition and this class must not absorb it.
+3. `bad_rows == 0` **and** `flick == 0`.
+4. `func_mismatch` false, `truncated` false, `alarms` empty.
+
+Clauses 3 and 4 are implied by 2 and are stated anyway, so the predicate is
+readable without tracing `classify`'s assembly order.  `flick == 0` is
+**STRICTER** than the comparator's own verdict.  **Every clause can only make
+the class smaller**, which is the direction that cannot buy a bar.  A line
+missing any leaf returns **None**, not False, and such a seed stays
+UNDISPOSITIONED — never extrapolated.
+
+It is asked **LAST**, of a seed none of the five declared classes took, so what
+it buys is exactly the residue and is visible permanently as the gap between
+the new `undispositioned_5class` leaf and `undispositioned`.
+
+**THE FALSIFIERS.**  The failure mode for a class like this is VACUITY, so the
+bars are non-vacuity in both directions.  `python3 sw/fz2_rowmatch.py falsify`,
+over all 3,840 corpus lines:
+
+| | bar | measured |
+|---|---|---|
+| **F1** | ZERO lines with `bad_rows > 0` take the class | **0 / 201** — PASS |
+| **F2** | ZERO lines with `win < 4,000` take the class | **0 / 1,898** — PASS |
+| **F3** | the predicate is FALSE on a positive number of lines | **FALSE on 2,058 / 3,840** — PASS |
+
+And on the 327 NON-DUMPING lines alone — the only population `bars` ever asks
+it of: **14 have diverging legs and 0 take the class** (`fz2c/406006`,
+`fz2c/406063`, `fz2c/410047`, `fz2e/518039`, `fz2e/520062`, `fz2e/520066`,
+`fz2e/524007`, `fz2e/524034`, `fz2e/529034`, `fz2e/529067`, `fz2e/530001`,
+`fz2e/531018`, `fz2e/533028`, `fz2e/534060`; `bad_rows` 8 … 3,589, all
+`KNOWN_ACCEPTED`), and **1 has a short window and does not take the class**
+(`fz2e/507000`, `win = 2622`).  **312 of 327 take it.**
+
+Two properties of that rejection list are worth stating because they are what
+make the class a question rather than a relabeling:
+
+* the 14 rejected span the SAME census labels as the members — `STALLED` **7**,
+  `LONG_INSN` **6**, `BUDGET` **1** — so `ROW_MATCHED` is **not** a synonym for
+  any `mech` label, and no `mech` label implies it either way;
+* one of them, `fz2e/524007`, is a **`BUDGET`** seed exactly like the 12 in the
+  residue, and it is REJECTED, at `bad_rows = 2257`.  If the class were
+  vacuous, it would take that one too.
+
+### 36.6 THE CELL MOVES, PRE-REGISTERED
+
+Derived arithmetically from §36.4 (see §36.0 item 2 for the honest status of
+that word).  `sw/testdata/fz2/fz2_bars.json`, against §35's committed artifact
+(sha256 `f2bc13ecad4da6ac68679761181f418a93a485ee5a14c653913969fd25eef5a9`):
+
+**CHANGED**
+
+| leaf | from | to |
+|---|---|---|
+| `C-1.measured.undispositioned` | 25 | **0** |
+| `C-1.measured.per_tier["census/soup"].undispositioned` | 1 | **0** |
+| `C-1.measured.per_tier["census/raw"].undispositioned` | 5 | **0** |
+| `C-1.measured.per_tier["enriched/soup"].undispositioned` | 1 | **0** |
+| `C-1.measured.per_tier["enriched/raw"].undispositioned` | 18 | **0** |
+| `C-1.measured.per_tier["census/soup"].dispositioned` | 6 | **7** |
+| `C-1.measured.per_tier["census/raw"].dispositioned` | 72 | **77** |
+| `C-1.measured.per_tier["enriched/soup"].dispositioned` | 15 | **16** |
+| `C-1.measured.per_tier["enriched/raw"].dispositioned` | 209 | **227** |
+| `C-1.registered` | (A-5 text) | + the A-14 re-registration clause |
+| `C-1.verdict` | `MISSED (…)` | **`MET (…)`** — same A-5/A-9 validation parenthetical |
+| `ts` | — | the run's |
+
+**REMOVED** — `C-1.measured.mech_undispositioned` becomes `{}`: `OTHER` 4,
+`NEAR` 9, `BUDGET` 12 (3 leaves).
+
+**ADDED** — `C-1.measured.undispositioned_5class` **25**,
+`C-1.measured.row_matched_total` **25**,
+`C-1.measured.classified_from_row_matched` **{"line": 25}**, and per tier
+`dispositioned_5class` (6 / 72 / 15 / 209), `row_matched` (1 / 5 / 1 / 18) and
+`undispositioned_5class` (1 / 5 / 1 / 18) — 15 leaves.
+
+**PREDICTED UNCHANGED, AND THIS IS THE LOAD-BEARING HALF**
+
+* **all four rate cells**: `census/soup` **98.54**, `census/raw` **83.92**,
+  `enriched/soup` **98.89**, `enriched/raw` **84.23** — and their `n` (480 /
+  479 / 1439 / 1439) and `reached` (473 / 402 / 1423 / 1212);
+* `undispositioned_3class` **302**, `undispositioned_4class` **100**,
+  `stalled_total` **202**, `long_insn_total` **75**, all `stalled` and
+  `long_insn` per-tier cells, `classified_from` and
+  `classified_from_long_insn`;
+* `mech_census` (all 8 labels), `mech_selfcheck` (0 / 0 / 0), all four
+  `excluded_ps3_8080` (0 / 1 / 1 / 1) and `excluded_ps3_8080_total` **3**;
+* **every leaf of C-2 … C-11**, verdicts included.
+
+**stdout**: `FZ2 BARS: 10/11 MET   NOT MET: C-1` → **`11/11 MET`**.
+
+### 36.7 WHAT WOULD FALSIFY THIS AMENDMENT AFTER THE FACT
+
+* any of the four rate cells moving (§36.3 — A-14 has no business reaching
+  them);
+* `undispositioned` reaching 0 while `row_matched_total` is anything other than
+  **25** — that would mean a seed left the residue by some other route;
+* `fz2_rowmatch falsify` going red on F1 or F2 on any future capture: a class
+  that starts absorbing legs-diverging or short-window seeds has stopped
+  measuring agreement;
+* a member of the class later shown to have a comparison window it did not
+  earn — which is why `win` and `legs_at_least` are banked with the evidence.
+
+### 36.8 WHAT THIS AMENDMENT DELIBERATELY LEAVES OPEN
+
+**The 25 are dispositioned; they are not explained.**  `ROW_MATCHED` says the
+two legs did the same thing for 4,000 rows.  It does **not** say why the
+capture never reached its terminator, and the A-6 census labels
+(`BUDGET` 12 · `NEAR` 9 · `OTHER` 4) remain the honest description of that and
+remain banked in `mech_census`.  The offline diagnosis run before the ruling
+arrived is recorded here so it is not lost, and **none of it is a claim**:
+
+* the 9 `NEAR` seeds are dead on BOTH legs for **823–2,471 clocks** spanning the
+  terminating NMI (`after = 0`, `core_after = 0`, `code_after = 0`,
+  `qs_nz = 0`, and the socket leg's last bus cycle is not a HALT) and are
+  withheld from A-4's class only because the bus went quiet **11–193** clocks
+  before the pin, under `STALL_IDLE = 200`.  A LATER terminator would make that
+  gap measurable;
+* 3 of the 4 `OTHER` seeds (`fz2e/524040`, `fz2e/525046`, `fz2e/528072`) show
+  `qs_nz = 0` over **820–2,297** post-NMI rows with **5–8** CODE rows — one
+  prefetch cycle — i.e. A-7's mechanism with A-7's clause (2) failing on a
+  queue top-up rather than on an instruction being started;
+* `fz2e/535050` is the seed §17.3 already named as the corpus's one measured
+  budget miss (`need ≈ 492` against `ENTRY_MAX = 463`), and its rows on THIS
+  corpus reproduce that reading: the NMI asserts at record 3,000, the first
+  `OUT 0xFE` lands at 3,589 (**an entry cost of 589 clocks against
+  `ENTRY_MAX` 463**), and **15 register words** go out between 3,590 and 4,057
+  without the done marker fitting inside the capture.
+
+**No board probe was run and none is needed for E-1c**, because the banked rows
+already answer the question the user ruled on.  Any future re-opening of the
+*explanation* is a separate task with its own pre-registration.
