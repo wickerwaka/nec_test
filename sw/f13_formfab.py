@@ -1,50 +1,43 @@
 #!/usr/bin/env python3
-"""f13_formfab -- a v0.1 GOLDEN FORM through the board, socket OR fabric core.
+"""f13_formfab -- a DIRECTED opcode form through the board, SOCKET vs FABRIC CORE.
 
 WHY THIS EXISTS.  The two landings this sitting puts in fabric are reached by
 DIFFERENT populations, and only one of them had an instrument:
 
-  * the **8F ghost READ** (`d1d9f168d4`) is measurable on the fz2 corpus --
-    `fz2_w1.py capture` already scores it, chip leg against fabric-core leg;
-  * the **`INT.F3AA` repair** (`9c98117a03`) is NOT.  `int_f3aa_repair_results`
-    §3 measures that the repaired arm (an empty-tail REP withdrawal with the
-    maskable pin still ASSERTED) occurs 35 times in the 200 `INT.F3AA` goldens
-    and **zero times anywhere in fz2c+fz2e**.  The corpus cannot see it.  The
-    only population that reaches the mechanism is the golden form itself.
+  * the **8F mod=3 ghost READ** (`d1d9f168d4`) moves 25 of the 623 banked fz2
+    seeds, so `fz2_w1.py capture` already scores it;
+  * the **`INT.F3AA` repair** (`9c98117a03`) is NOT reachable by fz2 at all.
+    `int_f3aa_repair_results` §3 measures that its arm -- an empty-tail REP
+    withdrawal with the maskable pin still ASSERTED -- occurs 35 times in the
+    200 `INT.F3AA` goldens and ZERO times anywhere in fz2c+fz2e.  Neither
+    `x1_fabric` (HLT sweeps), `sm3_s16_fabric` (the display walk),
+    `u4_tranche` (random-wait seeds) nor `check_ab_hw` (boot) reaches it.
 
-`x1_fabric.py` and `sm3_s16_fabric.py` are this file's shape -- re-run a frozen
-golden population through `use_core=1` and diff rows against the golden -- but
-both are hard-wired to their own EVT sweeps.  This is the same shape applied to
-an arbitrary v0.1 form.
+WHAT IT DOES.  It generates cases for one `emit_suite` form from a FROZEN seed
+namespace and runs **the same image twice** -- `use_core=0` (the socketed chip,
+silicon truth) then `use_core=1` (the ucore in fabric) -- then diffs the two
+row streams.  That is `fuzz_campaign.capture_board`'s A/B, applied to a
+directed form instead of a random program.
 
-THE GOLDENS ARE NOT TOUCHED.  `emit_suite.EMIT_USE_CORE` is the pin that says a
-golden comes from the socket and from nothing else; this file flips it for its
-own DUT capture and writes into `sw/testdata/f13-formfab/`.  It never writes
-`tests/v30/`.
+WHY NOT COMPARE AGAINST THE v0.1 GOLDENS.  It was tried, on the board, and the
+premise is REFUTED BY MEASUREMENT: fuzz-v2 T1/T2 changed `testimage.compose`
+(the image is now 0xCC-filled with four carve-outs, and the body anchor moved),
+so re-emitting `INT.F3AA` idx 0 today yields `ip 15116` where the golden has
+`13105`, fill byte 0xCC where the golden has 0x90, and an anchor of 0x88CCC
+where the golden's is 0x884F1.  **The current emitter cannot reproduce a v0.1
+golden's image**, which is `sw/retired_v1.py`'s reason verbatim.  The seed maps
+and offline columns from that attempt are retained beside this file as record;
+nothing scores against them.
 
-HOW A CASE IS REPRODUCED, AND WHY IT IS CHECKED RATHER THAN ASSUMED.
-`emit_suite.cmd_emit` draws case *i* from `random.Random(f"{base}/{op}/{i}")`
-and, when a case fails to compose or place, SKIPS TO THE NEXT SEED -- so output
-index `idx` and seed index `i` diverge, and `tests/v30/v0.1` predates the
-`{op}.seeds.json` sidecar that would record the map.  Worse, the skip condition
-("pf assert before window") is a race and `emit_log.txt` holds TWO passes with
-DIFFERENT reroll sets, so the map cannot be read off the log either.
-
-`map` therefore recovers it OFFLINE and by content: `gen_case` / `gen_evt_case`
-are pure, so every candidate seed is generated and matched against the golden's
-own `initial.regs`.  `capture` then re-emits with the mapped seed and CHECKS
-that the emitted case's `initial` and `bytes` equal the golden's.  An index
-that does not match is `INVALID` and is NOT SCORED -- never quietly rerolled
-onto a different case, which is how a comparator ends up scoring two different
-programs against each other.
-
-THE 8F.0 GHOST COLUMN.  `check_core.diff_rows` MASKS the 8F /0 mod=3 ghost
-read's address and data -- a documented golden-schema don't-care since
-2026-07-13 (`closure_checkpoint.md`), which is why `check_core --opcodes 8F.0`
-reads 500/500 both before and after the ghost-read landing.  `score --ghost`
-lifts the mask on exactly those rows and compares the ghost address/data
-UNMASKED, core against socket and core against golden.  That is the only
-comparator on this population that can see the mechanism at all.
+AND THE A/B IS THE BETTER COMPARATOR FOR THE GHOST READ ANYWAY.
+`check_core.dontcare_cells` masks the 8F /0 mod=3 ghost address because the
+chip drives it from *"a STALE internal EA/address-latch value carried in from
+pre-window execution history (the harness injection stub)"* and *"a
+backdoor-injected core, which never executes the injection stub, legitimately
+drives the modeled SS:SP instead"*.  That don't-care is a property of the
+Verilator TB's backdoor injection.  **In fabric both legs execute the same
+loader from the same image**, so the ghost address is directly comparable and
+the mask does not apply.  `--ghost` scores it.
 """
 import argparse
 import gzip
@@ -67,11 +60,11 @@ import v30run                                                # noqa: E402
 import check_seq                                             # noqa: E402
 
 HOST = "root@mister-nec"
-SUITE = ROOT / "tests" / "v30" / "v0.1"
 OUT = ROOT / "sw" / "testdata" / "f13-formfab"
-SEED_BASE = "v30-v0.1"
-REG_KEYS = ("ax", "cx", "dx", "bx", "sp", "bp", "si", "di",
-            "cs", "ds", "es", "ss", "flags")
+# The seed namespace is FROZEN here and in the pre-registration.  It is not the
+# v0.1 suite's (`v30-v0.1/...`) because these are not goldens and must never be
+# mistaken for them.
+SEED_NS = "f13"
 
 
 # --------------------------------------------------------------------------- #
@@ -112,137 +105,112 @@ def git_head():
 
 
 # --------------------------------------------------------------------------- #
-# the goldens, and the seed map
+# the frozen population
 # --------------------------------------------------------------------------- #
-def golden(form):
-    return json.load(gzip.open(SUITE / f"{form}.json.gz"))
-
-
 def spec_of(form):
     is_evt = form in es.EVT_FORMS
     return (es.EVT_FORMS[form] if is_evt else es.OPCODES[form]), is_evt
 
 
-def gen_of(form, sd):
+def gen_of(form, i):
     spec, is_evt = spec_of(form)
-    rng = random.Random(sd)
-    return es.gen_evt_case(spec, rng) if is_evt else es.gen_case(spec, rng)
+    rng = random.Random(f"{SEED_NS}/{form}/{i}")
+    return (es.gen_evt_case(spec, rng) if is_evt
+            else es.gen_case(spec, rng)), spec, is_evt
 
 
-def build_map(form, extra=120, rerolls=16):
-    """{idx: seed-string}, recovered by CONTENT.  Ambiguous and unmatched
-    indices are returned separately and are never guessed."""
-    g = golden(form)
-    n = len(g)
-    sig = {}
-    cands = [f"{SEED_BASE}/{form}/{i}" for i in range(n + extra)]
-    for idx in range(n):
-        cands += [f"{SEED_BASE}/{form}/{idx}/{r}" for r in range(1, rerolls + 1)]
-    for sd in cands:
+def is_mod3(case):
+    b = case["instr"]
+    return len(b) >= 2 and (b[1] >> 6) == 3
+
+
+def freeze(form, n, mod3_only):
+    """The seed indices this form's population uses.  BOARD-FREE and
+    deterministic: `gen_case` is pure, so `mod3_only` is decided offline and
+    the board never sees a case that is going to be thrown away."""
+    out = []
+    i = 0
+    while len(out) < n and i < n * 20:
         try:
-            c = gen_of(form, sd)
+            case, _, _ = gen_of(form, i)
         except Exception:                                     # noqa: BLE001
+            i += 1
             continue
-        key = tuple(c["regs"][k] for k in REG_KEYS)
-        sig.setdefault(key, []).append(sd)
-    m, amb, miss = {}, [], []
-    for t in g:
-        key = tuple(t["initial"]["regs"][k] for k in REG_KEYS)
-        v = sig.get(key)
-        if not v:
-            miss.append(t["idx"])
-        elif len(v) > 1:
-            amb.append(t["idx"])
-        else:
-            m[t["idx"]] = v[0]
-    return m, amb, miss
+        if (not mod3_only) or is_mod3(case):
+            out.append(i)
+        i += 1
+    return out
 
 
-def map_path(form):
-    return OUT / f"{form}.seedmap.json"
-
-
-def cmd_map(a):
+def cmd_freeze(a):
     OUT.mkdir(parents=True, exist_ok=True)
     for form in a.form:
-        m, amb, miss = build_map(form)
-        map_path(form).write_text(json.dumps(
-            {"form": form, "seed_base": SEED_BASE, "n_golden": len(golden(form)),
-             "map": m, "ambiguous": amb, "unmatched": miss}, indent=1) + "\n")
-        print(f"{form}: {len(m)} of {len(golden(form))} indices mapped, "
-              f"{len(amb)} ambiguous, {len(miss)} unmatched -> "
-              f"{map_path(form).name}")
+        ks = freeze(form, a.n, a.mod3)
+        p = OUT / f"{form}.pop.json"
+        p.write_text(json.dumps({"form": form, "seed_ns": SEED_NS,
+                                 "n": len(ks), "mod3_only": bool(a.mod3),
+                                 "k": ks}, indent=1) + "\n")
+        print(f"{form}: {len(ks)} seeds frozen (mod3_only={bool(a.mod3)}) "
+              f"-> {p.name}")
     return 0
 
 
-def load_map(form):
-    p = map_path(form)
+def load_pop(form):
+    p = OUT / f"{form}.pop.json"
     if not p.exists():
-        raise SystemExit(f"f13_formfab: no seed map for {form}; run `map` first")
-    d = json.loads(p.read_text())
-    return {int(k): v for k, v in d["map"].items()}
+        raise SystemExit(f"f13_formfab: no frozen population for {form}; "
+                         "run `freeze` first")
+    return json.loads(p.read_text())["k"]
 
 
 # --------------------------------------------------------------------------- #
-# capture
+# capture -- SOCKET FIRST, then the fabric core, SAME IMAGE
 # --------------------------------------------------------------------------- #
-def _emit(form, idx, sd, host, waits):
-    spec, is_evt = spec_of(form)
-    pn = 2 if idx % 2 == 1 else 0
-    case = gen_of(form, sd)
+def _emit(form, i, host, waits, use_core):
+    case, spec, is_evt = gen_of(form, i)
+    pn = 2 if i % 2 == 1 else 0
+    es.EMIT_USE_CORE = bool(use_core)
     if is_evt:
-        t = es.emit_evt_case(spec, case, host, tag=f"f13{form}",
-                             preload_n=pn, waits=waits)
-    else:
-        t = es.emit_case(spec, case, host, tag=f"f13{form}",
-                         preload_n=pn, waits=waits)
-    t["idx"] = idx
-    return t
+        return es.emit_evt_case(spec, case, host, tag=f"f13{form}",
+                                preload_n=pn, waits=waits)
+    return es.emit_case(spec, case, host, tag=f"f13{form}",
+                        preload_n=pn, waits=waits)
 
 
 def cmd_capture(a):
     OUT.mkdir(parents=True, exist_ok=True)
-    es.EMIT_USE_CORE = bool(a.use_core)
-    print(f"leg {a.leg}: emit_suite.EMIT_USE_CORE = {es.EMIT_USE_CORE} "
-          f"({'the FPGA core' if a.use_core else 'the SOCKET -- rig control'})"
-          f", NOT a golden emission", flush=True)
-    rec = {"leg": a.leg, "use_core": bool(a.use_core), "host": a.host,
-           "git": git_head(), "waits": a.waits,
+    rec = {"leg": a.leg, "host": a.host, "git": git_head(), "waits": a.waits,
+           "seed_ns": SEED_NS,
            "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
            "div_guards": [], "forms": {}}
     div_guard(f"{a.leg}-start", rec["div_guards"])
     rc = 0
     for form in a.form:
-        g = {t["idx"]: t for t in golden(form)}
-        m = load_map(form)
-        idxs = sorted(m) if not a.idxs else [i for i in a.idxs if i in m]
-        out, valid, invalid, errs = {}, [], [], []
+        ks = load_pop(form)
+        out, errs = {}, []
         t0 = time.time()
         div_guard(f"{a.leg}-{form}-pre", rec["div_guards"])
-        for idx in idxs:
+        for i in ks:
             try:
-                t = _emit(form, idx, m[idx], a.host, a.waits)
+                chip = _emit(form, i, a.host, a.waits, 0)
+                core = _emit(form, i, a.host, a.waits, 1)
             except Exception as e:                            # noqa: BLE001
-                errs.append([idx, str(e)[:160]])
-                print(f"  ERR {form}/{idx}: {str(e)[:110]}", flush=True)
+                errs.append([i, str(e)[:160]])
+                print(f"  ERR {form}/{i}: {str(e)[:110]}", flush=True)
                 continue
-            ok = (t["initial"] == g[idx]["initial"]
-                  and list(t["bytes"]) == list(g[idx]["bytes"]))
-            (valid if ok else invalid).append(idx)
-            t["_valid"] = ok
-            out[idx] = t
+            finally:
+                es.EMIT_USE_CORE = False
+            out[i] = {"chip": chip, "core": core}
         div_guard(f"{a.leg}-{form}-post", rec["div_guards"])
         blob = json.dumps({str(k): v for k, v in out.items()}).encode()
         fn = OUT / f"{form}.{a.leg}.json.gz"
         fn.write_bytes(gzip.compress(blob))
         sha = hashlib.sha256(blob).hexdigest()
-        rec["forms"][form] = {"n_asked": len(idxs), "n_captured": len(out),
-                              "valid": len(valid), "invalid": invalid,
+        rec["forms"][form] = {"n_asked": len(ks), "n_pairs": len(out),
                               "errors": errs, "rows_file": fn.name,
                               "sha256": sha,
                               "seconds": round(time.time() - t0, 1)}
-        print(f"  {form}: {len(out)}/{len(idxs)} captured, {len(valid)} valid, "
-              f"{len(invalid)} invalid, {len(errs)} errors, "
+        print(f"  {form}: {len(out)}/{len(ks)} A/B pairs, {len(errs)} errors, "
               f"{time.time()-t0:.0f}s  sha256 {sha[:16]}…", flush=True)
         if errs:
             rc = 1
@@ -250,16 +218,14 @@ def cmd_capture(a):
     rec["finished"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     rec["div_guards_unpinned"] = [d["tag"] for d in rec["div_guards"]
                                   if d["state"] != "PINNED"]
-    # One leg may be captured in several invocations (one per form, because
-    # `--idxs` is a single list).  MERGE rather than overwrite, so the record
-    # of a leg is the record of the whole leg.
     p = OUT / f"capture_{a.leg}.json"
     if p.exists():
         old = json.loads(p.read_text())
         old["forms"].update(rec["forms"])
         old["div_guards"] += rec["div_guards"]
-        old["div_guards_unpinned"] = sorted(set(old.get("div_guards_unpinned", []))
-                                            | set(rec["div_guards_unpinned"]))
+        old["div_guards_unpinned"] = sorted(
+            set(old.get("div_guards_unpinned", []))
+            | set(rec["div_guards_unpinned"]))
         old["finished"] = rec["finished"]
         rec = old
     p.write_text(json.dumps(rec, indent=1) + "\n")
@@ -273,7 +239,7 @@ def cmd_capture(a):
 # --------------------------------------------------------------------------- #
 # score
 # --------------------------------------------------------------------------- #
-def _load_leg(form, leg):
+def _load(form, leg):
     fn = OUT / f"{form}.{leg}.json.gz"
     if not fn.exists():
         raise SystemExit(f"f13_formfab: missing {fn}")
@@ -281,76 +247,51 @@ def _load_leg(form, leg):
             json.loads(gzip.decompress(fn.read_bytes())).items()}
 
 
-def _ghost_rows(t):
-    """The MEMR rows of a capture's window, as (row, addr, data)."""
-    out = []
-    for i, r in enumerate(t["cycles"]):
-        if r[7] == "MEMR":
-            out.append((i, r[1], r[6]))
-    return out
+def _memr(t):
+    return [(i, r[1], r[6]) for i, r in enumerate(t["cycles"]) if r[7] == "MEMR"]
 
 
 def cmd_score(a):
-    summary = {"leg": a.leg, "ref": a.ref, "forms": {}}
+    summary = {"leg": a.leg, "forms": {}}
     for form in a.form:
-        g = {t["idx"]: t for t in golden(form)}
-        dut = _load_leg(form, a.leg)
-        ref = _load_leg(form, a.ref) if a.ref else None
+        d = _load(form, a.leg)
         tot = ok = 0
         fails = []
-        for idx in sorted(dut):
-            t = dut[idx]
-            if not t.get("_valid"):
-                continue
+        for i in sorted(d):
+            chip, core = d[i]["chip"], d[i]["core"]
             tot += 1
-            mm, _m = cc.diff_rows(g[idx]["cycles"], t["cycles"])
-            # the SAME documented don't-care filter `check_core.check_case`
-            # applies, so this column is on `check_core`'s scale.  `--ghost`
-            # below is the one that lifts it.
-            dc = cc.dontcare_cells(g[idx])
-            if dc:
-                mm = [m for m in mm if (m[0], m[1]) not in dc]
+            mm, _m = cc.diff_rows(chip["cycles"], core["cycles"])
             if not mm:
                 ok += 1
             else:
-                fails.append([idx, mm[0][0],
-                              cc.COL_NAME.get(mm[0][1], str(mm[0][1]))])
-        print(f"=== {form} [{a.leg}] rows-only vs the GOLDEN: {ok}/{tot}")
+                fails.append([i, mm[0][0],
+                              cc.COL_NAME.get(mm[0][1], str(mm[0][1])),
+                              len(mm)])
+        print(f"=== {form} [{a.leg}] CORE vs CHIP, rows: {ok}/{tot} identical")
         f = {"exact": ok, "total": tot, "first_div": fails}
         if a.ghost:
-            gr = {"n": 0, "core_eq_golden": 0, "core_eq_ref": 0,
-                  "ref_eq_golden": 0, "dut_eq_sssp": 0, "per_idx": {}}
-            for idx in sorted(dut):
-                t = dut[idx]
-                if not t.get("_valid"):
-                    continue
-                gg = _ghost_rows(g[idx])
-                dd = _ghost_rows(t)
-                if len(gg) != 1 or len(dd) != 1:
+            gr = {"n": 0, "eq": 0, "core_eq_sssp": 0, "chip_eq_sssp": 0,
+                  "per_seed": {}}
+            for i in sorted(d):
+                chip, core = d[i]["chip"], d[i]["core"]
+                gc, cc_ = _memr(chip), _memr(core)
+                if len(gc) != 1 or len(cc_) != 1:
                     continue
                 gr["n"] += 1
-                rr = None
-                if ref is not None and idx in ref and ref[idx].get("_valid"):
-                    r2 = _ghost_rows(ref[idx])
-                    rr = r2[0] if len(r2) == 1 else None
-                eq_g = (dd[0][1], dd[0][2]) == (gg[0][1], gg[0][2])
-                gr["core_eq_golden"] += int(eq_g)
-                if rr is not None:
-                    gr["core_eq_ref"] += int((dd[0][1], dd[0][2])
-                                             == (rr[1], rr[2]))
-                    gr["ref_eq_golden"] += int((rr[1], rr[2])
-                                               == (gg[0][1], gg[0][2]))
-                r0 = g[idx]["initial"]["regs"]
+                r0 = chip["initial"]["regs"]
                 sssp = ((r0["ss"] << 4) + r0["sp"]) & 0xFFFFF
-                gr["dut_eq_sssp"] += int((dd[0][1] & 0xFFFFF) == sssp)
-                gr["per_idx"][idx] = {
-                    "golden": [gg[0][1], gg[0][2]], "dut": [dd[0][1], dd[0][2]],
-                    "ref": ([rr[1], rr[2]] if rr else None), "ss_sp": sssp}
-            print(f"    GHOST (mask lifted): {gr['n']} single-MEMR cases; "
-                  f"dut==golden {gr['core_eq_golden']}, "
-                  f"dut==ref {gr['core_eq_ref']}, "
-                  f"ref==golden {gr['ref_eq_golden']}, "
-                  f"dut==SS:SP {gr['dut_eq_sssp']}")
+                eq = ((cc_[0][1] & 0xFFFFF, cc_[0][2])
+                      == (gc[0][1] & 0xFFFFF, gc[0][2]))
+                gr["eq"] += int(eq)
+                gr["core_eq_sssp"] += int((cc_[0][1] & 0xFFFFF) == sssp)
+                gr["chip_eq_sssp"] += int((gc[0][1] & 0xFFFFF) == sssp)
+                gr["per_seed"][i] = {"chip": [gc[0][1], gc[0][2]],
+                                     "core": [cc_[0][1], cc_[0][2]],
+                                     "ss_sp": sssp, "eq": eq}
+            print(f"    GHOST row (addr+data), core vs chip: "
+                  f"{gr['eq']}/{gr['n']}   "
+                  f"core==SS:SP {gr['core_eq_sssp']}, "
+                  f"chip==SS:SP {gr['chip_eq_sssp']}")
             f["ghost"] = gr
         summary["forms"][form] = f
     (OUT / f"score_{a.leg}.json").write_text(json.dumps(summary, indent=1)
@@ -362,24 +303,23 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     s = ap.add_subparsers(dest="cmd", required=True)
 
-    c = s.add_parser("map", help="recover idx->seed OFFLINE, by content")
+    c = s.add_parser("freeze", help="the frozen seed population (BOARD-FREE)")
     c.add_argument("--form", action="append", required=True)
-    c.set_defaults(fn=cmd_map)
+    c.add_argument("--n", type=int, required=True)
+    c.add_argument("--mod3", action="store_true",
+                   help="keep only mod=3 encodings (the 8F ghost population)")
+    c.set_defaults(fn=cmd_freeze)
 
-    c = s.add_parser("capture", help="one board leg")
+    c = s.add_parser("capture", help="one A/B leg: socket then fabric core")
     c.add_argument("--form", action="append", required=True)
     c.add_argument("--leg", required=True)
-    c.add_argument("--use-core", type=int, required=True, choices=(0, 1))
     c.add_argument("--host", default=HOST)
     c.add_argument("--waits", type=int, default=0)
-    c.add_argument("--idxs", type=lambda s: [int(x) for x in s.split(",")],
-                   default=None)
     c.set_defaults(fn=cmd_capture)
 
-    c = s.add_parser("score", help="rows-only vs the golden (+ --ghost)")
+    c = s.add_parser("score", help="core vs chip, rows (+ --ghost)")
     c.add_argument("--form", action="append", required=True)
     c.add_argument("--leg", required=True)
-    c.add_argument("--ref", default="", help="a second leg, for --ghost")
     c.add_argument("--ghost", action="store_true")
     c.set_defaults(fn=cmd_score)
 

@@ -266,3 +266,91 @@ the three legs · the C-6 control legs moving · C1 failing · any prereg
 contradiction.  Halt and report.
 
 ---
+
+---
+
+# §9A  AMENDMENT A-F13-1 — THE GOLDEN-COMPARISON INSTRUMENT IS REFUTED ON THE
+# BOARD, AND REPLACED.  Written and committed BEFORE the replacement's first leg.
+
+**THE TIMING, STATED FIRST.**  Between §1–§9 being committed (`edb67a1cb1`) and
+any scored leg, ONE board action was taken: `fz2_w1.py preflight --board`
+(reported in §10) and a **5-case smoke of `f13_formfab` on the SOCKET**.  The
+smoke refuted the instrument's premise.  No scored figure existed when this
+amendment was written and none of §6–§8's clauses is weakened by it; §7.1 and
+§7.2 are RE-EXPRESSED on the replacement comparator and the old wording is left
+above, struck by this section rather than edited away.
+
+## §9A.1  WHAT WAS MEASURED
+
+`f13_formfab capture --leg smoke --use-core 0 --form INT.F3AA --idxs 0,1,2,4,6,8`
+returned **4 pairs captured, 0 VALID**, and the validity check said why.  For
+`INT.F3AA` idx 0, re-emitted today against the golden:
+
+| | re-emitted | golden |
+|---|---|---|
+| `initial.regs.ip` | 15116 | **13105** |
+| image fill byte | **0xCC** | 0x90 |
+| instruction anchor | 0x88CCC | **0x884F1** |
+
+`testimage.compose` is **not the composer the v0.1 goldens were emitted with**:
+fuzz-v2 T1/T2 moved the body anchor and made the image `0xCC`-filled outside
+four carve-outs (`testimage.py` §57-78, `CODE_FILL = 0xCC`).  **The current
+emitter cannot reproduce a v0.1 golden's image**, which is `sw/retired_v1.py`'s
+stated reason for retiring a dozen tools, and it applies to this route too.
+The seed-map work of §4.1 is sound and is retained as record; it is simply not
+usable to compare against a golden any more.
+
+## §9A.2  THE REPLACEMENT — AND IT IS THE BETTER COMPARATOR, NOT A FALLBACK
+
+The instrument becomes a **same-image A/B**: generate the form's cases from a
+frozen seed namespace (`f13/<form>/<i>`), run each image **twice** — `use_core=0`
+(the socketed chip, silicon truth) then `use_core=1` (the ucore in fabric) — and
+diff the two row streams.  That is `fuzz_campaign.capture_board`'s A/B applied
+to a directed form, and no golden is involved.
+
+**For the ghost read this is strictly stronger than the golden route.**
+`check_core.dontcare_cells` masks the 8F /0 mod=3 ghost address *because* the
+chip drives it from a stale EA latch carried in from the loader stub and *"a
+backdoor-injected core, which never executes the injection stub, legitimately
+drives the modeled `SS:SP` instead."*  That don't-care is a property of the
+Verilator TB's backdoor injection.  **In fabric both legs execute the same
+loader from the same image**, so the ghost address is directly comparable and
+the mask does not apply.  The A/B can therefore ask the question the golden
+comparator was built to refuse.
+
+**FROZEN BEFORE ANY BOARD CONTACT** (`sw/testdata/f13-formfab/*.pop.json`,
+committed with this amendment):
+
+* `INT.F3AA` — **200 seeds**, `f13/INT.F3AA/0..199`.
+* `8F.0` — **130 seeds**, the first 130 of `f13/8F.0/*` whose ModRM is **mod=3**,
+  decided OFFLINE from the pure generator so the board never runs a case that is
+  going to be discarded.
+
+## §9A.3  §7.1 RE-EXPRESSED — `INT.F3AA`
+
+| # | clause | registered |
+|---|---|---|
+| **I1′** | **reachability, and it is the FLASH #12 leg's job** | on `f12`, core-vs-chip must show **≥ 10 divergent cases of 200**.  The repaired arm hit 35 of the 200 GOLDENS; these are fresh cases under a changed composer, so the rate may differ.  **If `f12` is 200/200 the mechanism is NOT REACHED by this population and the leg is reported NOT SCOREABLE — not as a confirmation.** |
+| **I2′** | the repair closes it | on `f13`, core-vs-chip is **200/200 identical**.  Any residual divergence must be NAMED and attributed, not absorbed. |
+| **I3′** | nothing is lost | **0** cases identical on `f12` and divergent on `f13`. |
+| **I4′** | the signature | every `f12` divergence's first bad row lies in the interrupt-withdrawal window.  A divergence elsewhere is reported separately and does not count toward I1′. |
+
+## §9A.4  §7.2 RE-EXPRESSED — `8F.0` mod=3
+
+With no mask, the pre-landing core cannot agree with the chip on the ghost row
+by construction: the chip drives a stale-EA value, the core drove the modeled
+`SS:SP`.  So the row score itself is the instrument.
+
+| # | clause | registered |
+|---|---|---|
+| **G1′** | the mechanism is ABSENT on FLASH #12 | `f12` core-vs-chip rows identical on **≤ 20 of 130**. |
+| **G2′** | **the landing's claim** | `f13` core-vs-chip rows identical on **≥ 90 of 130**.  This is the strong form: one term is either the law or it is not.  A rise that falls short of 90 is evidence the mechanism is present and evidence the law is incomplete, and will be reported as exactly that — not as a pass. |
+| **G3′** | the ghost row itself | on the single-MEMR subset, `core == chip` on (addr, data) rises from `f12` to `f13`, and the core's address **stops being `SS:SP`**: `core_eq_sssp` falls to **≤ 10 %** of that subset on `f13`. |
+| **G4′** | nothing is lost | **0** cases identical on `f12` and divergent on `f13`. |
+
+## §9A.5  WHAT THIS AMENDMENT DOES NOT TOUCH
+
+§6 (bitstream, first light, RBCHECK, C-6 at **51/51**, chip proof) and §8 (the
+fz2 re-capture, C1–C6) stand exactly as committed at `edb67a1cb1`.  The §4.2
+offline columns are retained as record and **no longer bar anything**; the
+reason is §9A.2 and it was found by measurement, not by preference.
