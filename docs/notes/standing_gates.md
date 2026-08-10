@@ -826,7 +826,9 @@ to have driven the pads) and was repaired by seeding the latch at `srst` from
 S9a's pre-window fetch walk, the same reconstruction `last_fetch_addr` already
 had.  **NOT IN FABRIC** — no board was contacted; the fabric prediction is
 registered for a later flashed sitting, and the banked corpus headline
-`3,639/3,837` is NOT moved by an offline sitting.
+`3,639/3,837` is NOT moved by an offline sitting.  **⚠ SUPERSEDED IN FABRIC:
+that prediction was MET on FLASH #14 — all 23 `B1` seats closed and the headline
+is now `3,692/3,837`; `fz2_f14_results_2026-08-10.md` §5.1.**
 
 ### **fz2 `C1` — LANDED 2026-08-10, fuzz-v2 survey fix #3** (`fz2_c1_prereg_2026-08-10.md` / `fz2_c1_results_2026-08-10.md`)
 
@@ -920,7 +922,9 @@ latches, 0 `lpm_divide`; 88-file input manifest `065887d02fde8893…` on both;
 receipts `23b94a3c558fcb6a…` and `2be83886212f63d9…`.**  Against the branch's
 own CONTROL baseline (39.37 / +5.853 / 12,340) that is **+0.26 MHz, −10 ALMs**.
 **NOT IN FABRIC**: no board was contacted and the banked corpus headline
-`3,639/3,837` is not moved by an offline sitting.
+`3,639/3,837` is not moved by an offline sitting.  **⚠ SUPERSEDED IN FABRIC:
+MET on FLASH #14 — 12 registered `C1` seats closed and 7 more with them, and the
+headline is now `3,692/3,837`; `fz2_f14_results_2026-08-10.md` §5.1/§5.4.**
 
 **⚠ ERRATUM against this landing's OWN pre-registration:** `P-6` registered the
 SS map as `0x8C` / `224` / `0x8CE0` / 212 flops.  Those are `CLAUDE.md`'s
@@ -1032,7 +1036,67 @@ undecoded 64-bit words that were already being unpacked and discarded.
 | the INV-1 re-capture | `python3 sw/inv1_recapture.py {archive, probe, holdproof, capture, rebank, verify}` | INV-1's closure apparatus.  `verify` is arithmetic over the artifact and is board-free |
 | the b3 priority tranche | `python3 sw/u4_tranche.py capture --leg chip_f10 \| core_f10` then `score --legs chip_f10,core_f10 --ref chip_f10` | §48.4's victory condition, re-captured on every new bitstream as a NEW leg pair written BESIDE the last one.  ⚠ **FLASH #10 (SM3 sitting 27): `chip_f10` 178/178 AND `core_f10` 178 / 178 (100.0 %), RESIDUE EMPTY**, 0 errors in 400 captures — **V3 is ZERO seeds apart, and it was a REGISTERED PREDICTION**: the offline `vsim_ucore` column measured on this tree BEFORE the board was touched said 178/178 first (`ucore_provenance.md` §88.A.6c).  **`gaps` §T4 — the two `bs` seeds `mc1_300043` / `mc1_300122` — is EMPTY in the ucore, offline and in fabric.**  The ATTRIBUTION to a landing is **NOT established**: the banked `vsim_ucore` column reproduces 176/178 on the same scorer in the same run that scores HEAD at 178 and `core_f5`/`core_f9` at 176, so the scorer is not what moved, but five landings separate the banked column from HEAD and this sitting did not bisect them.  *The superseded rows:* **FLASH #9 (SM3 sitting 19): `chip_f9` 178/178, `core_f9` 176/178 (98.9 %), residue `bs = 2` — identical to FLASH #5's and #4's to the seed.  §73.9's re-capture debt for #6/#7/#8 is DISCHARGED at #9.**  **FLASH #5 (SM3 sitting 7): `chip_f5` 178/178, `core_f5` 176/178, residue `bs = 2`** |
 
-**THE BOARD CARRIES FLASH #13 SINCE 2026-08-10** (`0ac4c2a83a`; pre-registration
+**THE BOARD CARRIES FLASH #14 SINCE 2026-08-10** (`15029cdfb3`;
+pre-registration `1e2a6e7a96`, erratum `b89f9aa2ea`, addendum `12650eb073`, all
+three committed **before board contact**) — `nec_test_ucore.sof`
+**`060215e43c5de9b397dec0d5d8d5f4577705ee4ebd60d7d7229b15fbb3bca33b`**, `.rbf`
+**`7d4e887639d021baa5b2aca770e192329d365506b75d8e7af0dcf189a4b5fd61`**, built
+from `2fa3dd33b3` **WITH `X1_AD_RETENTION=1`** (draw 2 of 2), through
+`sw/safe_flash.sh` with its VERIFY leg (ok on try 1); `sw/testdata/flash_log.jsonl`
+**16 → 17 entries**.
+
+**G6, RETENTION, TWO DRAWS, IDENTICAL** — 40.97 MHz, worst setup +6.843 ns, TNS
+0.000 setup **and** hold on every domain, 12,256 / 41,910 ALMs (29 %), 0 errors /
+0 latches / 0 `lpm_divide`, identical 88-file input manifest
+`16293f271829d5e5…`, **`.rbf` byte-identical across both draws**; receipts
+`1d15ef2d82971ade…` (draw 1) and `eb8ef16c420977fb…` (draw 2), **both
+self-labelling `RETENTION (X1_AD_RETENTION=1)` derived from `flow.rpt` AND
+`map.rpt`**.  ⚠ 40.97 is **above every CONTROL draw this branch has taken**
+(39.16 · 39.37 · 39.47 · 39.63 · 39.81 · 40.11) and that is **reported, not
+explained**; §A governs unchanged.
+
+**IT IS THE FIRST BITSTREAM TO CARRY `F58`, `A1`, `C1`, `C2` AND `D1`.**  All
+five confirmed in fabric (`fz2_f14_results_2026-08-10.md`): **46 of 46
+registered seats closed** — A1 6/6 · F58 23/23 · C1 12/12 · C2 2/2 · D1 3/3 —
+**plus 10 unregistered**, seven of them `C1`-family.  P-1b's `+1` prediction
+landed on **12 of 12 seeds to the row**; P-6's 92 seeds in nine untouched
+families produced **zero** exits; the §64.1 counter-population did not move by
+one row; and **P-4d's falsifier did not fire** (`fz2c/404040`, the seed whose
+silicon refuted `C2`'s first form, is still a pass).
+
+    SEED MATCH  3,639 -> 3,692 / 3,837 = 94.8397 % -> 96.2210 %   (registered
+                                                     denominator, the ratchet)
+    ROW  MATCH  11,159,527 -> 11,171,232 / 11,322,230
+                                       = 98.5630 % -> 98.6664 %
+    as derived  3,694 / 3,839 = 96.2230 %          failures 198 -> 145
+
+`bars` **11 / 11 MET**, leaf-diffed against the F13 archive — **no bar verdict
+moved**.  §38.9's missed-trap overlay **40 → 21**.  63 div guards / **0
+UNPINNED**, 0 `RigMismatch`, 0 quarantines, `use_core=0` chip proof **MATCH 800**
+after everything.
+
+⚠ **THREE REGISTERED MISSES, ALL REPORTED AS REGISTERED.**  (a) **P-7 — three
+seeds ENTERED the ledger**, all core-side: `fz2e/517043` (a **`PSW.TF`** seed and
+`C1`'s — of 101 TF seeds, 12 failed on #13 and 7 on #14, so `C1` is net **+5** on
+the population it exercises with its one loss inside its own mechanism, and it is
+the **first measured cost** of the directed-cell debt `C1` registered when
+`sm3_tf_floor_cell.py` proved unrunnable on this branch), plus `fz2e/531009` and
+`fz2e/532032`, both **escaped raw seeds**.  (b) the **denominator moved 3,837 →
+3,839** — two of the three A-12 `ps3_8080` discards stopped entering 8080 at
+runtime, and `_ps3_8080` is a **socket-leg** predicate by A-2, so that is a chip
+movement.  (c) **`C-CHIP` failed as registered**, and its row leg was
+mis-registered: **401 of the 402 raw movers differ only at row indices ≤ 8**, the
+column policy's own pipeline prefix, so **on the scored rows the chip reproduces
+673 / 674** — the one true mover and the two scalar movers are **all escaped
+seeds**, none appears in any seat prediction, and attribution stands.
+
+**A FABRIC FIGURE TAKEN ON ANY EARLIER FLASH MAY NOT BE QUOTED AGAINST THIS
+TREE.**
+
+*Superseded, kept because a fabric figure is only readable against its own
+bitstream:*
+
+**THE BOARD CARRIED FLASH #13 FROM 2026-08-10** (`0ac4c2a83a`; pre-registration
 `edb67a1cb1` + amendment `f18ad478b9`, both committed before the legs they
 govern) — `nec_test_ucore.sof`
 **`e4a2056a2de53c1ff2b7482bfc39822e42971bc987c479bca98b7b7f2f36545b`**, `.rbf`

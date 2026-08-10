@@ -119,7 +119,15 @@ fresh session needs before it quotes anything:
   (`timed_fuzz --bank fz2c,fz2e --evt-replay`). A benefit measurement with a
   denominator of 14 is the best instrument the branch has. Rebuilding a
   replayable corpus is SUP-1's open item.
-* **The board carries FLASH #13** (below, superseding the FLASH #10 line).
+* **The board carries FLASH #14 since 2026-08-10** (below, superseding the
+  FLASH #13 and FLASH #10 lines). It is the first bitstream to carry **F58, A1,
+  C1, C2 and D1**, and all five are **CONFIRMED in fabric**: 46 of 46 registered
+  seats closed plus 10 more, corpus **3,639 → 3,692 of 3,837** (like-for-like
+  denominator). **P-7 MISSED — three seeds entered the ledger**; one
+  (`fz2e/517043`) is a `PSW.TF` seed and is `C1`'s, the first measured cost of
+  `C1`'s registered directed-cell debt. `fz2_f14_results_2026-08-10.md`.
+  **A FABRIC FIGURE TAKEN ON FLASH #13 OR EARLIER MAY NOT BE QUOTED AGAINST
+  THIS TREE.**
 * **`ulockstep` dipped to 17,340 and recovered within one day** — the 8F ghost
   READ landed in RTL before `sim/` had it. See `standing_gates.md` §B for the
   erratum against `int_f3aa_repair_results_2026-08-09.md` row 8b.
@@ -674,7 +682,60 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   pre-registered falsifier** — `mc2/2788`, where a second read is outstanding
   while an earlier one already sits in the completed-read store, so the row is
   NOT blocked and runs on the same clock.
-- **THE BOARD CARRIES FLASH #13 SINCE 2026-08-10** (`0ac4c2a83a`; pre-registration
+- **THE BOARD CARRIES FLASH #14 SINCE 2026-08-10** (`15029cdfb3`;
+  pre-registration `1e2a6e7a96` + erratum `b89f9aa2ea` + addendum `12650eb073`,
+  all three committed **before board contact**) — `nec_test_ucore.sof`
+  **`060215e43c5de9b3…`**, `.rbf` **`7d4e887639d021ba…`**, built from
+  `2fa3dd33b3` **WITH `X1_AD_RETENTION=1`** (draw 2), through
+  `sw/safe_flash.sh` with its VERIFY leg (ok on try 1); `flash_log.jsonl`
+  **16 → 17 entries**.  **G6 RETENTION, TWO DRAWS, IDENTICAL**: **40.97 MHz**,
+  worst setup **+6.843 ns**, **TNS 0.000 setup AND hold on every domain**,
+  12,256 ALMs (29 %), 0 errors / 0 latches / 0 `lpm_divide`, the same 88-file
+  manifest **`16293f271829d5e5…`**, and the **`.rbf` BYTE-IDENTICAL across both
+  draws**; receipts `1d15ef2d82971ade…` and `eb8ef16c420977fb…`, both
+  **self-labelling RETENTION**.  ⚠ 40.97 sits **above** every CONTROL draw this
+  branch has taken (39.16 · 39.37 · 39.47 · 39.63 · 39.81 · 40.11) — reported,
+  **not explained**; `standing_gates.md` §A governs and one green build is not
+  closure.
+  **IT IS THE FIRST BITSTREAM TO CARRY F58, A1, C1, C2 AND D1** — five landings
+  at once, none previously in fabric — **and all five are CONFIRMED**
+  (`fz2_f14_results_2026-08-10.md`): first light **MATCH 800 ×3**, RBCHECK
+  **8 registers**, C-6 **9 legs / 51 checks / 51 PASS** (P1-P5 at
+  2 · 300 · 2 · 300 · 20 to the clock, INTA vector `0xFF`), capture **3,840
+  seeds in 11.1 min, 48/48 strata**, **63 div guards / 0 UNPINNED**, 0
+  `RigMismatch`, 0 quarantines, `use_core=0` chip proof **MATCH 800** after
+  everything, `board_idle()` clean.
+  **EVERY REGISTERED SEAT CLOSED — A1 6/6 · F58 23/23 · C1 12/12 · C2 2/2 ·
+  D1 3/3 — PLUS TEN UNREGISTERED**, seven of them `C1`-family (so `C1` closed
+  **19 of 29** in fabric where its offline instrument could show only 12).
+  **CORPUS: SEED `3,639 → 3,692 / 3,837` = 94.8397 % → 96.2210 %** and **ROW
+  `11,159,527 → 11,171,232 / 11,322,230` = 98.5630 % → 98.6664 %**, both on the
+  registered denominator; as derived on the new denominator, **3,694 / 3,839 =
+  96.2230 %**, failures **198 → 145**.  `bars` **11/11 MET**, leaf-diffed, no
+  verdict moved.  §38.9's missed-trap overlay **40 → 21**.
+  ⚠ **THREE THINGS THIS SITTING MISSED, ALL REPORTED AS REGISTERED.**
+  (a) **P-7 — three seeds ENTERED the ledger** (`fz2e/517043`, `fz2e/531009`,
+  `fz2e/532032`), all core-side.  `517043` is a **`PSW.TF`** seed and is
+  **`C1`'s**: of the corpus's 101 TF seeds, 12 failed on #13 and 7 on #14 — six
+  closed, one newly failed — so `C1` is net **+5** on the population it
+  exercises and its one loss is inside its own mechanism.  It is the **first
+  measured cost of `C1`'s registered debt** (`sm3_tf_floor_cell.py` still cannot
+  run on this branch).  The other two are **escaped raw seeds**.
+  (b) **THE DENOMINATOR MOVED 3,837 → 3,839**: two of the three A-12 `ps3_8080`
+  discards (`fz2c/408029`, `fz2e/523042`) stopped entering 8080 at runtime.
+  `_ps3_8080` is a **SOCKET-leg** predicate (A-2), so this is a chip movement.
+  (c) **`C-CHIP` FAILED AS REGISTERED**, and the registered form of its row leg
+  was wrong: 401 of the 402 raw movers differ **only at row indices ≤ 8**, the
+  column policy's own pipeline prefix (`addr`/`data`/`ps` are scored from
+  release+9 and nothing in this tree scores rows 0-8).  **On the scored rows the
+  chip reproduces 673 / 674.**  The one true mover (`fz2e/527051`) and the two
+  scalar movers are **all ESCAPED seeds**, none appears in any seat prediction,
+  and attribution stands for the other 3,837.
+  **A FABRIC FIGURE TAKEN ON ANY EARLIER FLASH MAY NOT BE QUOTED AGAINST THIS
+  TREE.**
+  *Superseded, kept because a fabric figure is only readable against its own
+  bitstream:*
+- **THE BOARD CARRIED FLASH #13 FROM 2026-08-10** (`0ac4c2a83a`; pre-registration
   `edb67a1cb1` + amendment `f18ad478b9`, both committed before the legs they
   govern) — `nec_test_ucore.sof` **`e4a2056a2de53c1f…`**, `.rbf`
   **`c5886e14acb56b26…`**, built from `f18ad478b9` **WITH `X1_AD_RETENTION=1`**,
