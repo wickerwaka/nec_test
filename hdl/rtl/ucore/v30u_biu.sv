@@ -905,19 +905,45 @@ wire [19:0] t1_addr = r_cur_late_t1 ? {data_ps(r_cur_seg), r_cur_addr[15:0]}
 
 // A segment-register write and the display of an already-committed prefetch
 // share one physical address path.  The pending fetch is retargeted from the
-// new CS on that clock; a fetch whose T1 is already running is not.  The one
-// asymmetric rail is CS[8] -> A12: a rising bit arrives one fetch later while
-// a falling bit and every other measured CS bit arrive immediately.
+// new CS on that clock; a fetch whose T1 is already running is not.
 //
-// SOCKET, 2026-08-06, identical 8E /1 timing and source:
-//   old CS[8]=0, new CS=0500 -> first 04518, then 0551a
-//   old CS[8]=0, new CS=0700 -> first 06518, then 0751a
-//   old CS[8]=0, new CS=0400 -> first 04518, then 0451a
-//   old CS[8]=1, new CS=0400 -> first 13518, then 1351a
-// The last case is the falsifier: this is a delayed SET path, not retention.
-wire [15:0] cmt_cs_live = {flush_cs[15:9],
-                           flush_cs[8] & flush_cs_old[8],
-                           flush_cs[7:0]};
+// P5' -- ...AND THE VALUE THE ADDER SEES IS THE **WIRED AND** OF THE OLD AND
+// THE NEW CS, ON ALL SIXTEEN BITS.  A segment-register read taken WHILE THE
+// REGISTER IS BEING WRITTEN is a precharged read bus with two things pulling
+// on it -- the cell that still holds the old value and the write driver
+// presenting the new one -- so the adder gets `new & old`.  There is no
+// asymmetric bit and no delayed SET path: the CS[8] -> A12 rail this expression
+// used to carry was that AND seen through a tranche that varied only CS[8].
+//
+// SILICON, fz2 FLASH #15 corpus, and the two seats agree on all 16 bits:
+//   fz2c/406023 row 1230: new 59c9, old f171 -> chip fetch 5c946 = 5141:b536
+//   fz2e/527051 row  156: new cddb, old fe6a -> chip fetch d5f06 = cc4a:9a66
+//   59c9 & f171 == 5141   ·   cddb & fe6a == cc4a
+//
+// The 2026-08-06 SOCKET tranche this expression used to cite (four rows, all
+// of them varying CS[8] alone) is CONSISTENT with the AND but cannot
+// distinguish it from the one-bit rule, because that tranche's `old` CS value
+// is recorded nowhere -- not in the comment it was written into and not
+// anywhere in the tree.  It is therefore no longer quoted as the authority
+// here; the two 16-bit silicon agreements are.
+//
+// FALSIFIER: any capture in which the retargeted fetch address implies a CS
+// with a bit SET that is clear in `flush_cs` or clear in `flush_cs_old`.
+//
+// ⚠ WHAT THIS DOES NOT FIX, and it is four of the six measured seats: a CS-write
+// row that STALLS holds `flush_cs_we` for the whole stall, and `flush_cs`
+// during it is NOT the value that will be written (in fz2e/533028 it is the
+// instruction's DISPLACEMENT).  The chip writes the register ONCE and takes the
+// OLD CS for anything committed before that; the ucore acts on every clock of
+// the level, here and at `fetch_lin` below.  No flop-free predicate in this
+// module separates "the register is written THIS clock" from "a row that will
+// write it is stalled" -- `flush_cs != flush_cs_old` is true throughout, and
+// `r_cs_r` observes the change one clock too late.  The fix belongs to
+// `v30u_eu.sv` (`wr_cs1` qualified by the row committing).  Seats, booked:
+// fz2e/520062 @700, fz2e/528008 @628, fz2e/532012 @328, fz2e/533028 @881 --
+// each one's chip fetch is built from `flush_cs_old` exactly.
+// (docs/notes/fz2_p4p5_prereg_2026-08-10.md §2.2)
+wire [15:0] cmt_cs_live = flush_cs & flush_cs_old;
 wire [19:0] cmt_addr_live = {cmt_cs_live, 4'd0} +
                             {4'd0, r_cmt_prev_fp};
 wire cmt_cs_retarget = flush_cs_we && r_cmt_valid && r_cmt_fetch;
