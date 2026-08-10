@@ -828,6 +828,106 @@ had.  **NOT IN FABRIC** — no board was contacted; the fabric prediction is
 registered for a later flashed sitting, and the banked corpus headline
 `3,639/3,837` is NOT moved by an offline sitting.
 
+### **fz2 `C1` — LANDED 2026-08-10, fuzz-v2 survey fix #3** (`fz2_c1_prereg_2026-08-10.md` / `fz2_c1_results_2026-08-10.md`)
+
+> **AN EXTERNAL RECOGNITION DOES NOT SPEND THE SINGLE-STEP ARM.  ONLY THE
+> TRAP'S OWN TAKE DOES.**
+
+§86 landed the five `S_IRQ_D` entry sites with `brk_arm_n = 1'b0` and the
+comment *"the arm is spent either way"*.  The second half is refuted by
+silicon: at a boundary where a maskable or non-maskable recognition and an
+armed single-step trap coincide, the part walks through the external door and
+**still owes the trap**, which it pays at the entry sequence's own end
+boundary, after exactly one handler prefetch.  The fix is one AND term at the
+five sites, using the wire the line above it already uses:
+`brk_arm_n = brk_arm_n && irq_take`.  **No flop, no wire, no save-state
+address (`v30u_ss_pkg.sv` byte-identical), no BIU file, no opcode named.**
+
+**TWO CORRECTIONS THE PREREG MAKES BEFORE ANY NUMBER, AND BOTH MATTER TO A
+LATER READER:**
+
+1. **`sw/fz2_a1_rescore.py` IS STRUCTURALLY BLIND TO `C1`.**  Its `cut()`
+   ends at the chip's first `MEMR` T1 at linear `0x00008`/`0x0000A` at or
+   after the terminating NMI's assertion — the read the rig SUBSTITUTES from
+   `TVEC` — and the trap the ucore drops is the one that follows *the
+   terminating NMI's own entry*, i.e. **after** the cut.  On `fz2c/400007` the
+   A1 window is 3,346, the banked window 3,736, the divergence 3,378.  A1
+   scored **352 → 352 with not one seed moving in any column** across this
+   landing, which is the independent proof.
+2. **§38.9's population of 40 is TWO mechanisms**, separated by a measured
+   predicate: does an external interrupt entry sit between the last matched
+   boundary and the vector-1 read the chip takes and the core does not?
+
+**NEW STANDING INSTRUMENT — `sw/fz2_c1_rescore.py`.**  One line of difference
+from A1's: the rig's `TVEC` substitution is a CONSTANT
+(`fuzz_campaign.TERM_TVEC`) for every seed in the corpus, so it is emulated in
+the image (IVT[2] := that constant, applied **after** the `image_sha256`
+assertion) and the comparison runs over the seed's own banked window with **no
+cut**.  Its validation rule is in the source: a seed is `SCOREABLE` iff its
+BEFORE-leg first divergence equals the value the failure ledger recorded for it
+**chip-vs-FABRIC on the board**.  BEFORE leg: `CLEAN 327/725`, `SCOREABLE
+408/725`.  Three named unfaithfulness modes, all identical in both legs.
+
+**RESULT, as registered:** `fz2_c1_rescore` **327 → 339**, **GAINED 12, LOST 0,
+0 first divergences earlier, 0 seeds newly dirty over all 725**, and all twelve
+gains are `C1` carriers that went **row-clean over their whole banked window**
+from 358–1,139 diverging rows.  `P-1` (mechanism, 19/19) **MISSED at 12/19**;
+`P-2` (yield ≥ 12) **MET at 12**; `P-3` (nine non-carriers are non-closers,
+0 worse) **MET**; `P-5` **MET on both instruments**.
+
+**`P-4`, THE §64.1 COUNTER-POPULATION GATE, MET 4/4 AND NOT ONE ROW MOVED** —
+`fz2c/406063` 249, `fz2c/410047` 227, `fz2e/518053` 571, `fz2e/535027` 296,
+`first_bad` and bad-row count both unchanged.  Predicted by the inertness
+argument: on all four the chip's own vector-1 count is ZERO.
+
+**THE RESIDUE IS ONE MEASURED COORDINATE, BOOKED WITH A FALSIFIER AND NOT
+OPENED.**  Three ascending `MEMR` pops (an `IRET`) with **exactly two** code
+fetches between them and the boundary: **7 of 7** unmoved carriers, **0 of 12**
+closers, **8 of 9** registered non-carriers.  `fz2e/522051` has the pops and
+FOUR fetches and closed — the control that makes it *the `IRET`'s own end
+boundary*, not *an `IRET` nearby*.  Candidate: the trap an `IRET` re-arms is
+one boundary late, invisible unless the extra instruction is a `HLT` (the
+survey's `B2`) or an external recognition lands in the window.  **NOT LANDED**
+— §86's `BRK_FLOOR` is calibrated to 0 row-diffs at depth 4 over 30 directed
+captures, so the rise coordinate of an `IRET`'s `PSW` restore is a directed
+cell and a landing of its own.
+
+**⚠ THE GOLDEN SURFACE CANNOT EXERCISE THIS TERM AT ALL, MEASURED: `PSW.TF` is
+set in 0 of 169,843 golden cases** (`v0.1` 169,000 + the four HLT sweeps +
+`f4a_boundary` + `f0lock_tranche`).  `check_core` **169,000/169,000** is
+evidence the landing broke nothing and **no evidence that it is right**; the
+evidence for that is 725 banked A/B captures against the socketed chip.
+
+**⚠ AND THE TRAP'S OWN DIRECTED CELL CANNOT RUN ON THIS BRANCH.**
+`sw/sm3_tf_floor_cell.py score --core ucore` runs `W-0a` (**18 TF-clear
+captures, 0 spurious vector-1 entries — MET**) and `W-1` (**MET**) and then
+raises `testimage.ComposeError: body [0500,06a4) is not inside the code region
+[8000,c000)` inside `image_of → check_seq.compose`.  **Engine-independent** —
+the raise is in image composition, no DUT in the stack — and the same class as
+the four ratchets the branch banner names: fuzz-v2 moved the image anchor and
+the cell's goldens are frozen at the v1 one.  It cannot be re-anchored without
+a re-capture.  **A REGISTERED DEBT of this landing.**
+
+**GATES:** `check_core --opcodes all` **169,000/169,000** (bit-identical) ·
+sweeps **97 · 93 · 45 · 44 = 279/283**, same four family-D survivors ·
+`check_boot` 220 and 400 MATCH · `ss_lint` PASS, map UNMOVED at 0x8D/226/0x8DE2
+/ 214 flops · `r7_lint` PASS 0 violations · `test_artifact` 45/45 ·
+`gen_ucore_qsf --check` PASS · `check_fuzz_bank` PASS 621 stable ·
+`ulockstep` 17,350/17,350 (INFORMATIONAL — the model is defunct).
+**G6 TWO DRAWS, both PASS and IDENTICAL: Fmax 39.63 MHz, worst setup +6.016 ns,
+TNS 0.000 setup AND hold on every domain, ALMs 12,330 (29 %), 0 errors, 0
+latches, 0 `lpm_divide`; 88-file input manifest `065887d02fde8893…` on both;
+receipts `23b94a3c558fcb6a…` and `2be83886212f63d9…`.**  Against the branch's
+own CONTROL baseline (39.37 / +5.853 / 12,340) that is **+0.26 MHz, −10 ALMs**.
+**NOT IN FABRIC**: no board was contacted and the banked corpus headline
+`3,639/3,837` is not moved by an offline sitting.
+
+**⚠ ERRATUM against this landing's OWN pre-registration:** `P-6` registered the
+SS map as `0x8C` / `224` / `0x8CE0` / 212 flops.  Those are `CLAUDE.md`'s
+figures and they predate `F58` on this branch; the tree's map at `7b7f521b84`,
+before the landing, is `0x8D` / `226` / `0x8DE2` / **214**.  The substance —
+the map does not move — is met and is checkable without that arithmetic.
+
 ### **F56 AND F57 — FAMILY B, CLOSED IN BOTH ENGINES (SM3 sitting 21, `ucore_provenance.md` §82)**
 
 Two mechanisms, two pre-registrations, two landings, and **both are a deletion
