@@ -1639,7 +1639,45 @@ always_comb begin
             if (run && cur_fetch)       cur_pn = 2'd0;
             if (cmt_valid && cmt_fetch) cmt_pn = 2'd0;
             flush_eval = 1'b1;
-            if (!qse_l && !(flush_rep && !flush_pend)) e_pend = 1'b1;
+            // ...AND THE OWED EMPTY READS THE SAME RAIL THE DISPLAY DOES (D1).
+            // The REP withdrawal decides its EMPTY in TWO places: `qs_e_now`
+            // above, which suppresses the display on the flush clock when the
+            // redirect takes the arbitration point that carries it, and HERE,
+            // which decides whether an EMPTY the flush clock could not show is
+            // OWED to the next free clock.  `flush_direct` is the rail that
+            // says the direct point was taken, and it has been NARROWED TWICE
+            // since this line was written -- `flush_nmi_young`, and then
+            // `!flush_int_live` ("the asserted pin withdraws the direct
+            // arbitration point on EITHER tail").  This site never received
+            // either narrowing and still read `!flush_pend` alone, which is 1
+            // on every REP-withdrawal flush clock the golden corpus contains,
+            // so it reduced to plain `flush_rep` and DROPPED the announcement
+            // instead of deferring it.
+            //
+            // It only shows when the flush clock cannot display EMPTY for an
+            // UNRELATED reason -- a CODE fetch owning the queue status port
+            // (`e_from_block` / `qs_port_fetch`) -- because only then does this
+            // latch decide anything.  At w0 that never happens, which is why
+            // 169,000 w0 goldens cannot see it.
+            //
+            // MEASURED, and the partition is exact: over 173,000 golden cases
+            // there are 416 clocks with `q_flush && flush_rep`; on ALL of them
+            // `flush_direct`, `flush_pend`, `flush_fast` and `flush_nmi_young`
+            // are 0 and `flush_int_live` is 1.  The 301 that showed EMPTY on
+            // the flush clock ALL PASS; the 115 that could not ALL FAIL, each
+            // with exactly one bad cell, `qop` exp 'E' got '-'.
+            //   v0.1 (169,000, all 347 forms): 56 flush clocks, 0 blocked
+            //   w0evt 75 / 0 · w1evt 73 / 31 · w2evt 62 / 23
+            //   w3evt 63 / 24 · w1evt-biased 87 / 37   (total / blocked)
+            //
+            // FALSIFIER: a REP withdrawal with `flush_direct` set on a clock
+            // where the display was blocked, and where silicon shows no EMPTY
+            // on any later clock.  `flush_fast` (which adds `flush_idle`) is
+            // the tighter candidate and is DELIBERATELY NOT TAKEN: no golden
+            // clock distinguishes them, so the smaller change is the evidenced
+            // one.  `!flush_pend` is kept for the same reason.
+            if (!qse_l && !(flush_rep && !flush_pend && flush_direct))
+                e_pend = 1'b1;
         end
         //====================================================================
         // (c) END OF CLOCK: advance the running cycle
