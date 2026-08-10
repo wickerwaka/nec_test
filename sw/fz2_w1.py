@@ -2102,13 +2102,143 @@ def cmd_bars(a):
                     print(f"  WVEC RE-DERIVE MISMATCH {cid}/{k}")
         print(f"  {len(jobs)} seeds in {time.time()-t0:.1f}s")
     ps3 = sum(1 for r in allines if r.get("ps3_8080"))
-    bar("C-3", "8080-free by BOTH clauses",
-        "0 forbidden `0F xx` pairs on every composed image (generation) AND "
-        "0 captures showing PS3 on a CODE T1 (runtime)",
+    # AMENDMENT A-11 (prereg §29), 2026-08-09 -- BY USER DECISION C-3's RUNTIME
+    # clause is RE-REGISTERED from "0 captures showing PS3 on a CODE T1" to
+    # "runtime 8080 entries are DETECTED AND DISCARDED".  THE GENERATION CLAUSE
+    # IS NOT EDITED and is still `pairs == 0` below.
+    #
+    # THE TIMING, WHICH §29.0 STATES FIRST: the clause is re-registered AFTER it
+    # was missed, twice, on the population that missed it.  The mechanism
+    # justification (§29.1) is that the old clause is UNMEETABLE BY
+    # CONSTRUCTION -- the scrub runs at COMPOSE time and the image then RUNS, so
+    # a random MEMW into the code region can manufacture a non-whitelisted
+    # `0F xx` pair at an alignment the scrub could not have seen.  §6's own C-3
+    # row says so in advance, and raw's whole-image mode writes there BY DESIGN.
+    #
+    # THREE NAMED COMPONENTS, EACH COMPUTED, AND THE GATE IS THEIR CONJUNCTION.
+    #
+    #   R1 DETECTED -- over EVERY retained capture in both campaign ids, the
+    #      socket-leg predicate recomputed off the banked ROWS agrees with the
+    #      banked `ps3_8080` column.  This has TEETH: it is an independent
+    #      recomputation, and a detector that silently stopped firing (or a
+    #      column that stopped being written) fails here.  Seeds that keep no
+    #      rows are COUNTED as not-recomputable and never extrapolated over --
+    #      the `classified_from: none` habit from C-1.
+    #
+    #   R2 DISPOSITIONED BY THE CLASS -- 0 `ps3_8080` seeds UNDISPOSITIONED.
+    #      ⚠ THIS IS A TAUTOLOGY OF THE CODE AND IS DECLARED AS ONE: `ps3_8080`
+    #      is a term of C-1's `_d3`, so a `ps3_8080` seed can never be
+    #      undispositioned.  It is computed and reported for completeness and it
+    #      is worth NOTHING as evidence.  Saying so is the point -- a
+    #      detect-and-discard clause whose discard half is a tautology is the
+    #      vacuity pattern this campaign has struck ten times.
+    #
+    #   R3 IN NO SCORED RATE'S NUMERATOR -- 0 `ps3_8080` seeds inside a scored
+    #      stratum with `arch_ok` true, i.e. none in E-1's `reached` count.
+    #      This is the task brief's own gloss on "discarded", taken literally,
+    #      and it is the ONLY component with teeth on the DISCARD half.
+    #
+    # §29.2 IS A FINDING AGAINST THE BRIEF, AND IT IS REPORTED RATHER THAN
+    # DROPPED.  The brief glosses "discarded" as "enters no rate's numerator,
+    # PER THE EXISTING E-1 ARITHMETIC".  It is not a description of the existing
+    # arithmetic: E-1's numerator is `arch_ok` over the FULL stratum, `_d3` is
+    # consulted ONLY on the not-`arch_ok` residue and feeds E-1c alone, and BOTH
+    # `ps3_8080` seeds have `arch_ok` TRUE.  Nothing here discards a runtime
+    # 8080 entry that DUMPED.  R3 therefore REPORTS the two seeds; it does NOT
+    # remove them.  Removing them would move C-1's four rates, and that is a
+    # decision about a registered bar that belongs to the coordinator (§29.7).
+    #
+    # THE GATE IS R1 AND R2 AND R3 -- the reading that FAILS.  §29.4: dropping
+    # R3 after measuring it at 2 would be choosing a predicate on the data that
+    # decides it, which is `ucore_provenance.md` §64.1 in the same sitting this
+    # amendment invokes §64.1 against the old clause.
+    #
+    # NON-VACUITY IS NOT ASSERTED HERE, IT IS DEMONSTRATED BESIDE THIS RUN by
+    # `python3 sw/fz2_a2_replay.py` on the DISJOINT `t30-brkem` bank (§29.5).
+    # That figure is NOT copied into this artifact: this file reports only what
+    # this file computed.
+    ps3_lines = [(pop, r) for pop in POPS for r in lines[pop]
+                 if r.get("ps3_8080")]
+    # ---- R1
+    r1_scored = r1_fires = r1_dis = 0
+    r1_detail = []
+    for pop in POPS:
+        capidx3 = fz2_stall.capture_index(CID[pop])
+        banked = {r["k"]: r for r in lines[pop]}
+        for k, p in sorted(capidx3.items()):
+            ref = banked.get(k)
+            if ref is None:
+                continue
+            try:
+                d = json.load(gzip.open(p, "rt"))
+            except Exception:                                  # noqa: BLE001
+                continue
+            real = d.get("real")
+            if not real:
+                continue
+            w = ref.get("win") or len(real)
+            got = bool(fzc._ps3_8080(real, w))
+            r1_scored += 1
+            r1_fires += got
+            if got != bool(ref.get("ps3_8080")):
+                r1_dis += 1
+                r1_detail.append({"seed": ref["seed"], "rows": got,
+                                  "line": bool(ref.get("ps3_8080"))})
+    r1_norows = len(allines) - r1_scored
+    # ---- R2 and R3
+    r2_undisp = 0
+    r3_in_num = []
+    for pop, r in ps3_lines:
+        j = _stratum_of(CID[pop], r["k"])
+        if j is None:
+            continue
+        if r.get("arch_ok"):
+            r3_in_num.append({"seed": r["seed"],
+                              "tier": STRATA[j]["tier"], "stratum": j,
+                              "verdict": r.get("verdict"),
+                              "bad_rows": r.get("bad_rows"),
+                              "mech": r.get("mech")})
+        elif not (r.get("arch_restart") or r.get("ps3_8080")
+                  or r.get("wrote_term")):
+            r2_undisp += 1
+    scoreable = _need(allines, "ps3_8080")
+    r1_ok, r2_ok, r3_ok = (r1_dis == 0), (r2_undisp == 0), (not r3_in_num)
+    bar("C-3", "8080-free: the GENERATION clause unchanged, and the RUNTIME "
+        "clause re-registered by A-11 to DETECTED AND DISCARDED",
+        "GENERATION (unchanged, A-11 does not edit it): 0 forbidden `0F xx` "
+        "pairs on every composed image.  RUNTIME (A-11, prereg §29.3): runtime "
+        "8080 entries are DETECTED AND DISCARDED, scored as R1 AND R2 AND R3 "
+        "-- R1 0 disagreements between the banked `ps3_8080` column and the "
+        "socket-leg predicate recomputed off retained rows; R2 0 `ps3_8080` "
+        "seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no evidential weight); "
+        "R3 0 `ps3_8080` seeds in E-1's `reached` numerator.  Non-vacuity is "
+        "demonstrated beside this run on the disjoint `t30-brkem` bank by "
+        "`sw/fz2_a2_replay.py` (§29.5)",
         {"bad_0f_pairs": pairs, "seeds": len(jobs), "ps3_8080": ps3,
-         "ps3_scoreable": _need(allines, "ps3_8080")},
-        "MET" if (pairs == 0 and ps3 == 0 and _need(allines, "ps3_8080"))
-        else ("NOT SCOREABLE" if not _need(allines, "ps3_8080") else "MISSED"))
+         "ps3_scoreable": scoreable,
+         "generation_ok": pairs == 0,
+         "R1_detected": {"retained_scored": r1_scored,
+                         "no_rows_not_recomputable": r1_norows,
+                         "rows_recompute_fires": r1_fires,
+                         "disagreements": r1_dis, "detail": r1_detail,
+                         "ok": r1_ok},
+         "R2_dispositioned": {"undispositioned_ps3": r2_undisp,
+                              "TAUTOLOGICAL": True, "ok": r2_ok},
+         "R3_no_rate_numerator": {"in_reached_numerator": len(r3_in_num),
+                                  "seeds": r3_in_num, "ok": r3_ok}},
+        "NOT SCOREABLE" if not scoreable else
+        ("MET" if (pairs == 0 and r1_ok and r2_ok and r3_ok) else "MISSED"),
+        None if (pairs == 0 and r1_ok and r2_ok and r3_ok) else
+        ("A-11 / prereg §29.2: the RUNTIME clause is MISSED on R3.  Both "
+         "`ps3_8080` seeds have `arch_ok` true, so both are in E-1's `reached` "
+         "numerator and C-1's disposition set `_d3` -- which is consulted only "
+         "on the not-`arch_ok` residue -- is never asked about either.  THE "
+         "DETECTOR IS WORKING (R1 0 disagreements); what is absent is any "
+         "machinery that DISCARDS a runtime 8080 entry which DUMPED.  Whether "
+         "to remove such a seed from E-1's numerator moves C-1's four rates "
+         "and is a coordinator decision (§29.7), not a patch."
+         if (pairs == 0 and r1_ok and r2_ok) else
+         "A-11: see the R1/R2/R3 components above for which clause failed."))
 
     # ---- C-4: ERA ----------------------------------------------------------
     eras = Counter(json.dumps(r.get("era"), sort_keys=True) for r in allines)

@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-09T23:24:34Z",
+ "ts": "2026-08-10T00:24:56Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -127,16 +127,52 @@
    "finding": null
   },
   "C-3": {
-   "statement": "8080-free by BOTH clauses",
-   "registered": "0 forbidden `0F xx` pairs on every composed image (generation) AND 0 captures showing PS3 on a CODE T1 (runtime)",
+   "statement": "8080-free: the GENERATION clause unchanged, and the RUNTIME clause re-registered by A-11 to DETECTED AND DISCARDED",
+   "registered": "GENERATION (unchanged, A-11 does not edit it): 0 forbidden `0F xx` pairs on every composed image.  RUNTIME (A-11, prereg \u00a729.3): runtime 8080 entries are DETECTED AND DISCARDED, scored as R1 AND R2 AND R3 -- R1 0 disagreements between the banked `ps3_8080` column and the socket-leg predicate recomputed off retained rows; R2 0 `ps3_8080` seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no evidential weight); R3 0 `ps3_8080` seeds in E-1's `reached` numerator.  Non-vacuity is demonstrated beside this run on the disjoint `t30-brkem` bank by `sw/fz2_a2_replay.py` (\u00a729.5)",
    "measured": {
     "bad_0f_pairs": 0,
     "seeds": 3840,
     "ps3_8080": 2,
-    "ps3_scoreable": true
+    "ps3_scoreable": true,
+    "generation_ok": true,
+    "R1_detected": {
+     "retained_scored": 736,
+     "no_rows_not_recomputable": 3104,
+     "rows_recompute_fires": 2,
+     "disagreements": 0,
+     "detail": [],
+     "ok": true
+    },
+    "R2_dispositioned": {
+     "undispositioned_ps3": 0,
+     "TAUTOLOGICAL": true,
+     "ok": true
+    },
+    "R3_no_rate_numerator": {
+     "in_reached_numerator": 2,
+     "seeds": [
+      {
+       "seed": "fz2e/509069",
+       "tier": "soup",
+       "stratum": 21,
+       "verdict": "FUNCTIONAL",
+       "bad_rows": 1126,
+       "mech": "REACHED"
+      },
+      {
+       "seed": "fz2e/521059",
+       "tier": "raw",
+       "stratum": 33,
+       "verdict": "KNOWN_ACCEPTED",
+       "bad_rows": 2814,
+       "mech": "REACHED"
+      }
+     ],
+     "ok": false
+    }
    },
    "verdict": "MISSED",
-   "finding": null
+   "finding": "A-11 / prereg \u00a729.2: the RUNTIME clause is MISSED on R3.  Both `ps3_8080` seeds have `arch_ok` true, so both are in E-1's `reached` numerator and C-1's disposition set `_d3` -- which is consulted only on the not-`arch_ok` residue -- is never asked about either.  THE DETECTOR IS WORKING (R1 0 disagreements); what is absent is any machinery that DISCARDS a runtime 8080 entry which DUMPED.  Whether to remove such a seed from E-1's numerator moves C-1's four rates and is a coordinator decision (\u00a729.7), not a patch."
   },
   "C-4": {
    "statement": "era",

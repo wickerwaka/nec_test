@@ -4408,3 +4408,90 @@ it anyway**: `fz2e/509069` is banked `FUNCTIONAL` with **1,126** divergent rows
 and signature `8cb79b8ba571898b`.  If it entered 8080 mode, that divergence is a
 **deferred-feature** divergence.  Nothing in the corpus currently keeps it out
 of the regression bank on that ground.
+
+---
+
+## §30 THE A-11 RESCORE AS RUN — C-3 READS **MISSED**, ON **R3**, AND THE DETECTOR IS PROVED LIVE
+
+**Offline.**  No board, no flash, no Quartus.  Run after `e18219fad3` (§29) was
+committed.
+
+### 30.1 THE THREE COMPONENTS, MEASURED — `sw/testdata/fz2/fz2_bars.json`, 2026-08-10T00:24:56Z
+
+| id | registered | measured | reads |
+|---|---|---|---|
+| **generation** (unchanged) | 0 forbidden `0F xx` pairs on every composed image | `bad_0f_pairs` **0** over **3,840** regenerated images | **MET** |
+| **R1 — DETECTED** | 0 disagreements, rows-recomputed vs the banked column | **736** retained captures scored (509 `fz2c` + 227 `fz2e`), the predicate fires on **2**, **0 disagreements**, `detail` empty.  **3,104** lines keep no rows and are COUNTED as not-recomputable, never extrapolated over | **MET** |
+| **R2 — DISPOSITIONED** | 0 `ps3_8080` seeds UNDISPOSITIONED | **0** — and the artifact carries `"TAUTOLOGICAL": true` beside it, because `ps3_8080` is a term of `_d3` and this component can never read anything else | **MET, and worth nothing** |
+| **R3 — IN NO SCORED RATE'S NUMERATOR** | 0 `ps3_8080` seeds with `arch_ok` inside a scored stratum | **2** — `fz2e/509069` (soup, stratum 21, `FUNCTIONAL`, 1,126 bad rows) and `fz2e/521059` (raw, stratum 33, `KNOWN_ACCEPTED`, 2,814 bad rows), both `mech` `REACHED` | **MISSED** |
+
+> **`FZ2 BARS: 8/11 MET   NOT MET: C-1, C-3, C-6`** — the identical 8 and the
+> identical 3 as §21.6 / §28.  **No other bar moved, in text or in value.**
+
+**C-3's verdict string is unchanged at `MISSED`.  What changed is WHY.**  Before
+A-11 it was missed because two 8080 entries existed; after A-11 it is missed
+because nothing DISCARDS them.  The artifact's `finding` field says exactly that
+and names §29.7 as the open decision.
+
+### 30.2 THE NON-VACUITY DEMONSTRATION, RUN WITH THE RESCORE
+
+`python3 sw/fz2_a2_replay.py` → **`PASS: 0 failure(s)`**, all five of its own
+assertions `ok`.  With denominators, for A-2's chosen form (socket leg, T1,
+`CODE`):
+
+* **`t30-brkem` — 87 / 116 capture pairs.**  The disjoint population where 8080
+  entry is known to exist.  **The detector is LIVE.**
+* **CONTROL (380 `wr1` + 2 `fz2c-prereg-A1-archive`) — 99 / 382.**
+* **This corpus, recomputed off rows — 2 / 736 retained.**
+* O-1 reproduces beside it: the **core** leg at T1 fires **116/116** and
+  **382/382**; the core leg at T2 fires **0/116**.  Neither core-leg form could
+  carry a detect-and-discard clause, which is A-2's finding, re-run.
+
+### 30.3 THE LEAF-DIFF AGAINST THE COMMITTED ARTIFACT — **0 LEAVES OUTSIDE `ts` AND `bars["C-3"]`**
+
+251 leaves before, 264 after.  **Changed: 4.  Removed: 0.  Added: 13, all under
+`bars["C-3"].measured`.**
+
+| leaf | note |
+|---|---|
+| `.ts` | expected |
+| `.bars.C-3.registered` | A-11's clause text |
+| `.bars.C-3.statement` | ⚠ **a departure from the task's letter**, which named `registered`/`verdict`/`ts` only.  `statement` is the one-line label printed in the bars table and it still said *"8080-free by BOTH clauses"*; leaving it would have made the table disagree with the clause underneath it.  Reported, not hidden |
+| `.bars.C-3.finding` | `None` → §29.2's finding, quoted in full in the artifact |
+| `.bars.C-3.verdict` | **DID NOT CHANGE** — `MISSED` before, `MISSED` after |
+| 13 added leaves | `generation_ok`, `R1_detected.*` (6), `R2_dispositioned.*` (3), `R3_no_rate_numerator.*` (3).  A checkable clause needs components; the old `measured` had none that could carry one |
+
+**Reproducibility**: `bars` was run twice and the two artifacts are byte-equal
+apart from `ts`.
+
+### 30.4 THE OTHER GATES
+
+| gate | result |
+|---|---|
+| `python3 sw/fz2_w1.py lint` | **`FZ2 LINT PASS: 0 hit(s); 48 stratum rows checked`**, rc 0 |
+| `python3 sw/test_fuzz_classify.py` | **`PASS: 0 failure(s)`**, rc 0 |
+| `python3 sw/test_fuzz_accept.py` | **`PASS: 0 failure(s)`**, rc 0 |
+| `python3 sw/fz2_a2_replay.py` | **`PASS: 0 failure(s)`**, rc 0 |
+
+### 30.5 WHAT A READER MAY **NOT** CONCLUDE
+
+* **Not** that the 8080 detector is broken.  R1 is 0 disagreements over 736
+  retained captures and the `t30-brkem` leg is 87/116.  **Detection is not the
+  failing half.**
+* **Not** that C-3 is missed for the reason it was missed before A-11.  The old
+  clause counted entries; the new one asks what happens to them.
+* **Not** that this sitting declined to fix R3.  Fixing R3 means removing a
+  `ps3_8080` seed from E-1's `reached` numerator, which moves C-1's four rates.
+  §29.7 registers it as a coordinator decision and this sitting's own leaf-diff
+  gate forbids moving C-1.
+
+### 30.6 THE CONCURRENT WRITER, REPORTED
+
+A board session held `hdl/nec_test_ucore.qsf` and `sw/testdata/fz2/fz2_statusanom.json`
+modified in the working tree throughout this sitting, plus untracked
+`hdl/quartus_gate_*.log` files.  **None was read, written or staged here**;
+every commit of this sitting stages EXPLICIT PATHS.  `fz2_statusanom.json` is a
+measurement tool's output and is on no bar's path — `cmd_bars` does not read it.
+The two files this sitting wrote are `docs/notes/fz2_corpus_prereg_2026-08-08.md`
+and `sw/fz2_w1.py`, plus the artifact `sw/testdata/fz2/fz2_bars.json` it
+regenerates.
