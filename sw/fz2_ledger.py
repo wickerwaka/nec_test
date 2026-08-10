@@ -70,6 +70,43 @@ CAMPAIGNS = os.path.join(ROOT, "sw/testdata/campaigns")
 COMMITTED = os.path.join(ROOT, "sw/testdata/fz2/fz2_failure_ledger_2026-08-09.json")
 CIDS = ("fz2c", "fz2e")
 
+# --------------------------------------------------------------------------- #
+# WHICH LEDGER IS "THE" LEDGER.
+#
+# `COMMITTED` above is the F13-era ledger and it is FROZEN in that role: it is
+# the C-LEDGER control's reference and the source of the carried-forward family
+# labels, so it must keep naming the same bytes forever.  It is NOT the current
+# failure set, and two rescorers (`fz2_c1_rescore.py`, `b1_rescore.py`) each
+# hard-coded that path as if it were -- so after the FLASH #14 re-capture they
+# were validating a 2026-08-09 first_bad_row against a 2026-08-10 measurement
+# and silently mis-classifying the 56 seeds that left the ledger and the 3 that
+# entered it.
+#
+# `CURRENT` is the live one and `load()` is the only reader, so there is ONE
+# place to move when the next re-capture lands, and every consumer PRINTS the
+# file it read beside its numbers.
+# --------------------------------------------------------------------------- #
+CURRENT = os.path.join(ROOT,
+                       "sw/testdata/fz2/fz2_failure_ledger_f14_2026-08-10.json")
+
+
+def load(path=None, why="", quiet=False):
+    """Read a failure ledger and SAY WHICH ONE, loudly.  -> the parsed dict.
+
+    A number quoted against an unnamed ledger is not quotable; this is the
+    cheapest possible enforcement of that.
+    """
+    p = os.path.abspath(path or CURRENT)
+    d = json.load(open(p))
+    if not quiet:
+        c = d.get("corpus", {})
+        print(f"  LEDGER   {os.path.relpath(p, ROOT)}"
+              f"{('   (' + why + ')') if why else ''}\n"
+              f"           {d.get('ts')}   {len(d.get('failures', []))} "
+              f"failures / denominator {c.get('denominator')}   "
+              f"era sof {(d.get('era') or {}).get('sof_sha256', '?')[:12]}…")
+    return d
+
 # §38.9's 40-seed missed-trap overlay, verbatim from
 # fz2_corpus_prereg_2026-08-08.md md:6043-6049.
 OVERLAY_38_9 = """

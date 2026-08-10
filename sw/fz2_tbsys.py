@@ -130,8 +130,15 @@ def img_coexist():
 
 # --------------------------------------------------------------------------- #
 def run_tb(leg, image, cap_path, ncap=NCAP, waits=0, div=8, pins=None,
-           evts=None, tvec=None, vecctl=None, timeout=3600):
-    """One tb_sys run.  `evts` is {scheduler: (addr, delay, hold, pin)}."""
+           evts=None, tvec=None, vecctl=None, timeout=3600,
+           wrand=None, wvec=None, quiet=False):
+    """One tb_sys run.  `evts` is {scheduler: (addr, delay, hold, pin)}.
+
+    `wrand` is `(wmax, wseed)` and `wvec` a list of per-bus-cycle Tw counts --
+    the SAME two arguments `check_seq.run_tb` takes for `tb_v30_core`, and the
+    same priority the RTL has (replay > rand > uniform), so a caller that holds
+    a `fuzz_campaign` cfg passes them without reshaping.  Naming NEITHER leaves
+    WRAND unwritten, which is the inertness property `cmd_inert` checks."""
     binp = x1.BIN[leg]
     cap_path = Path(cap_path).resolve()
     cap_path.parent.mkdir(parents=True, exist_ok=True)
@@ -150,6 +157,17 @@ def run_tb(leg, image, cap_path, ncap=NCAP, waits=0, div=8, pins=None,
             argv.append(f"+tvec={tvec:08x}")
         if vecctl is not None:
             argv.append(f"+vecctl={vecctl:x}")
+        # The wait sources, in the RTL's own priority order.  `wvec` wins
+        # because `nec_bus` says replay > rand > uniform, and a caller that
+        # hands both is asking for the vector.
+        if wvec is not None:
+            wf = Path(td) / "wvec.hex"
+            wf.write_text("\n".join(f"{min(255, max(0, int(x))):02x}"
+                                    for x in wvec) + "\n")
+            argv.append(f"+wvec={wf}")
+        elif wrand is not None:
+            wmax, wseed = wrand
+            argv += ["+wrand=1", f"+wmax={wmax}", f"+wseed={wseed & 0xFFFF:04x}"]
         t0 = time.time()
         r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
     out = r.stdout
@@ -162,8 +180,10 @@ def run_tb(leg, image, cap_path, ncap=NCAP, waits=0, div=8, pins=None,
                            f"stdout tail: {out[-2000:]}\nstderr: {r.stderr[-800:]}")
     # echo the harness's own register readbacks -- the INV-1 lesson is that the
     # directive the rig APPLIED is the only one worth quoting
-    for line in out.splitlines():
-        if line.startswith(("SYS EVT", "SYS REG")):
+    readbacks = [l for l in out.splitlines()
+                 if l.startswith(("SYS EVT", "SYS REG"))]
+    if not quiet:
+        for line in readbacks:
             print(f"      | {line}")
     parts = dict(p.split("=", 1) for p in m.split() if "=" in p)
     words = [int(x, 16) for x in cap_path.read_text().split() if x]
@@ -171,6 +191,7 @@ def run_tb(leg, image, cap_path, ncap=NCAP, waits=0, div=8, pins=None,
             "fired": int(parts.get("fired", "0")),
             "vecused": int(parts.get("vecused", "0")),
             "stdout": out,
+            "readbacks": readbacks,
             "secs": time.time() - t0,
             "argv": argv}
 

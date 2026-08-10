@@ -52,6 +52,30 @@
 //  pre-EVT_N harness -- which is what makes the inertness claim checkable
 //  (sw/fz2_tbsys.py inert) rather than asserted.
 //
+//  Plusargs added for the fz2 OFFLINE REPLAY instrument (sw/fz2_replay.py).
+//  The fz2 corpus is a RANDOM-WAIT campaign: of the 145 seeds in the A-15
+//  failure ledger only 73 run at a fixed wait level, 56 draw their per-access
+//  Tw from the harness's seeded LFSR and 16 replay an explicit wait vector.
+//  `tb_v30_core` has carried +wrand/+wmax/+wseed/+wvec since Phase 2a; this
+//  harness had CFG.wait_states and nothing else, so half the corpus could not
+//  be replayed on it AT ALL.  These four go to the SAME registers the board
+//  writes (WRAND 0x24, and the 4 KiB wait-vector RAM at +0x140000) through the
+//  same bridge, so the wait pattern is the harness's own and not a model of it.
+//    +wrand=<0|1>    WRAND[0] rand-enable
+//    +wmax=<n>       WRAND[7:4]  max Tw per access (0..15)
+//    +wseed=<hex>    WRAND[31:16] LFSR seed (16 bits; 0 -> nec_bus's 0xACE1)
+//    +wvec=<file>    one hex Tw BYTE per line, exactly as check_seq.run_tb
+//                    writes it for tb_v30_core; loads the replay RAM and sets
+//                    WRAND[1].  Priority in nec_bus is replay > rand > uniform.
+//  SAME INERTNESS DISCIPLINE: WRAND is written ONLY when one of them is
+//  present, so an invocation that names none issues byte-identical AXI traffic
+//  to the pre-fz2_replay harness and `fz2_tbsys.py inert` still means what it
+//  meant.  WRAND has a full readback ([31:16] seed, [7:4] wmax, [1] replay,
+//  [0] rand, everything else RAZ) so it goes through `wr_verify` like the
+//  others.  The wait-vector RAM is host WRITE-ONLY in hps_axi_slave -- there is
+//  no readback to verify against, and that is stated here rather than left to
+//  be discovered.
+//
 //  Every register this file writes is READ BACK and compared before the run.
 //  INV-1's root cause was the rig silently applying a directive other than the
 //  one it was handed; the readback is what makes that a $fatal instead of a
@@ -70,6 +94,8 @@ module tb_sys;
 // register map (hdl/rtl/hps_axi_slave.sv)
 localparam bit [20:0] A_MEM      = 21'h000000;
 localparam bit [20:0] A_CAP      = 21'h100000;
+localparam bit [20:0] A_WVEC     = 21'h140000;   // wvec_buf, 1024 x 32b words
+localparam bit [20:0] R_WRAND    = 21'h180024;
 localparam bit [20:0] R_MAGIC    = 21'h180000;
 localparam bit [20:0] R_CTRL     = 21'h180004;
 localparam bit [20:0] R_CFG      = 21'h180008;
@@ -249,6 +275,13 @@ integer evpin3, evdelay3, evhold3, evaddr3;
 bit        armed2, armed3;
 integer    tvecv, vecctlv;
 bit        havetvec, havevecctl;
+// fz2 offline replay: the board's own per-access wait sources
+localparam int NWVEC = 4096;               // wvec_buf: 1024 words x 4 bytes
+integer     wrandcfg, wmaxcfg, wseedcfg;
+string      wvec_path;
+bit         havewrand, havewmax, havewseed, havewvec;
+bit  [31:0] wrandw;
+logic [7:0] wvec_arr [0:NWVEC-1];
 // STATUS is LATCHED while the run is live: evt_fired and vec_used live in
 // nec_bus and are cleared by the harness reset that CTRL's stop asserts, so
 // read after the stop they are always 0.
@@ -283,6 +316,18 @@ initial begin
     if (!havetvec)   tvecv   = 0;
     if (!havevecctl) vecctlv = 0;
 
+    // fz2 offline replay: the per-access wait sources.  Read here, applied
+    // below only if at least one of them was named.
+    havewrand = $value$plusargs("wrand=%d", wrandcfg);
+    havewmax  = $value$plusargs("wmax=%d",  wmaxcfg);
+    havewseed = $value$plusargs("wseed=%h", wseedcfg);
+    havewvec  = $value$plusargs("wvec=%s",  wvec_path);
+    if (!havewrand) wrandcfg = 0;
+    if (!havewmax)  wmaxcfg  = 0;
+    if (!havewseed) wseedcfg = 0;
+    for (i = 0; i < NWVEC; i++) wvec_arr[i] = 8'd0;
+    if (havewvec) $readmemh(wvec_path, wvec_arr);
+
     for (i = 0; i < IMG_BYTES; i++) img[i] = 8'h00;
     $readmemh(img_path, img);
 
@@ -311,6 +356,30 @@ initial begin
     // the image, through the bridge -- two 16-bit memory words per beat
     for (i = 0; i < IMG_BYTES; i = i + 4)
         axi_write32(A_MEM + 21'(i), {img[i+3], img[i+2], img[i+1], img[i]});
+
+    // THE PER-ACCESS WAIT SOURCES (fz2 offline replay).  Loaded while
+    // host_reset is still asserted, which is the board's own discipline:
+    // v30ctl.load_wvec says "write only while the harness is stopped".
+    //
+    // The vector is loaded WHOLE -- all NWVEC entries, zero-filled past the
+    // file -- because `wvec_shapes` properties (2) and (3) say a SHORT load
+    // leaves the RAM holding the previous run's tail and sends the three legs
+    // three different ways past the end.  A fresh Verilated process has no
+    // previous run, but loading the whole thing is the rule and not a
+    // convenience, and a partial load here would be a difference between this
+    // harness and the board that nothing would report.
+    if (havewvec)
+        for (i = 0; i < NWVEC; i = i + 4)
+            axi_write32(A_WVEC + 21'(i), {wvec_arr[i+3], wvec_arr[i+2],
+                                          wvec_arr[i+1], wvec_arr[i]});
+    if (havewrand || havewmax || havewseed || havewvec) begin
+        wrandw        = 32'h0;
+        wrandw[0]     = (wrandcfg != 0);
+        wrandw[1]     = havewvec;
+        wrandw[7:4]   = wmaxcfg[3:0];
+        wrandw[31:16] = wseedcfg[15:0];
+        wr_verify(R_WRAND, wrandw, "WRAND");
+    end
 
     // the pin-event schedulers, one packer each (see arm_evt above)
     if (armed)

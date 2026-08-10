@@ -49,9 +49,14 @@ import gzip, hashlib, json, os, sys
 from concurrent.futures import ProcessPoolExecutor
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parent))
 import check_seq, fuzz_campaign as fzc, fuzz_classify as fc, fz2_w1 as fz
+import fz2_ledger as fzl
 
 ROOT = str(__import__("pathlib").Path(__file__).resolve().parent.parent) + "/"
-LEDGER = ROOT + "sw/testdata/fz2/fz2_failure_ledger_2026-08-09.json"
+# WAS a hard-coded `fz2_failure_ledger_2026-08-09.json` -- the F13 ledger, i.e.
+# the wrong measurement to validate a post-FLASH-#14 replay against.  It now
+# defaults to `fz2_ledger.CURRENT` and is overridable with `--ledger PATH`;
+# `ledger()` prints the file it read.
+LEDGER = None
 LINES = {}
 
 
@@ -66,7 +71,7 @@ def _lines():
 
 
 def ledger():
-    d = json.load(open(LEDGER))
+    d = fzl.load(LEDGER, why="fz2_c1_rescore BEFORE-leg validation")
     return {f["seed"]: f for f in d["failures"]}
 
 
@@ -145,8 +150,13 @@ def scoreable(res, led):
 
 
 if __name__ == "__main__":
-    out = sys.argv[1]
-    only = set(sys.argv[2:])
+    argv = sys.argv[1:]
+    if "--ledger" in argv:
+        i = argv.index("--ledger")
+        LEDGER = argv[i + 1]
+        del argv[i:i + 2]
+    out = argv[0]
+    only = set(argv[1:])
     jobs = [j for j in caps() if not only or f"{j[0]}/{j[1]}" in only]
     print(f"{len(jobs)} captures  ->  {out}", flush=True)
     res = []

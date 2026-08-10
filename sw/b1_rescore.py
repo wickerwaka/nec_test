@@ -47,8 +47,14 @@ ROOT = os.path.dirname(SW)
 import fuzz_campaign as fzc                                   # noqa: E402
 import fuzz_classify as fc                                    # noqa: E402
 import fz2_w1 as w1                                           # noqa: E402
+import fz2_ledger as fzl                                      # noqa: E402
 
-LEDGER = os.path.join(SW, "testdata/fz2/fz2_failure_ledger_2026-08-09.json")
+# WAS a hard-coded `fz2_failure_ledger_2026-08-09.json` -- the F13 ledger.  The
+# windows and image hashes this file reads off it are per-seed facts of a
+# CAPTURE, so reading the wrong era's ledger silently compares a seed over the
+# wrong window.  Default is `fz2_ledger.CURRENT`, overridable with --ledger,
+# and the path read is printed.
+LEDGER = fzl.CURRENT
 CAPRE = re.compile(r"^(raw|soup)_(\d+)_([0-9a-f]+)\.json\.gz$")
 BS_HALT = 3
 
@@ -137,9 +143,12 @@ def main():
     ap.add_argument("--jobs", type=int, default=0)
     ap.add_argument("--out", required=True)
     ap.add_argument("--vs", help="an earlier --out to diff against")
+    ap.add_argument("--ledger", default=LEDGER,
+                    help="failure ledger to take windows/first_bad from "
+                         "(default: fz2_ledger.CURRENT)")
     a = ap.parse_args()
 
-    led = json.load(open(LEDGER))
+    led = fzl.load(a.ledger, why="b1_rescore windows + image hashes")
     byseed = {f["seed"]: f for f in led["failures"]}
     winof = {s: f["compare_window"] for s, f in byseed.items()}
     imgof = {s: f.get("image_sha256") for s, f in byseed.items()}
