@@ -5694,3 +5694,322 @@ than it is:
   A member has no arch column and this class does not invent one.
 * No board contact was made in this sitting, no bitstream was touched, no RTL
   was touched, and no capture constant moved.
+
+---
+
+## §38 AMENDMENT A-15 — **THE USER RULES: ANYTHING THAT DIVERGES IS A FAILURE.**  THE `KNOWN_ACCEPTED` LABEL'S *EXCUSE* FUNCTION IS RETIRED, AND THE CORPUS GETS A NAMED FAILURE LEDGER AND A NEW HEADLINE.  THE TIMING IS STATED FIRST.
+
+**BY USER DECISION, 2026-08-09.**  Offline sitting: no board, no flash, no
+Quartus, no RTL.  Branch `fuzz-v2-on-relanding`, tree at `c09f25ba6e`.
+
+### 38.0 THE TIMING, FIRST, BECAUSE IT IS THE THING A READER WILL CHECK
+
+> **THIS AMENDMENT IS WRITTEN AND COMMITTED BEFORE ANY FIX IS PLANNED OR
+> LANDED.**  Every measurement it quotes was taken on the FLASH #13 corpus
+> exactly as banked by §13, with nothing regenerated and nothing re-captured;
+> the survey that produced them is `sw/testdata/fz2/fz2_failure_ledger_2026-08-09.json`,
+> written by this sitting and committed with it.  **No number in the corpus
+> bars moved, `sw/testdata/fz2/fz2_bars.json` was not rewritten, and
+> `python3 sw/fz2_w1.py lint` passes before and after** (`FZ2 LINT PASS: 0
+> hit(s); 48 stratum rows checked`).
+
+### 38.1 THE RULING
+
+**A divergence between the socketed chip and the fabric core is a FAILURE.**
+The `KNOWN_ACCEPTED` verdict remains a true record of *how a seed was banked* —
+it is not rewritten, retracted, or renamed anywhere — but it **stops being a
+reason not to count the seed**.  For the v2 corpus:
+
+* the population that must go to zero is **every seed with `bad_rows > 0`**,
+  minus only the `ps3_8080` discards that amendment A-12 already put out of the
+  denominator;
+* `open_bus`, `cadence` and `lea-mod3` are henceforth **descriptions of a
+  divergence, not dispositions of it**.
+
+### 38.2 THE RULING IS CORRECT ON THIS RIG'S OWN RTL, AND HERE IS THE EVIDENCE
+
+Three measurements, each taken this sitting against the artifact:
+
+**(a) There is no open bus.**  `hdl/rtl/test_mem.sv` is instantiated once in
+`hdl/rtl/system_large.sv` with `LOG2_BYTES = 16`; its `word_addr` is
+`addr[LOG2_BYTES-1:1]` = `addr[15:1]`, and `addr[19:16]` is not connected.  The
+single instance is addressed by `mem_addr_cpu`, which is whichever CPU the A/B
+mux selects.  **Both legs therefore read the identical mirrored image at every
+address in the 1 MB space, escaped or not.**
+
+**(b) The escape rule's data test is a TAUTOLOGY on its own domain.**
+`fuzz_accept.open_bus_escape_metrics` calls a fetch "feedthrough" when
+`ad_data == ad_addr & 0xFFFF` on a chip `CODE` T1 row.  Over **all 725 retained
+captures** of the FLASH #13 corpus that predicate holds on **140,741 of 140,741
+chip `CODE` T1 rows — 100.0000 %, zero counterexamples**.  The rule therefore
+reduces to *"at least 8 code fetches at linear ≥ 0x10000, the first of them
+before the first divergent row"*, which under v2's randomized segments is a
+statement about segment arithmetic and not about the memory system.
+`fuzz_classify.escaped_code_region`'s own docstring already concedes this of the
+predicate it replaced; the accept rule kept it.
+
+**(c) The predicate does not discriminate.**  Over the raw-tier retained
+captures it fires on **243 of 251 non-diverging seeds (96.8 %)** and on **159 of
+160 diverging ones (99.4 %)**.  A class that covers 97 % of the successes is not
+a failure class.
+
+**And the escape is not even WHERE the divergence is.**  Across the 153 seeds
+the rule accepted, the gap from the first feedthrough fetch to the first
+divergent row is **minimum 147 rows, median 1,374, maximum 3,517; ZERO diverge
+within 8 rows of the escape**, and on **25 of the 153** the chip's last code
+fetch before the divergence is below linear 0x10000 — inside the image on the
+rule's own arithmetic.  The escape is neither the WHY nor, in a sixth of the
+class, the WHERE.
+
+### 38.3 WHAT IS **NOT** REWRITTEN
+
+* No banked verdict, `sub`, `sig`, `rule_hits` or capture is edited.  The
+  banking history stands exactly as recorded, including every `KNOWN_ACCEPTED`.
+* `sw/fuzz_accept.py` is **not** changed by this amendment.  The rules keep
+  running and keep labelling; what changes is that the label is no longer read
+  as an exclusion.
+* Amendments A-1 through A-14 stand.  A-12's discard arithmetic in particular is
+  **adopted**, not overridden: the three `ps3_8080` seeds stay out of the
+  denominator.
+* Bars C-1 … C-11 are untouched and still read 11/11 MET.  This amendment adds a
+  metric beside them; it does not re-score one.
+
+### 38.4 THE CAMPAIGN'S NEW HEADLINE — REGISTERED HERE, FIRST-REGISTRATION RULES APPLYING
+
+**Two corrections to the brief that commissioned this survey, stated before the
+number is quoted, because the artifact wins:**
+
+1. **`3,639 / 3,840` is a SEED match rate, not a row match rate.**  3,639 is the
+   count of seeds with `bad_rows == 0` (identically, the `SUCCESS` count).  The
+   corpus's actual ROW-level match rate is a different and much higher number.
+2. **`3,840` is the wrong denominator under A-12**, which ruled that a discarded
+   runtime-8080 seed is *out of the denominator too* — and
+   `sw/testdata/fz2/fz2_bars.json` already sums its four per-tier `n` to
+   **3,837**.  `3,639 / 3,840 = 94.7656 %` is the pre-A-12 arithmetic.
+
+**REGISTERED BASELINE, FLASH #13 corpus, `fz2c` + `fz2e`:**
+
+    SEED MATCH   3,639 / 3,837  =  94.8397 %      198 failures, 3 discards
+    ROW  MATCH  11,159,527 / 11,322,230 = 98.5630 %   (discards excluded)
+
+For completeness and so no later reader has to re-derive them: including the
+three discards the same two figures are `3,639 / 3,840 = 94.7656 %` and
+`11,164,148 / 11,333,840 = 98.5028 %`.  The row figures are the sum of the
+per-seed `win` (the comparison window each seed was actually scored over) and
+the sum of `bad_rows`; the corpus also carries **76 flicker rows**, which are
+counted as matched exactly as the comparator counts them.
+
+**FIRST-REGISTRATION RULES APPLY.**  These four numbers are the bar a future
+RTL landing ratchets against.  They are monotone: **SEED MATCH may not be
+re-scored downward without a loud, itemized entry**, and a landing that raises
+the seed count while lowering the row count (or the reverse) must report both.
+The named failure set is `sw/testdata/fz2/fz2_failure_ledger_2026-08-09.json`
+(sha256 `c86f49b896c39673…`), which names all 198 seeds, their family, their
+first-divergence coordinate, and the sha256 of the capture each was read from.
+**A seed leaving that ledger is the unit of progress.**
+
+**RETENTION IS VERIFIED, NOT ASSUMED**: all 198 failures — and all 3 discards —
+retain BOTH legs at the full 4,063 rows, at or beyond their own comparison
+window.  **Zero captures are missing and zero are short.**
+
+### 38.5 THE FAILURE LEDGER — 198 SEEDS, PARTITIONED BY MECHANISM
+
+The partition is computed by an ordered decision list over the **bus structure**
+at the first divergence (`sw/s15_census.py`'s `classify()`, run chip-vs-FABRIC
+on the banked rows with the campaign's own per-tier comparison window — raw tier
+is the fixed `min(len, 4000)`, not `classify`'s hard-coded done-shrunk one, and
+with that correction the census reproduces the banked `first_bad` on **198 of
+198**).  Every seed lands in exactly one family and the column sums to 198.
+
+Family, count, tier split (raw/soup), how many carry the `open_bus` label,
+median diverging rows, how many are banked `FUNCTIONAL`, how many have a
+differing architectural dump:
+
+    A1  qs-pop one clock late                       23   20/3   20    303    0    0
+    A2  qs-pop, other offset                         8    5/3    5      2    0    0
+    A3  cycle-time slip, non-qs                     15    9/6    7    272    0    2
+    B1  HALT-cycle address                          24   24/0   24      4    0    1
+    B2  HALT entry, one leg only                    10   10/0   10  1,520    0    9
+    C1  vector-1 trap MISSED by the core            29   22/7   22    580    7   26
+    C2  INTA-vectored delivery                      12    1/11    1  1,024   11    5
+    C3  NMI (vector-2) entry                         1    1/0    1    433    0    1
+    C4  other-vector delivery                        1    1/0    1  1,749    0    0
+    D1  chip fetched, core did not                  10    9/1    8    808    1    4
+    D2  core fetched, chip did not                  10    5/5    5  1,267    3    4
+    D3  both fetched, different address             10   10/0   10  1,011    0    4
+    E1  same-status data cycle, different address   41   38/3   37    404    3   13
+    E2  different-status data cycle                  4    3/1    2      9    0    1
+                                                   ---
+                                                   198
+
+**Three structural facts that hold over the whole ledger and are the reason it
+is readable at all:**
+
+* **On all 198, the (status, address) bus-cycle sequence BEFORE the first
+  divergence is identical on both legs.**  Every failure is a clean fork out of
+  lockstep, not a drift.
+* **46 of 198 run the SAME bus cycles and differ only in WHEN** (families A1-A3
+  plus two tails): the cycle sequence agrees over the common prefix.  The other
+  **152 fork the sequence itself**.
+* **53 of 198 diverge on 4 rows or fewer and are otherwise identical** — 22 of
+  the 24 B1 seeds, 12 of E1, 8 of A1.  These are the cheapest cells in the
+  corpus to read and the cheapest to close.
+
+**Escape status correlates with the ledger only as a tier property.**  The
+`open_bus` label falls on 153 of the 198, but it falls on 96.8 % of the raw
+tier's successes too (§38.2c).  Within the ledger it is concentrated exactly
+where the raw tier is: B1 24/24, B2 10/10, E1 37/41 — and absent where soup
+dominates, C2 1/12.  **It is a tier marker, not a mechanism.**
+
+### 38.6 WHAT EACH FAMILY LOOKS LIKE, AND THE ONE PREDICATE IT SUGGESTS
+
+Stated as candidates with falsifiers, not as findings.  **Nothing here is
+implemented and no RTL was touched.**
+
+**A1 — the queue-pop announcement is one clock late (23).**  The chip and the
+core run the identical bus cycles and announce the identical `QS` values in the
+identical order; the core's announcement lands **exactly one row later**.
+Verified on the rows: `fz2c/407027` is `MEMW` with waits — chip announces `QS =
+E` on the final `Tw` (row 3039), core on the following `T4` (row 3040), and
+**those two rows are the entire divergence in a 4,000-row capture**.  On 24 of
+the 41 `qs`-first seeds the offset at the first differing queue event is exactly
+`+1`; on 13 of them it is a one-off and the stream re-aligns, on the rest it
+persists and every later cycle slips a clock with it (hence a 303-row median).
+*Candidate predicate*: the pop is announced from the cycle's own evaluation on
+silicon and from the following clock edge in the ucore when the pop coincides
+with the last wait state of a write.  *Falsifier*: a seed in which the chip
+announces `E` on a `T4` and the core on the preceding `Tw`.
+
+**B1 — the HALT pseudo-cycle's address (24).**  The first differing cycle is a
+`HALT` status on BOTH legs at DIFFERENT addresses, and on **22 of 24 it is a
+4-row blip with nothing else wrong in the capture**.  Measured: the **core's
+HALT-cycle address equals its own previous row's low 16 bits on 24 of 24** (it
+is retaining), while the **chip's does so on only 15 of 24**, and on 4 of those
+15 the chip differs from its previous row in the top nibble alone — the status
+nibble.  *Candidate predicate*: the ucore holds `ad_oe` asserted across the HALT
+pseudo-cycle where silicon releases the pads and lets them retain, so the two
+legs are compared on a driven value against a retained one — the shape already
+booked as **F55** (`CLAUDE.md`, FLASH #9's finding), now with a 24-seed
+population instead of a sweep cell.  *Falsifier*: a HALT seed in which the chip's
+HALT-cycle address is NOT reachable as a retained previous value and the core's
+is.
+
+**C1 — the core misses one vector-1 trap (29).**  This is the largest coherent
+functional family and the crispest law in the ledger.  The vector-1 read count
+is **chip minus core = exactly +1 on 28 of the 29 seeds** (0 on the remaining
+one, whose divergence is elsewhere in the same family's shape).  Every earlier
+vector-1 trap in the same capture is taken by BOTH legs; the core drops exactly
+one, and the first divergence sits **1 to 6 rows before it**, with the core
+prefetching on where the chip has already stopped to take the trap.  **On 24 of
+the 29 an NMI (vector-2) read precedes the missed trap within 80 rows** (2 more
+have an INTA there, 3 have neither).  Exemplar `fz2c/400007`: both legs read
+vector 2 at row 3346; the chip then reads **vector 1 at row 3384** and the core
+never does.  *Candidate predicate*: silicon latches the pending single-step trap
+at the boundary and services it after the interrupt entry; the ucore re-samples
+`TF` from the post-entry PSW, where it has already been cleared, and the trap is
+lost.  This is one term inside the arm that already exists (`SSA_E_BRK`,
+`ucore_provenance.md` §86) and names no opcode.  *Falsifier*: a seed in which
+the core takes a vector-1 trap after an interrupt entry that the chip does not.
+**The ledger holds 4 seeds where the core's vector-1 count EXCEEDS the chip's —
+`fz2c/406063`, `fz2c/410047`, `fz2e/518053`, `fz2e/535027` — and they are stated
+here rather than counted as falsifiers, because on all four the CHIP's count is
+ZERO and all four land in `E1` or `C2` in this partition: the core is taking
+traps inside an execution that has already forked, so they are downstream of a
+different mechanism.  A law that closes the 29 must still not make them worse,
+and they are the registered watch-list for it.**
+
+**C2 — the core re-enters the maskable handler once too often (12).**  Eleven of
+the twelve are soup tier and eleven are banked `FUNCTIONAL` — the densest
+functional cluster in the corpus.  The INTA-cycle count is **chip 2 / core 4 on
+5 seeds and chip 4 / core 6 on 2 more**: the core runs one extra acknowledge
+pair.  On the remainder the pair itself is malformed (chip 4 / core 3 on two
+seeds, chip 2 / core 0 and 2/1 on one each).  Exemplar `fz2c/404071`: the
+acknowledge pair has the identical 9-clock spacing on both legs and the identical
+vector (0xFF, read from 0x003FC), but the core starts the sequence early and
+then runs a **second** pair the chip does not.  *Candidate predicate*: the
+re-recognition window after an acknowledge — the same surface as the IE-restore
+law of SM3 sitting 11 — is one boundary too wide in the ucore.  *Falsifier*: a
+seed where the chip runs the extra pair.
+
+**B2 / D1 / D2 / D3 — arbitration and control-flow forks (40).**  B2 is a `HALT`
+on exactly one leg (10, all raw, 9 with a differing arch dump).  D1/D2 are a
+prefetch slot one leg took and the other did not (20).  D3 is both legs fetching
+from different addresses (10).  These are the families where a single mechanism
+is NOT yet visible: the first-divergence signatures are spread (`bs CODE!=MEMR`,
+`bs PASV!=CODE`, `nxta`, `qs`), the tiers are mixed, and no count relation holds
+across the group.  **They are reported as an unresolved group, not forced into a
+family.**
+
+**E1 / E2 / A2 / A3 / C3 / C4 — the long tail (69).**  E1 (41) is "the two
+engines computed a different effective address for the same data cycle": the
+chip's and the core's addresses have **no shared bit relation** (the XOR
+population count is spread from 0 to 11 with a mode of 6), so there is no single
+adder or carry to point at from the outside.  Twelve of the 41 are 2-4-row
+blips that re-align immediately — `fz2e/517046` reads `0xD9B00` on the chip and
+`0xDDB00` on the core, gets the same mirrored data back, and the whole rest of
+the capture matches, arch dump included.  E2 (4) is a decode fork: **3 of the 4
+run `IOR` on the chip and `MEMR` on the core at the IDENTICAL address**.
+**A long tail of singletons is a legitimate result and this is one.**
+
+### 38.7 THE FIX PLAN, ORDERED BY YIELD PER RISK — REGISTERED, NOT IMPLEMENTED
+
+Fmax risk is judged against the ≈ 40 MHz band this tree sits in and the ghost
+feed's 15.3 MHz as the cautionary precedent.  **No RTL is landed by this
+sitting; the ordering below is a plan, and every entry's yield is a prediction
+that a later sitting must pre-register and score.**
+
+    #  family  yield  fix shape                              Fmax risk  evidence needed first
+    1  A1      23     announcement clock of the QS pop       very low   directed golden: a windowed
+                             (register-side, one predicate)             MEMW+wait with a pop on its
+                                                                        last Tw; the corpus already
+                                                                        has 23 replayable seeds
+    2  B1      24     release ad_oe across the HALT          very low   F55's own falsifier plus the
+                             pseudo-cycle (F55, booked)                 22 four-row seeds; scoreable
+                                                                        on tb_sys, NOT on tb_v30_core
+    3  C1      29     latch TF at the boundary rather        low        the 4 core>chip seeds are the
+                             than re-sampling it after                  registered counter-population;
+                             interrupt entry (one term in                validate on them BEFORE the 29
+                             the existing BRK/TF arm)
+    4  C2      12     the re-recognition window after        low        needs a directed INTA golden;
+                             an acknowledge                             11 of 12 are FUNCTIONAL, so
+                                                                        this is the best functional
+                                                                        yield per seed in the ledger
+    5  A2/A3   23     follow-on from #1 once the             low        re-census AFTER #1; several
+                             announcement clock is right                are expected to move with it
+    6  E2      4      IOR-vs-MEMR decode at one address      low        3 seeds, one signature; cheap
+                                                                        to reproduce as a golden form
+    7  B2/D*   40     UNRESOLVED — no single mechanism       n/a        a directed probe is needed
+                             identified                                 before any fix is designed
+    8  E1      41     UNRESOLVED — EA fork, no shared        n/a        the 12 blip seeds are the
+                             bit relation                               diagnosable subset; start there
+
+**Order rationale.**  #1 and #2 are register-side or output-enable changes with
+no combinational cone added, they close 47 seeds between them, and 30 of those
+47 are 4-row blips whose closure is unambiguous.  #3 is the largest functional
+family and the highest-value single term, but it is placed third because its
+counter-population exists and must be validated on data that was not used to
+select the term — `ucore_provenance.md` §64.1, and `CLAUDE.md`'s standing rule
+that a refuted key's replacement is validated on a disjoint population.  #7 and
+#8 are 81 seeds and they are **explicitly not planned**: naming a mechanism for
+them from this survey would be fitting.
+
+### 38.8 WHAT THIS AMENDMENT DOES NOT CLAIM
+
+* **No cause is established for any family.**  Every mechanism in §38.6 is a
+  candidate with a falsifier written beside it.
+* **The booked 8F mod=3 fabric runaway is NOT reproduced by this corpus.**
+  `sw/gen_soup.py:553` emits `0x8F` only through `_ea(..., force_windowed=True)`,
+  which forces `mod = 0` / `rm = 6`, so **the soup tier cannot emit an `8F`
+  mod=3 by construction**; a byte-level scan finds the pair in 18 of 1,920 soup
+  seeds and 1 of the 198 failures, and that one (`fz2e/517046`) is an immediate
+  operand of `MOV DI, 0xE08F`, not an opcode.  The raw tier can execute one by
+  chance and this survey has no instrument to say whether it did.  The booked
+  family's own signature — chip reaches the done marker, core does not — is
+  present on **10 of the 198**, but those 10 spread across **five different
+  first-divergence families** and **6 further seeds run the relation the other
+  way**, so it is not opcode-coherent here.  `f13_fabric_prereg_2026-08-09.md`
+  §12.3 stays booked and stays open.
+* **`ps3_8080` remains a discard.**  8080 / BRKEM is deferred by user decision
+  and nothing here re-opens it.
+* No board contact was made, no bitstream was touched, no RTL was touched, no
+  capture constant moved, and `sw/testdata/fz2/fz2_bars.json` was not rewritten.
