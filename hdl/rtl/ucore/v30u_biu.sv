@@ -346,6 +346,14 @@ reg        inta_halt_l;    // combinational HALT-announcement withdrawal edge
 reg  [1:0] done_ctr;      // eu_done lands at e+2 -- see the T4 block
 reg        done_wr;
 reg        rd_done_p;
+// P1: `r_wr_done_p`'s ONE functional consumer was `flush_staged_eval`'s fitted
+// `!r_wr_done_p`, and that term is deleted (see the P1 block below), so this
+// flop is now driven, reset and saved but read only by the save-state mux.
+// It is DELIBERATELY left in place with its save-state address (9'h05A) --
+// retiring one is the save-state owner's call, and `ss_lint` must stay
+// UNMOVED across this landing.  Booked, not taken.  (Do not name the SSA
+// symbol here: `ss_lint` counts its occurrences and a third one FAILS the
+// gate.  That is the lint working, and it caught this comment.)
 reg        wr_done_p;
 reg        opr_free_p;
 reg [15:0] rd_val;        // OPR, shadowed (see M5b / the string loops)
@@ -530,6 +538,54 @@ wire display   = r_cmt_valid && !ann_kill;
 // construction as well as by intent.  ONE term swapped in ONE expression, one
 // wire added, no flop and no save-state address.
 //
+// ...AND P1 IS THAT SECOND CONSUMER.  The paragraph above is A1's, and A1's
+// own results named what it left behind: "after a REP withdrawal that is not
+// bus-limited, the ucore's restart -- the redirected fetch and everything
+// behind it -- is still one clock late."  It is ONE ARBITER and it must read
+// ONE RAIL, so `flush_staged_eval` now reads `flush_src_live` too, and the
+// display and the arbitration point are finally the same statement about the
+// same edge:
+//
+//   a STAGED withdrawal yields the flush clock's arbitration point to the
+//   redirect exactly when a recognition is standing at the withdrawal --
+//   maskable pin or NMI latch, whichever unit raised it -- and nothing else
+//   is outstanding (`flush_idle`).  The redirect then commits on the
+//   withdrawal clock itself and its CODE status is announced at
+//   `withdrawal + 1`, instead of being deferred to F3's flush-only point and
+//   announced at `withdrawal + 2`.
+//
+// `!r_wr_done_p` -- "no write completion on the preceding clock" -- is DELETED
+// rather than re-fitted.  It is a one-clock lookback with no mechanism behind
+// it, and silicon falsifies it 2 for 2 on the only clocks in the fz2 corpus
+// that exercise it (`fz2c/408000` and `fz2e/526025`, both `r_wr_done_p = 1`,
+// both announced at `withdrawal + 1`).  `flush_stage` and `flush_idle` are
+// KEPT: they are ownership rails with a stated mechanism, not fits.
+//
+// MEASURED, and the statement is exact rather than statistical.  Over all 677
+// retained fz2 captures there are 20 REP-withdrawal clocks still in LOCKSTEP
+// with silicon at the withdrawal.  Twelve are staged-and-idle with the NMI
+// latch standing and the maskable pin RELEASED: silicon announces at +1 and
+// the ucore announced at +2 on 12 of 12.  The other eight are unanimous the
+// other way -- three have `run = 1` and never reach this arm, one has
+// `cmt_valid = 1` and never reaches it either, one has `flush_pend = 0` so
+// the suppression is already inactive, and three are empty tails on the
+// `flush_direct`/`flush_fast` path -- and all eight ALREADY AGREE with
+// silicon.  **The set of clocks this edit changes in the whole retained
+// corpus is exactly those twelve.**
+//
+// FALSIFIER: a staged REP withdrawal on an idle clock with a standing
+// recognition and no outstanding EU request, where silicon still announces
+// the post-flush CODE status at `withdrawal + 2`.
+// SECOND FALSIFIER, for the deleted term: the same, with a write completion
+// on the preceding clock (`r_wr_done_p = 1`).
+//
+// NOT THE CANDIDATE THAT WAS PROPOSED, and the refutation is on the rows:
+// `flush_nmi_young`'s fitted `<= 4` cannot be the carrier here, because
+// `flush_direct` is 0 on all twelve by `flush_stage` ALONE -- upstream of it
+// in the same AND -- and because `flush_nmi_young` is 1 on seven of the twelve
+// and 0 on five while the divergence signature is identical on all of them.
+// It is untouched.  `docs/notes/fz2_p1_prereg_2026-08-10.md`.
+//
 // MEASURED, fz2 corpus, and the statement is engine-free: over the 356
 // retained event-free captures the EMPTY display is held by the
 // REP-withdrawal suppression AND BY NOTHING ELSE on 13 clean-prefix rows; all
@@ -543,8 +599,8 @@ wire display   = r_cmt_valid && !ann_kill;
 wire flush_idle = !r_run && !r_cmt_valid && (r_rq_n == 2'd0) && !eu_post;
 wire flush_nmi_young = flush_nmi && (r_dage <= 3'd4);
 wire flush_src_live = flush_int_live || flush_nmi;
-wire flush_staged_eval = flush_stage && flush_pend && flush_int_live &&
-                         !r_wr_done_p && flush_idle;
+wire flush_staged_eval = flush_stage && flush_pend && flush_src_live &&
+                         flush_idle;
 wire flush_direct = !flush_stage && !flush_nmi_young && !flush_int_live;
 wire flush_fast = flush_rep && flush_idle && flush_direct;
 // A hardware acknowledge posted on a CODE T4 replaces a speculative CODE
