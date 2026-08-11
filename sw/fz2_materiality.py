@@ -619,6 +619,28 @@ def report_seed(r, out=sys.stdout):
     p("")
 
 
+def measure_all(ledger=None, seed=None, verify_sha=True,
+                why="materiality census"):
+    """THE CENSUS'S CLASSIFICATION, AS A LIBRARY ENTRY POINT.  -> (led, [dict]).
+
+    `main()` calls this and so does `sw/fz2_immaterial.py`, the IMMATERIAL
+    disposition layer, and that is the whole reason it exists as a function:
+    the disposition must read THIS classification and must never re-implement
+    it.  A second copy of `measure()`'s reasoning living in the disposition
+    tool is how a disposition and its census start disagreeing about the same
+    seed, and neither one would be wrong on its own terms.
+
+    It moves no logic: `main()` used to inline exactly these four statements,
+    and the census's printed output is byte-identical across the extraction."""
+    led = fz2_ledger.load(ledger, why=why)
+    entries = led["failures"]
+    if seed:
+        entries = [e for e in entries if e["seed"] == seed]
+        if not entries:
+            raise SystemExit(f"no such failure in the ledger: {seed}")
+    return led, [measure(e, verify_sha=verify_sha) for e in entries]
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--ledger", default=None,
@@ -629,14 +651,7 @@ def main(argv=None):
                     help="skip the capture sha256 verification (do not)")
     a = ap.parse_args(argv)
 
-    led = fz2_ledger.load(a.ledger, why="materiality census")
-    entries = led["failures"]
-    if a.seed:
-        entries = [e for e in entries if e["seed"] == a.seed]
-        if not entries:
-            raise SystemExit(f"no such failure in the ledger: {a.seed}")
-
-    res = [measure(e, verify_sha=not a.no_sha) for e in entries]
+    led, res = measure_all(a.ledger, a.seed, verify_sha=not a.no_sha)
 
     if a.seed:
         report_seed(res[0])

@@ -716,6 +716,127 @@ image anchor and their goldens are frozen at the v1 one. **Engine-independent** 
 they fail identically on the baseline — so no landing on this branch is gated by
 them and none may be quoted from it.
 
+**✅ ADDENDUM 2026-08-11 — THE `IMMATERIAL` DISPOSITION, AND THE RULE FOR
+QUOTING THE WORKING RESIDUE.** Doc:
+`docs/notes/fz2_immaterial_disposition_2026-08-11.md`. Tool:
+`python3 sw/fz2_immaterial.py falsify` (offline, ~3 s, exit 0 / 1 / 2).
+
+**WHAT IT IS.** The user's materiality ruling of 2026-08-11 — *"an address
+value being presented on the bus that is never used does not impact
+functionality or timing… a pin changing state slightly earlier or later is not
+significant if it doesn't change the overall timing"* — was **measured** by the
+materiality census (`sw/fz2_materiality.py`, `d3ce6b2043`), which partitioned
+the 113 F17 ledger failures **FUNCTIONAL 48 / TIMING 33 / TRANSIENT 2 /
+COSMETIC 19 / UNSCOREABLE 11**. **The 21 immaterial seeds (19 COSMETIC + 2
+TRANSIENT) now carry a formal disposition, `IMMATERIAL`.** They leave the
+WORKING residue and **stay in the ledger** — in the denominator, in the bank,
+and in every rate they were already in.
+
+**⚠ THE QUOTING RULE — THE WORKING RESIDUE MAY NOT BE QUOTED WITHOUT THE FULL
+113.** The form is:
+
+> **92 material-or-unproven of 113 diverging of 3,837**
+> (48 FUNCTIONAL + 33 TIMING + 11 UNSCOREABLE; 21 dispositioned `IMMATERIAL`)
+
+**Never `92 / 3,837` alone, and never *"the residue shrank to 92"* — IT DID NOT
+SHRINK.** 113 seeds still diverge between the socket chip and the fabric core on
+FLASH #17; 21 of them have been **measured** to cost nothing observable. This is
+a **lens on the failure ledger, not a scoring change.**
+
+**NOTHING MOVED, AND THAT IS THE POINT.** `bars` **11 / 11 MET**, artifact
+byte-identical; `lint` **PASS / 0 hits / 48 stratum rows**; the census's printed
+output **byte-identical** across the one refactor it took (`measure_all()`, the
+four statements `main()` already inlined) with **C-ROW 113/113 · C-ARCH
+113/113**; **no file under `sw/testdata/` changed**; `test_artifact` **45/45**.
+**The disposition is deliberately NOT wired into any scorer** — if wiring it in
+would move a bar, that is a separate change and it needs its own
+pre-registration.
+
+**THE PRECEDENT IS A-14** (`ROW_MATCHED`, `sw/fz2_rowmatch.py`, prereg §36–§37),
+followed clause for clause: **derived from the record per seed and never a seed
+list**, dispositioned-not-explained, with its **own falsifier**. ⚠ **One
+difference, and it is why this takes no prereg amendment**: A-14 *moved a bar*
+(E-1c, `undispositioned` 25 → 0) and needed one; **this moves nothing at all.**
+And it is **not** an `INV-n` / `SUP-n` / `EXC-n` / `ERR-n` entry — that register
+is for measurements that **leave a population**, and no seed leaves anything
+here.
+
+**THE PREDICATE, SIX CLAUSES, EACH ONE MAKING THE CLASS SMALLER**
+(`fz2_immaterial.evidence()`, reading `fz2_materiality.measure()`'s leaves — the
+census imported as a library, never forked): **(1) C-CONTROL** the census's two
+controls pass on this seed, re-derived from the banked rows on this invocation ·
+**(2) D-PROOF** *the non-degeneracy clause* — BOTH legs produced a 15-word
+`MAGIC`-anchored dump · **(3) D-IDENT** the two dumps are bit-identical word for
+word · **(4) S-STARTS** every bus cycle starts on the same clock in both legs,
+measured in the **clock domain, not the cycle-index domain** · **(5) S-DONE**
+`done_delta == 0`, and `None` fails it · **(6) DIVERGENT** the seed differs on at
+least one row, so the class can never absorb a *matching* seed (that is A-14's,
+not this one).
+
+| falsifier | what it forbids or requires | on this tree |
+|---|---|---|
+| **G1 DUMP PROOF** | no seed without a two-sided dump may take the class | **0 / 23** |
+| **G2 DUMP IDENTITY** | no seed whose 15 words differ may take it | **0 / 36** |
+| **G3 SCHEDULE** | no seed with an unmatched cycle start or a moved done marker may take it | **0 / 86** |
+| **G4 NOT UNIVERSAL** | the predicate must be FALSE on a positive number of entries | **FALSE on 92 / 113** (`arch` 36 · `cycle_starts` 33 · `no_dump_proof` 23) |
+| **G5 CONTROLS** | C-ROW and C-ARCH must pass on EVERY entry, re-derived here | **113 / 113 · 113 / 113**; a failure exits **2** |
+| **G6 THE CENSUS** | the derived partition must equal the one **registered in the census document**, parsed from it | **0 / 8 cells disagree** |
+| **G7 THE DOCUMENT** | the 21 named in the disposition doc must BE the 21 derived, set for set, plus the `WORKING-RESIDUE` headline | **0 disagreements** |
+| **G8 NO FORK** | the six clauses must reproduce `fz2_materiality`'s own class, on every entry whose controls pass | **0 / 113 disagree** |
+
+**⚠ IT WAS DEMONSTRATED TO FAIL, NOT ONLY TO PASS** — five perturbations, each
+caught by a NAMED bar and tabulated with verbatim output at the disposition doc
+§6.1: a member's sub-class silently changing (**G6**, exit 1); a member's dump
+ceasing to be bit-identical with both controls repaired so the CLASS is what is
+under test (**G6 + G7**, exit 1); the doc naming a seed the derivation does not
+(**G7**); the controls not repaired (**G5**, exit **2**); and a wrong
+`capture_sha256` (the census's own sha gate, before any seed is classified).
+The harness is **not committed** — a tool that ships the ability to rewrite a
+banked capture is a hazard — and nothing under `sw/testdata/` was touched by any
+of the five.
+
+**⚠ TWO THINGS ARE DELIBERATELY LEFT OPEN, AND A THIRD IS A QUESTION FOR THE
+USER.**
+
+1. **THE 11 `UNSCOREABLE` SEEDS ARE NOT DISPOSITIONED.** Neither leg dumped, so
+   the non-propagation proof the class rests on **does not exist** for them.
+   **Dispositioning them would be acceptance by ignorance.** They are all `raw`
+   tier and all escaped; the census prints the class each *would* take, and
+   **that is a counterfactual by which no seed is promoted**. All 11 are counted
+   in the 92. The instrument fix is *a terminator that survives an escaped
+   program*.
+2. **`fz2c/408021`, the two-cycle REORDER, is inside the class by the stated
+   rule and is not the shape the class reads like** — both legs run 261 cycles
+   on identical clocks and perform the same `MEMW` and the same `CODE` fetch
+   **in the opposite order, in the same two slots**. Named, not absorbed
+   silently; the member most worth re-reading if the criterion is ever
+   tightened.
+3. **`TIMING_RECONVERGED` — 7 SEEDS, NAMED, UNDISPOSITIONED, AWAITING A USER
+   RULING.** 7 of the 33 TIMING seeds finish on **exactly the same clock**:
+   their schedule differs mid-run and re-converges. Clause (4) fails on every
+   one, so **under the strict reading they stay MATERIAL** — `fz2c/406073`,
+   `fz2c/407064`, `fz2e/511014`, `fz2e/512062`, `fz2e/518006`, `fz2e/518044`,
+   `fz2e/520000` (`python3 sw/fz2_immaterial.py reconverged`). **The question:
+   is "overall timing" the FINISH CLOCK, or the whole bus schedule?** If the
+   finish clock, they join the class and the residue becomes **85 = 113 − 28**;
+   if the whole schedule, it stays **92**. **The answer is the user's and is not
+   guessed.** Note the seven are not equally strong: two differ by *one* cycle
+   start over 5 rows, one differs by 131 over 998.
+
+**ONE MEMBER CARRIES `mech: FORGED_DONE` AND A LEDGER `arch` OF `NODUMP`** —
+`fz2e/529009` — **and that is not an absent dump.** Prereg §17.0 names this seed
+and records that it **dumped**; `FORGED_DONE` is a declared **INSTRUMENT** class
+(D-2) for *a complete dump the pre-A-6 scorer could not see*. Clause (2) reads it
+with `arch_dump(…, sentinel_only=True)` — `fuzz_campaign.eval_case`'s own
+parameters — and **C-ARCH passes on it**. Named so no reader concludes the class
+absorbed a NODUMP seed by accident.
+
+**AND 15 OF THE 21 CARRY THE BANKED SUB `open_bus`, WHOSE RULE WAS RETIRED** at
+`80075d049a`. Banked labels are historical record and are not rewritten. It
+costs this disposition nothing, and the reason is structural: **the predicate
+reads rows and dumps, never an accept-rule label** — no clause can see
+`banked_sub` at all.
+
 ### THE RE-LANDING CAMPAIGN — **CLOSED AT 17 OF 19** (2026-08-09)
 
 `5403671558` was a 19-mechanism landing that took G6 to **19.42 MHz**. The
