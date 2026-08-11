@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-10T20:41:54Z",
+ "ts": "2026-08-11T14:06:18Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -45,10 +45,10 @@
       "undispositioned_3class": 74
      },
      "enriched/soup": {
-      "n": 1439,
-      "reached": 1423,
+      "n": 1438,
+      "reached": 1422,
       "pct": 98.89,
-      "excluded_ps3_8080": 1,
+      "excluded_ps3_8080": 2,
       "n_incl_excluded": 1440,
       "dispositioned": 16,
       "dispositioned_5class": 15,
@@ -113,7 +113,7 @@
     "classified_from_row_matched": {
      "line": 25
     },
-    "excluded_ps3_8080_total": 2
+    "excluded_ps3_8080_total": 3
    },
    "verdict": "MET (rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw 80.83 %; \u00a716.2 / A-9)",
    "finding": null
@@ -125,19 +125,19 @@
     "dumps": 3512,
     "magic_constant": true,
     "distinct": {
-     "AW": 2854,
+     "AW": 2853,
      "MAGIC": 1,
      "PC": 3091,
      "PS": 3109,
      "PSW": 199,
      "SS": 3337,
      "SP": 3154,
-     "DS0": 3386,
+     "DS0": 3387,
      "DS1": 3366,
      "BW": 3222,
-     "CW": 2203,
-     "DW": 2613,
-     "BP": 3173,
+     "CW": 2205,
+     "DW": 2612,
+     "BP": 3174,
      "IX": 3283,
      "IY": 3278
     },
@@ -152,13 +152,13 @@
    "measured": {
     "bad_0f_pairs": 0,
     "seeds": 3840,
-    "ps3_8080": 2,
+    "ps3_8080": 3,
     "ps3_scoreable": true,
     "generation_ok": true,
     "R1_detected": {
-     "retained_scored": 656,
-     "no_rows_not_recomputable": 3184,
-     "rows_recompute_fires": 2,
+     "retained_scored": 654,
+     "no_rows_not_recomputable": 3186,
+     "rows_recompute_fires": 3,
      "disagreements": 0,
      "detail": [],
      "ok": true
@@ -169,7 +169,7 @@
      "ok": true
     },
     "R3_discarded": {
-     "in_scored_strata": 2,
+     "in_scored_strata": 3,
      "seeds": [
       {
        "seed": "fz2e/509069",
@@ -181,11 +181,20 @@
        "arch_ok": true
       },
       {
-       "seed": "fz2e/535075",
+       "seed": "fz2e/515027",
+       "tier": "soup",
+       "stratum": 27,
+       "verdict": "FUNCTIONAL",
+       "bad_rows": 618,
+       "mech": "REACHED",
+       "arch_ok": true
+      },
+      {
+       "seed": "fz2e/524066",
        "tier": "raw",
-       "stratum": 47,
+       "stratum": 36,
        "verdict": "KNOWN_ACCEPTED",
-       "bad_rows": 2578,
+       "bad_rows": 1127,
        "mech": "REACHED",
        "arch_ok": true
       }
@@ -193,7 +202,7 @@
      "a_out_of_rates": {
       "disagreements": 0,
       "detail": [],
-      "c1_excluded_total": 2,
+      "c1_excluded_total": 3,
       "PARTLY_TAUTOLOGICAL": true,
       "ok": true
      },
@@ -207,7 +216,7 @@
       "ok": true
      },
      "c_printed": {
-      "c1_excluded_total": 2,
+      "c1_excluded_total": 3,
       "ok": true
      },
      "ok": true
@@ -254,90 +263,145 @@
      "stage": "fz2 C-6 control legs",
      "host": "root@mister-nec",
      "prereg": "\u00a76 C-6 (a)(b)(c); the legs are \u00a724",
-     "gen_git": "ddaed64457",
+     "gen_git": "85babd2e4a",
      "tree_dirty": [
       {
        "status": " M",
-       "path": "sw/testdata/flash_log.jsonl",
-       "sha256": "199223ec7f91e9158fde1aa41b3d01982634b73dcea58a7f6c2576183bdd6a8e"
+       "path": "hdl/nec_test_ucore.qsf",
+       "sha256": "b719d4ff97e5b7d7fe2acdca29fab14310411d35533843d37fcad6cb50a33b50"
+      },
+      {
+       "status": " D",
+       "path": "sw/testdata/campaigns/fz2c/coverage.json",
+       "sha256": null
       },
       {
        "status": " M",
-       "path": "sw/testdata/receipts/verilator_binary.jsonl",
-       "sha256": "9e203b4ae9f15494f179c12daf95c2d9c24daa0248a407a17539165e45b586c5"
+       "path": "sw/testdata/campaigns/fz2c/manifest.json",
+       "sha256": "d87ffa8ae0fdf88095dbe07829a7b0454c92d59c9f79f86159ed6aabeb8d99c2"
+      },
+      {
+       "status": " D",
+       "path": "sw/testdata/campaigns/fz2c/results.jsonl",
+       "sha256": null
+      },
+      {
+       "status": " D",
+       "path": "sw/testdata/campaigns/fz2e/coverage.json",
+       "sha256": null
+      },
+      {
+       "status": " M",
+       "path": "sw/testdata/campaigns/fz2e/manifest.json",
+       "sha256": "4f681ae7342fdf1255e0ee2e78c61251ab52ab6428b114332dc2f86e414c5b9a"
+      },
+      {
+       "status": " D",
+       "path": "sw/testdata/campaigns/fz2e/results.jsonl",
+       "sha256": null
+      },
+      {
+       "status": " M",
+       "path": "sw/testdata/flash_log.jsonl",
+       "sha256": "a02e24f19c0cdb62250f72f60ae90a59385957186204fdd55b4dabbdf7c0e849"
+      },
+      {
+       "status": " D",
+       "path": "sw/testdata/fz2/fz2_bars.json",
+       "sha256": null
+      },
+      {
+       "status": " D",
+       "path": "sw/testdata/fz2/fz2_capture.json",
+       "sha256": null
+      },
+      {
+       "status": " D",
+       "path": "sw/testdata/fz2/fz2_control.json",
+       "sha256": null
+      },
+      {
+       "status": " D",
+       "path": "sw/testdata/fz2/fz2_preflight.json",
+       "sha256": null
+      },
+      {
+       "status": " M",
+       "path": "sw/testdata/receipts/quartus_bitstream.jsonl",
+       "sha256": "f86ceb2adbd33f4d54bc56485f19edf25001da0437bede3c0d08a69dd44a90ba"
       }
      ],
-     "started": "2026-08-10T20:27:55Z",
+     "started": "2026-08-11T13:49:58Z",
      "div_guards": [
       {
        "tag": "control-start",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:56Z"
+       "ts": "2026-08-11T13:49:59Z"
       },
       {
        "tag": "control-P1",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:56Z"
+       "ts": "2026-08-11T13:49:59Z"
       },
       {
        "tag": "control-P2",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:56Z"
+       "ts": "2026-08-11T13:49:59Z"
       },
       {
        "tag": "control-P3",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:56Z"
+       "ts": "2026-08-11T13:49:59Z"
       },
       {
        "tag": "control-P4",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:56Z"
+       "ts": "2026-08-11T13:49:59Z"
       },
       {
        "tag": "control-P5",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:56Z"
+       "ts": "2026-08-11T13:49:59Z"
       },
       {
        "tag": "control-V1",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:57Z"
+       "ts": "2026-08-11T13:49:59Z"
       },
       {
        "tag": "control-V2",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:57Z"
+       "ts": "2026-08-11T13:50:00Z"
       },
       {
        "tag": "control-N1",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:57Z"
+       "ts": "2026-08-11T13:50:00Z"
       },
       {
        "tag": "control-end",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-10T20:27:57Z"
+       "ts": "2026-08-11T13:50:00Z"
       }
      ],
      "legs": [
@@ -421,7 +485,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
        "n_rows": 4063,
-       "sha256": "69e998000ebb8f305bce06bdc8682d60937290df73f0063c4a86ae2d45e02823"
+       "sha256": "6394f431bd2af97823c6bd348ae2f0cac00c2623a1ad2320641ba3ef197d0482"
       },
       {
        "leg": "P2",
@@ -481,7 +545,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
        "n_rows": 4063,
-       "sha256": "8b993ed7ade52d00c9e57cb51881e8c19af729c88f6d2c3bd37ae732e5e86b91"
+       "sha256": "844461ead23237e3d7ce28aabba5c421065442aa8742960503256c8ac1234676"
       },
       {
        "leg": "P3",
@@ -541,7 +605,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
        "n_rows": 4063,
-       "sha256": "e253a09e91911b3d24f740110960c4a908b9fb0a6b8c503030d3eef51605929e"
+       "sha256": "97bd537a028098af4d9b7e0f439359f27eafdab789f66e1e1bff618905c0d5c0"
       },
       {
        "leg": "P4",
@@ -601,7 +665,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
        "n_rows": 4063,
-       "sha256": "f07a5f0d44f36127ff935f21dba0bcd74382daecddb60aace253b9255aa1de93"
+       "sha256": "250cfec79405d1468770ff22525acf5a27f9816223f2c54b1d9ab7bfb11c5715"
       },
       {
        "leg": "P5",
@@ -661,7 +725,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
        "n_rows": 4063,
-       "sha256": "2cbf6fbdff3983003e3884d7da61fa97a3912d1d0aafec07f97acf6dbc8975f8"
+       "sha256": "ab07fd849c029ce05108d0101c8aa40a01a3fc653b4059f2604f20a3c31a9248"
       },
       {
        "leg": "V1",
@@ -725,7 +789,7 @@
        "fired": 4,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
        "n_rows": 4063,
-       "sha256": "45cfe04271b4775834a7fd3be2044da1fb44bb03c9548493590ebdd5d9a8796a"
+       "sha256": "91658095c4011f1f9199b8bd21db8d1b8784a9248b767f1cf020bad43f8fc3e9"
       },
       {
        "leg": "V2",
@@ -789,7 +853,7 @@
        "fired": 4,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
        "n_rows": 4063,
-       "sha256": "c3b8951824f3a290789d92350afa3a92cb8a83376c33a031fe4d4e42a40cff1c"
+       "sha256": "15d8e960a3a28a21a402d493aa1c3d99f1d17cb6bb443531f73cd0fbd00f87f4"
       },
       {
        "leg": "N1",
@@ -841,49 +905,49 @@
        "fired": 4,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
        "n_rows": 4063,
-       "sha256": "187fcb8bfb880ab13df44d42f5c237eab58f4eb36fda64b31c02e751d28b61a9"
+       "sha256": "03dbc36a2eb3cd0a08ba80656dfb23d5c8ef286e99b50311eaf07fb73f860f67"
       }
      ],
      "retained": {
       "P1": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
        "n_rows": 4063,
-       "sha256": "69e998000ebb8f305bce06bdc8682d60937290df73f0063c4a86ae2d45e02823"
+       "sha256": "6394f431bd2af97823c6bd348ae2f0cac00c2623a1ad2320641ba3ef197d0482"
       },
       "P2": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
        "n_rows": 4063,
-       "sha256": "8b993ed7ade52d00c9e57cb51881e8c19af729c88f6d2c3bd37ae732e5e86b91"
+       "sha256": "844461ead23237e3d7ce28aabba5c421065442aa8742960503256c8ac1234676"
       },
       "P3": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
        "n_rows": 4063,
-       "sha256": "e253a09e91911b3d24f740110960c4a908b9fb0a6b8c503030d3eef51605929e"
+       "sha256": "97bd537a028098af4d9b7e0f439359f27eafdab789f66e1e1bff618905c0d5c0"
       },
       "P4": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
        "n_rows": 4063,
-       "sha256": "f07a5f0d44f36127ff935f21dba0bcd74382daecddb60aace253b9255aa1de93"
+       "sha256": "250cfec79405d1468770ff22525acf5a27f9816223f2c54b1d9ab7bfb11c5715"
       },
       "P5": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
        "n_rows": 4063,
-       "sha256": "2cbf6fbdff3983003e3884d7da61fa97a3912d1d0aafec07f97acf6dbc8975f8"
+       "sha256": "ab07fd849c029ce05108d0101c8aa40a01a3fc653b4059f2604f20a3c31a9248"
       },
       "V1": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
        "n_rows": 4063,
-       "sha256": "45cfe04271b4775834a7fd3be2044da1fb44bb03c9548493590ebdd5d9a8796a"
+       "sha256": "91658095c4011f1f9199b8bd21db8d1b8784a9248b767f1cf020bad43f8fc3e9"
       },
       "V2": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
        "n_rows": 4063,
-       "sha256": "c3b8951824f3a290789d92350afa3a92cb8a83376c33a031fe4d4e42a40cff1c"
+       "sha256": "15d8e960a3a28a21a402d493aa1c3d99f1d17cb6bb443531f73cd0fbd00f87f4"
       },
       "N1": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
        "n_rows": 4063,
-       "sha256": "187fcb8bfb880ab13df44d42f5c237eab58f4eb36fda64b31c02e751d28b61a9"
+       "sha256": "03dbc36a2eb3cd0a08ba80656dfb23d5c8ef286e99b50311eaf07fb73f860f67"
       }
      },
      "stimulus": {
@@ -917,7 +981,7 @@
      "failing_legs": [],
      "div_guards_unpinned": [],
      "verdict": "MET",
-     "finished": "2026-08-10T20:27:57Z"
+     "finished": "2026-08-11T13:50:00Z"
     },
     "pin_level_clause": "A-8: per directive, on the pin that directive names",
     "c6b": {
@@ -1382,12 +1446,12 @@
      "stratum": "enr/soup/stim/wrand1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 76,
-     "arch_exact": 77,
+     "rows_exact": 77,
+     "arch_exact": 78,
      "unscoreable": 1,
      "verdicts": {
-      "SUCCESS": 76,
-      "FUNCTIONAL": 2,
+      "SUCCESS": 77,
+      "FUNCTIONAL": 1,
       "KNOWN_ACCEPTED": 2
      }
     },
@@ -1409,11 +1473,12 @@
      "stratum": "enr/soup/stim/wrand7",
      "n": 80,
      "captured": 80,
-     "rows_exact": 78,
-     "arch_exact": 79,
+     "rows_exact": 77,
+     "arch_exact": 78,
      "unscoreable": 1,
      "verdicts": {
-      "SUCCESS": 78,
+      "SUCCESS": 77,
+      "FUNCTIONAL": 1,
       "KNOWN_ACCEPTED": 2
      }
     },
@@ -1463,12 +1528,12 @@
      "stratum": "enr/raw/noevt/fix1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 78,
+     "rows_exact": 79,
      "arch_exact": 61,
      "unscoreable": 19,
      "verdicts": {
-      "SUCCESS": 78,
-      "KNOWN_ACCEPTED": 2
+      "SUCCESS": 79,
+      "KNOWN_ACCEPTED": 1
      }
     },
     {
@@ -1476,12 +1541,12 @@
      "stratum": "enr/raw/noevt/fix2",
      "n": 80,
      "captured": 80,
-     "rows_exact": 74,
+     "rows_exact": 76,
      "arch_exact": 67,
      "unscoreable": 11,
      "verdicts": {
-      "KNOWN_ACCEPTED": 5,
-      "SUCCESS": 74,
+      "KNOWN_ACCEPTED": 3,
+      "SUCCESS": 76,
       "FUNCTIONAL": 1
      }
     },
@@ -1490,12 +1555,12 @@
      "stratum": "enr/raw/noevt/fix3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 77,
+     "rows_exact": 75,
      "arch_exact": 64,
      "unscoreable": 14,
      "verdicts": {
-      "SUCCESS": 77,
-      "KNOWN_ACCEPTED": 3
+      "SUCCESS": 75,
+      "KNOWN_ACCEPTED": 5
      }
     },
     {
@@ -1503,12 +1568,12 @@
      "stratum": "enr/raw/noevt/wrand1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 77,
+     "rows_exact": 76,
      "arch_exact": 68,
      "unscoreable": 11,
      "verdicts": {
-      "SUCCESS": 77,
-      "KNOWN_ACCEPTED": 3
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
      }
     },
     {
@@ -1529,12 +1594,12 @@
      "stratum": "enr/raw/noevt/wrand7",
      "n": 80,
      "captured": 80,
-     "rows_exact": 76,
-     "arch_exact": 61,
+     "rows_exact": 75,
+     "arch_exact": 60,
      "unscoreable": 18,
      "verdicts": {
-      "SUCCESS": 76,
-      "KNOWN_ACCEPTED": 4
+      "SUCCESS": 75,
+      "KNOWN_ACCEPTED": 5
      }
     },
     {
@@ -1556,7 +1621,7 @@
      "n": 80,
      "captured": 80,
      "rows_exact": 79,
-     "arch_exact": 69,
+     "arch_exact": 68,
      "unscoreable": 11,
      "verdicts": {
       "SUCCESS": 79,
@@ -1569,7 +1634,7 @@
      "n": 80,
      "captured": 80,
      "rows_exact": 75,
-     "arch_exact": 63,
+     "arch_exact": 62,
      "unscoreable": 16,
      "verdicts": {
       "SUCCESS": 75,
@@ -1581,12 +1646,12 @@
      "stratum": "enr/raw/stim/fix1",
      "n": 80,
      "captured": 80,
-     "rows_exact": 76,
-     "arch_exact": 67,
+     "rows_exact": 78,
+     "arch_exact": 69,
      "unscoreable": 11,
      "verdicts": {
-      "SUCCESS": 76,
-      "KNOWN_ACCEPTED": 4
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
      }
     },
     {
@@ -1594,12 +1659,12 @@
      "stratum": "enr/raw/stim/fix2",
      "n": 80,
      "captured": 80,
-     "rows_exact": 77,
+     "rows_exact": 76,
      "arch_exact": 70,
      "unscoreable": 10,
      "verdicts": {
-      "SUCCESS": 77,
-      "KNOWN_ACCEPTED": 3
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
      }
     },
     {
@@ -1633,12 +1698,12 @@
      "stratum": "enr/raw/stim/wrand3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 75,
+     "rows_exact": 76,
      "arch_exact": 68,
      "unscoreable": 11,
      "verdicts": {
-      "KNOWN_ACCEPTED": 5,
-      "SUCCESS": 75
+      "KNOWN_ACCEPTED": 4,
+      "SUCCESS": 76
      }
     },
     {
@@ -1646,12 +1711,12 @@
      "stratum": "enr/raw/stim/wrand7",
      "n": 80,
      "captured": 80,
-     "rows_exact": 78,
+     "rows_exact": 79,
      "arch_exact": 62,
      "unscoreable": 18,
      "verdicts": {
-      "SUCCESS": 78,
-      "KNOWN_ACCEPTED": 2
+      "SUCCESS": 79,
+      "KNOWN_ACCEPTED": 1
      }
     },
     {
@@ -1659,12 +1724,12 @@
      "stratum": "enr/raw/stim/wrand15",
      "n": 80,
      "captured": 80,
-     "rows_exact": 77,
+     "rows_exact": 76,
      "arch_exact": 65,
      "unscoreable": 13,
      "verdicts": {
-      "SUCCESS": 77,
-      "KNOWN_ACCEPTED": 3
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
      }
     },
     {
@@ -1672,16 +1737,16 @@
      "stratum": "enr/raw/stim/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 76,
-     "arch_exact": 67,
+     "rows_exact": 77,
+     "arch_exact": 68,
      "unscoreable": 11,
      "verdicts": {
-      "SUCCESS": 76,
-      "KNOWN_ACCEPTED": 4
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
      }
     }
    ],
-   "rows_exact_mean_pct": 96.81,
+   "rows_exact_mean_pct": 96.88,
    "arch_exact_mean_pct": 90.35,
    "unscoreable_total": 249
   }

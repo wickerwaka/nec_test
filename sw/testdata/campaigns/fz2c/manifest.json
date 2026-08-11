@@ -1,12 +1,12 @@
 {
  "cid": "fz2c",
- "created": "2026-08-10T20:29:57Z",
- "gen_git": "ddaed64457",
+ "created": "2026-08-11T13:49:52Z",
+ "gen_git": "85babd2e4a",
  "flash_pin": {
-  "ts": "2026-08-10T20:27:33Z",
+  "ts": "2026-08-11T13:49:17Z",
   "sof_path": "hdl/output_files_ucore/nec_test_ucore.sof",
-  "sha256": "fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c",
-  "git_describe": "ddaed64457-dirty",
+  "sha256": "26c19f613e2caae8cf3479244319988227a748c000f456c458d901b4ee266a6c",
+  "git_describe": "85babd2e4a-dirty",
   "verify": "OK"
  },
  "axes": {

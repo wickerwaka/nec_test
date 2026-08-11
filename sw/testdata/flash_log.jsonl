@@ -17,3 +17,4 @@
 {"ts":"2026-08-10T14:27:59Z","sof_path":"/home/wickerwaka/src/nec_test/hdl/output_files_ucore/nec_test_ucore.sof","sha256":"060215e43c5de9b397dec0d5d8d5f4577705ee4ebd60d7d7229b15fbb3bca33b","git_describe":"2fa3dd33b3-dirty","verify":"OK"}
 {"ts":"2026-08-10T17:56:19Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"2dc38a17d6c3e77de9f69983dbdca41bee682d25db3128ba924548822283f3e6","git_describe":"77838ef777","verify":"OK"}
 {"ts":"2026-08-10T20:27:33Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c","git_describe":"ddaed64457-dirty","verify":"OK"}
+{"ts":"2026-08-11T13:49:17Z","sof_path":"hdl/output_files_ucore/nec_test_ucore.sof","sha256":"26c19f613e2caae8cf3479244319988227a748c000f456c458d901b4ee266a6c","git_describe":"85babd2e4a-dirty","verify":"OK"}

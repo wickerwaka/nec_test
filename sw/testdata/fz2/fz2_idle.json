@@ -6,12 +6,12 @@
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-10T20:50:29Z"
+   "ts": "2026-08-11T14:05:07Z"
   }
  ],
- "ts": "2026-08-10T20:50:28Z",
+ "ts": "2026-08-11T14:05:06Z",
  "board_procs_after": [
-  "31040 root     python3 v30ctl.py serve"
+  "23806 root     python3 v30ctl.py serve"
  ],
  "use_core": 0,
  "board_idle": "OK"

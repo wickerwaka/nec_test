@@ -1,0 +1,392 @@
+{
+ "stage": "fz2 preflight",
+ "host": "root@mister-nec",
+ "gen_git": "ddaed64457",
+ "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
+ "ts": "2026-08-10T20:30:04Z",
+ "div_guards": [
+  {
+   "tag": "preflight",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T20:30:09Z"
+  },
+  {
+   "tag": "preflight-end",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-10T20:30:10Z"
+  }
+ ],
+ "capture_path_gaps": [],
+ "uptime": "20:30:04  up 29 days  0:56,  0 users,  load average: 0.08, 0.00, 0.02",
+ "board_procs": [],
+ "single_writer": "OK",
+ "local_serve_procs": [],
+ "flash_log_tail": {
+  "sha256": "fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c",
+  "ts": "2026-08-10T20:27:33Z",
+  "git_describe": "ddaed64457-dirty",
+  "verify": "OK"
+ },
+ "resident_rig": {
+  "gap": [],
+  "why": "receipt f88783b66cf4\u2026, 'F16 wave-3 RETENTION draw 2 of 2'",
+  "receipt": "f88783b66cf4a1eed7ce6b31d207f45786b8f02eed113abc676c7f5c54e97afd",
+  "flash_sha256": "fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c"
+ },
+ "manifests": {
+  "fz2c": {
+   "sof_sha256": "fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c",
+   "flash_ts": "2026-08-10T20:27:33Z",
+   "flash_git": "ddaed64457-dirty",
+   "flash_verify": "OK",
+   "rtl": {
+    "receipt_id": "f88783b66cf4a1eed7ce6b31d207f45786b8f02eed113abc676c7f5c54e97afd",
+    "inputs_sha256": "4ae89fb63557a1a0bec4ab8b9d0c7fb8060671e2379ce11c737a04a98ac59250",
+    "n_files": 88,
+    "label": "F16 wave-3 RETENTION draw 2 of 2"
+   },
+   "gen_git": "ddaed64457",
+   "rig_evt_hold_bits": 12,
+   "rules_version": "1.0"
+  },
+  "fz2e": {
+   "sof_sha256": "fed558c0e61173aeb2e6891eda3f16bb48bcb15ebb9fd40496ffbebe0059e66c",
+   "flash_ts": "2026-08-10T20:27:33Z",
+   "flash_git": "ddaed64457-dirty",
+   "flash_verify": "OK",
+   "rtl": {
+    "receipt_id": "f88783b66cf4a1eed7ce6b31d207f45786b8f02eed113abc676c7f5c54e97afd",
+    "inputs_sha256": "4ae89fb63557a1a0bec4ab8b9d0c7fb8060671e2379ce11c737a04a98ac59250",
+    "n_files": 88,
+    "label": "F16 wave-3 RETENTION draw 2 of 2"
+   },
+   "gen_git": "ddaed64457",
+   "rig_evt_hold_bits": 12,
+   "rules_version": "1.0"
+  }
+ },
+ "regen_sample": {
+  "per_stratum": [
+   {
+    "j": 0,
+    "stratum": "cen/soup/noevt/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 1,
+    "stratum": "cen/soup/noevt/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 2,
+    "stratum": "cen/soup/noevt/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 3,
+    "stratum": "cen/soup/stim/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 4,
+    "stratum": "cen/soup/stim/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 5,
+    "stratum": "cen/soup/stim/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 6,
+    "stratum": "cen/raw/noevt/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 7,
+    "stratum": "cen/raw/noevt/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 8,
+    "stratum": "cen/raw/noevt/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 9,
+    "stratum": "cen/raw/stim/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 10,
+    "stratum": "cen/raw/stim/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 11,
+    "stratum": "cen/raw/stim/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 12,
+    "stratum": "enr/soup/noevt/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 13,
+    "stratum": "enr/soup/noevt/fix1",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 14,
+    "stratum": "enr/soup/noevt/fix2",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 15,
+    "stratum": "enr/soup/noevt/fix3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 16,
+    "stratum": "enr/soup/noevt/wrand1",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 17,
+    "stratum": "enr/soup/noevt/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 18,
+    "stratum": "enr/soup/noevt/wrand7",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 19,
+    "stratum": "enr/soup/noevt/wrand15",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 20,
+    "stratum": "enr/soup/noevt/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 21,
+    "stratum": "enr/soup/stim/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 22,
+    "stratum": "enr/soup/stim/fix1",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 23,
+    "stratum": "enr/soup/stim/fix2",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 24,
+    "stratum": "enr/soup/stim/fix3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 25,
+    "stratum": "enr/soup/stim/wrand1",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 26,
+    "stratum": "enr/soup/stim/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 27,
+    "stratum": "enr/soup/stim/wrand7",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 28,
+    "stratum": "enr/soup/stim/wrand15",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 29,
+    "stratum": "enr/soup/stim/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 30,
+    "stratum": "enr/raw/noevt/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 31,
+    "stratum": "enr/raw/noevt/fix1",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 32,
+    "stratum": "enr/raw/noevt/fix2",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 33,
+    "stratum": "enr/raw/noevt/fix3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 34,
+    "stratum": "enr/raw/noevt/wrand1",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 35,
+    "stratum": "enr/raw/noevt/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 36,
+    "stratum": "enr/raw/noevt/wrand7",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 37,
+    "stratum": "enr/raw/noevt/wrand15",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 38,
+    "stratum": "enr/raw/noevt/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 39,
+    "stratum": "enr/raw/stim/fix0",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 40,
+    "stratum": "enr/raw/stim/fix1",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 41,
+    "stratum": "enr/raw/stim/fix2",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 42,
+    "stratum": "enr/raw/stim/fix3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 43,
+    "stratum": "enr/raw/stim/wrand1",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 44,
+    "stratum": "enr/raw/stim/wrand3",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 45,
+    "stratum": "enr/raw/stim/wrand7",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 46,
+    "stratum": "enr/raw/stim/wrand15",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   },
+   {
+    "j": 47,
+    "stratum": "enr/raw/stim/wvec-uni",
+    "sampled": 4,
+    "bad_0f_pairs": 0
+   }
+  ],
+  "hits": 0,
+  "seeds": 192
+ },
+ "rig_readback_check": {
+  "ok": true,
+  "registers": [
+   "EVT_ADDR[0]",
+   "EVT_ADDR[1]",
+   "EVT_ADDR[2]",
+   "EVT_CFG[0]",
+   "EVT_CFG[1]",
+   "EVT_CFG[2]",
+   "TVEC",
+   "VECCTL"
+  ]
+ },
+ "check_ab_hw": {
+  "rc": 0,
+  "tail": [
+   "== chip position (use_core=0): boot vs golden ==",
+   "chip-vs-golden: MATCH over 800 rows",
+   "",
+   "== core position (use_core=1): boot ==",
+   "core-vs-chip:   MATCH over 800 rows",
+   "core-vs-golden: MATCH over 800 rows"
+  ]
+ },
+ "board_leg": true,
+ "verdict": "OK"
+}

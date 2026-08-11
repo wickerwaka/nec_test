@@ -1,0 +1,1689 @@
+{
+ "stage": "fz2 bars",
+ "ts": "2026-08-10T20:41:54Z",
+ "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
+ "bars": {
+  "C-1": {
+   "statement": "containment measured as TERMINATOR-REACHED (E-1's predicate), with the escape count kept as a diagnostic",
+   "registered": "soup >= 90.0 %, raw >= 75.0 %, per population [A-5: soup LOWERED from 99.0, raw from 95.0 -- set AFTER measuring soup 98.54/98.89 % and raw 83.54/83.61 % ON THIS POPULATION, NOT DERIVED; VALIDATED 2026-08-09 on the DISJOINT A-9 population `fz2v` (960 seeds, k >= 600000, zero overlap): soup 471/480 = 98.12 % >= 90.0 and raw 388/480 = 80.83 % >= 75.0, both MET -- \u00a716.2 / \u00a728]; and 0 UNDISPOSITIONED non-dumping seeds (E-1c, UNTOUCHED by A-5; RE-REGISTERED by A-14 / user ruling 2026-08-09 -- UNDISPOSITIONED now means no dump AND no explanation AND the two legs do not agree)",
+   "measured": {
+    "per_tier": {
+     "census/soup": {
+      "n": 480,
+      "reached": 473,
+      "pct": 98.54,
+      "excluded_ps3_8080": 0,
+      "n_incl_excluded": 480,
+      "dispositioned": 7,
+      "dispositioned_5class": 6,
+      "dispositioned_4class": 6,
+      "dispositioned_3class": 0,
+      "stalled": 6,
+      "long_insn": 0,
+      "row_matched": 1,
+      "undispositioned": 0,
+      "undispositioned_5class": 1,
+      "undispositioned_4class": 1,
+      "undispositioned_3class": 7
+     },
+     "census/raw": {
+      "n": 480,
+      "reached": 402,
+      "pct": 83.75,
+      "excluded_ps3_8080": 0,
+      "n_incl_excluded": 480,
+      "dispositioned": 78,
+      "dispositioned_5class": 73,
+      "dispositioned_4class": 59,
+      "dispositioned_3class": 4,
+      "stalled": 55,
+      "long_insn": 14,
+      "row_matched": 5,
+      "undispositioned": 0,
+      "undispositioned_5class": 5,
+      "undispositioned_4class": 19,
+      "undispositioned_3class": 74
+     },
+     "enriched/soup": {
+      "n": 1439,
+      "reached": 1423,
+      "pct": 98.89,
+      "excluded_ps3_8080": 1,
+      "n_incl_excluded": 1440,
+      "dispositioned": 16,
+      "dispositioned_5class": 15,
+      "dispositioned_4class": 10,
+      "dispositioned_3class": 1,
+      "stalled": 9,
+      "long_insn": 5,
+      "row_matched": 1,
+      "undispositioned": 0,
+      "undispositioned_5class": 1,
+      "undispositioned_4class": 6,
+      "undispositioned_3class": 15
+     },
+     "enriched/raw": {
+      "n": 1439,
+      "reached": 1212,
+      "pct": 84.23,
+      "excluded_ps3_8080": 1,
+      "n_incl_excluded": 1440,
+      "dispositioned": 227,
+      "dispositioned_5class": 209,
+      "dispositioned_4class": 153,
+      "dispositioned_3class": 20,
+      "stalled": 133,
+      "long_insn": 56,
+      "row_matched": 18,
+      "undispositioned": 0,
+      "undispositioned_5class": 18,
+      "undispositioned_4class": 74,
+      "undispositioned_3class": 207
+     }
+    },
+    "undispositioned": 0,
+    "mech_census": {
+     "REACHED": 3502,
+     "STALLED": 209,
+     "OTHER": 5,
+     "LONG_INSN": 80,
+     "NEAR": 10,
+     "BUDGET": 24,
+     "WINDOW": 6,
+     "FORGED_DONE": 4
+    },
+    "mech_undispositioned": {},
+    "mech_selfcheck": {
+     "arch_ok_vs_mech": 0,
+     "stalled_vs_mech": 0,
+     "absent": 0
+    },
+    "undispositioned_3class": 303,
+    "undispositioned_4class": 100,
+    "undispositioned_5class": 25,
+    "stalled_total": 203,
+    "long_insn_total": 75,
+    "row_matched_total": 25,
+    "classified_from": {
+     "line": 303
+    },
+    "classified_from_long_insn": {
+     "line": 100
+    },
+    "classified_from_row_matched": {
+     "line": 25
+    },
+    "excluded_ps3_8080_total": 2
+   },
+   "verdict": "MET (rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw 80.83 %; \u00a716.2 / A-9)",
+   "finding": null
+  },
+  "C-2": {
+   "statement": "the arch column is non-vacuous -- demonstrated, not assumed",
+   "registered": "MAGIC == 0x5EED on every dump; each of the other 14 STORE_ORDER words takes >= 2 distinct values across the corpus",
+   "measured": {
+    "dumps": 3512,
+    "magic_constant": true,
+    "distinct": {
+     "AW": 2854,
+     "MAGIC": 1,
+     "PC": 3091,
+     "PS": 3109,
+     "PSW": 199,
+     "SS": 3337,
+     "SP": 3154,
+     "DS0": 3386,
+     "DS1": 3366,
+     "BW": 3222,
+     "CW": 2203,
+     "DW": 2613,
+     "BP": 3173,
+     "IX": 3283,
+     "IY": 3278
+    },
+    "flat_words": []
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-3": {
+   "statement": "8080-free: the GENERATION clause unchanged, and the RUNTIME clause re-registered by A-11 to DETECTED AND DISCARDED, with A-12's ruling on what DISCARDED means",
+   "registered": "GENERATION (unchanged, neither A-11 nor A-12 edits it): 0 forbidden `0F xx` pairs on every composed image.  RUNTIME (A-11 \u00a729.3 as amended by A-12 \u00a731.4): runtime 8080 entries are DETECTED AND DISCARDED, scored as R1 AND R2 AND R3' -- R1 0 disagreements between the banked `ps3_8080` column and the socket-leg predicate recomputed off retained rows; R2 0 `ps3_8080` seeds UNDISPOSITIONED (declared TAUTOLOGICAL, no evidential weight); R3' DISCARDED = (a) every `ps3_8080` seed out of its tier's NUMERATOR AND DENOMINATOR, recomputed a second way, (b) A-13 \u00a734: every banked capture whose OWN ROWS show `ps3_8080` -- recomputed here, seed by seed, over the exact rows `check_fuzz_bank` replays -- named in its bank's `excluded_seeds` with a reason AND no over-exclusion in that class, a list checked against the artifact it governs in both directions, (c) the exclusion counted in C-1's own `measured` and printed on stdout.  Non-vacuity is demonstrated beside this run on the disjoint `t30-brkem` bank by `sw/fz2_a2_replay.py` (\u00a729.5)",
+   "measured": {
+    "bad_0f_pairs": 0,
+    "seeds": 3840,
+    "ps3_8080": 2,
+    "ps3_scoreable": true,
+    "generation_ok": true,
+    "R1_detected": {
+     "retained_scored": 656,
+     "no_rows_not_recomputable": 3184,
+     "rows_recompute_fires": 2,
+     "disagreements": 0,
+     "detail": [],
+     "ok": true
+    },
+    "R2_dispositioned": {
+     "undispositioned_ps3": 0,
+     "TAUTOLOGICAL": true,
+     "ok": true
+    },
+    "R3_discarded": {
+     "in_scored_strata": 2,
+     "seeds": [
+      {
+       "seed": "fz2e/509069",
+       "tier": "soup",
+       "stratum": 21,
+       "verdict": "FUNCTIONAL",
+       "bad_rows": 1126,
+       "mech": "REACHED",
+       "arch_ok": true
+      },
+      {
+       "seed": "fz2e/535075",
+       "tier": "raw",
+       "stratum": 47,
+       "verdict": "KNOWN_ACCEPTED",
+       "bad_rows": 2578,
+       "mech": "REACHED",
+       "arch_ok": true
+      }
+     ],
+     "a_out_of_rates": {
+      "disagreements": 0,
+      "detail": [],
+      "c1_excluded_total": 2,
+      "PARTLY_TAUTOLOGICAL": true,
+      "ok": true
+     },
+     "b_out_of_bank": {
+      "banked_and_excluded": 2,
+      "banked_not_excluded": [],
+      "excluded_not_justified": [],
+      "SOURCE": "the BANKED capture's own rows, recomputed",
+      "banked_rows_scanned": 623,
+      "banked_rows_fires": 2,
+      "ok": true
+     },
+     "c_printed": {
+      "c1_excluded_total": 2,
+      "ok": true
+     },
+     "ok": true
+    }
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-4": {
+   "statement": "era",
+   "registered": "0 captures with an absent, incomplete or mixed era stamp",
+   "measured": {
+    "distinct_eras": 1,
+    "absent": 0,
+    "incomplete": 0,
+    "build_stale": 0,
+    "lines": 3840
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-5": {
+   "statement": "no gen-drift",
+   "registered": "0 GEN_DRIFT; 0 wvec re-derive mismatches",
+   "measured": {
+    "gen_drift": 0,
+    "wvec_mismatch": 0,
+    "seeds": 3840
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-6": {
+   "statement": "the rig applied the directives it was handed",
+   "registered": "EVT2/EVT3_CFG + TVEC + VECCTL round-trip on the readback path; a PIN-LEVEL proof by counted rows at >= 2 hold values (every seed's counted high-row run equals its own `hold`, +/- 1 clock); interception proven on the rows at >= 2 distinct TVEC values",
+   "measured": {
+    "holds_in_corpus": {
+     "2": 1241,
+     "300": 679
+    },
+    "hold_rows_exact": 4638,
+    "hold_rows_off": 0,
+    "control_leg": {
+     "stage": "fz2 C-6 control legs",
+     "host": "root@mister-nec",
+     "prereg": "\u00a76 C-6 (a)(b)(c); the legs are \u00a724",
+     "gen_git": "ddaed64457",
+     "tree_dirty": [
+      {
+       "status": " M",
+       "path": "sw/testdata/flash_log.jsonl",
+       "sha256": "199223ec7f91e9158fde1aa41b3d01982634b73dcea58a7f6c2576183bdd6a8e"
+      },
+      {
+       "status": " M",
+       "path": "sw/testdata/receipts/verilator_binary.jsonl",
+       "sha256": "9e203b4ae9f15494f179c12daf95c2d9c24daa0248a407a17539165e45b586c5"
+      }
+     ],
+     "started": "2026-08-10T20:27:55Z",
+     "div_guards": [
+      {
+       "tag": "control-start",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:56Z"
+      },
+      {
+       "tag": "control-P1",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:56Z"
+      },
+      {
+       "tag": "control-P2",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:56Z"
+      },
+      {
+       "tag": "control-P3",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:56Z"
+      },
+      {
+       "tag": "control-P4",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:56Z"
+      },
+      {
+       "tag": "control-P5",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:56Z"
+      },
+      {
+       "tag": "control-V1",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:57Z"
+      },
+      {
+       "tag": "control-V2",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:57Z"
+      },
+      {
+       "tag": "control-N1",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:57Z"
+      },
+      {
+       "tag": "control-end",
+       "readback": "div=8 (4 MHz), commanded by this connection",
+       "state": "PINNED",
+       "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+       "ts": "2026-08-10T20:27:57Z"
+      }
+     ],
+     "legs": [
+      {
+       "leg": "R1",
+       "title": "clause (a): every fuzz-v2 register round-trips on the readback path (RBCHECK)",
+       "ok": true,
+       "checks": [
+        {
+         "check": "RBCHECK: two distinct values written and read back in every register",
+         "pass": true,
+         "detail": "8 registers: ['EVT_ADDR[0]', 'EVT_ADDR[1]', 'EVT_ADDR[2]', 'EVT_CFG[0]', 'EVT_CFG[1]', 'EVT_CFG[2]', 'TVEC', 'VECCTL']"
+        }
+       ],
+       "registers": [
+        "EVT_ADDR[0]",
+        "EVT_ADDR[1]",
+        "EVT_ADDR[2]",
+        "EVT_CFG[0]",
+        "EVT_CFG[1]",
+        "EVT_CFG[2]",
+        "TVEC",
+        "VECCTL"
+       ]
+      },
+      {
+       "leg": "P1",
+       "title": "clause (b) directed: pin_int x hold = 2",
+       "ok": true,
+       "checks": [
+        {
+         "check": "exactly ONE run on pin_int",
+         "pass": true,
+         "detail": "runs=[[547, 2]]"
+        },
+        {
+         "check": "its length is 2 +/- 1 clock",
+         "pass": true,
+         "detail": "measured 2"
+        },
+        {
+         "check": "0 runs on the other interrupt pin (pin_nmi)",
+         "pass": true,
+         "detail": "runs=[]"
+        },
+        {
+         "check": "the rig's own readback held the directive",
+         "pass": true,
+         "detail": "fired=1 vec_used=False"
+        },
+        {
+         "check": "scheduler 0's sticky FIRE bit is set",
+         "pass": true,
+         "detail": "fired=1"
+        }
+       ],
+       "pin": "pin_int",
+       "hold": 2,
+       "runs": [
+        [
+         547,
+         2
+        ]
+       ],
+       "all_runs": {
+        "pin_int": [
+         [
+          547,
+          2
+         ]
+        ],
+        "pin_nmi": [],
+        "pin_poll_n": [
+         [
+          0,
+          4063
+         ]
+        ]
+       },
+       "measured": 2,
+       "fired": 1,
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
+       "n_rows": 4063,
+       "sha256": "69e998000ebb8f305bce06bdc8682d60937290df73f0063c4a86ae2d45e02823"
+      },
+      {
+       "leg": "P2",
+       "title": "clause (b) directed: pin_int x hold = 300",
+       "ok": true,
+       "checks": [
+        {
+         "check": "exactly ONE run on pin_int",
+         "pass": true,
+         "detail": "runs=[[547, 300]]"
+        },
+        {
+         "check": "its length is 300 +/- 1 clock",
+         "pass": true,
+         "detail": "measured 300"
+        },
+        {
+         "check": "0 runs on the other interrupt pin (pin_nmi)",
+         "pass": true,
+         "detail": "runs=[]"
+        },
+        {
+         "check": "the rig's own readback held the directive",
+         "pass": true,
+         "detail": "fired=1 vec_used=False"
+        },
+        {
+         "check": "scheduler 0's sticky FIRE bit is set",
+         "pass": true,
+         "detail": "fired=1"
+        }
+       ],
+       "pin": "pin_int",
+       "hold": 300,
+       "runs": [
+        [
+         547,
+         300
+        ]
+       ],
+       "all_runs": {
+        "pin_int": [
+         [
+          547,
+          300
+         ]
+        ],
+        "pin_nmi": [],
+        "pin_poll_n": [
+         [
+          0,
+          4063
+         ]
+        ]
+       },
+       "measured": 300,
+       "fired": 1,
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
+       "n_rows": 4063,
+       "sha256": "8b993ed7ade52d00c9e57cb51881e8c19af729c88f6d2c3bd37ae732e5e86b91"
+      },
+      {
+       "leg": "P3",
+       "title": "clause (b) directed: pin_nmi x hold = 2",
+       "ok": true,
+       "checks": [
+        {
+         "check": "exactly ONE run on pin_nmi",
+         "pass": true,
+         "detail": "runs=[[547, 2]]"
+        },
+        {
+         "check": "its length is 2 +/- 1 clock",
+         "pass": true,
+         "detail": "measured 2"
+        },
+        {
+         "check": "0 runs on the other interrupt pin (pin_int)",
+         "pass": true,
+         "detail": "runs=[]"
+        },
+        {
+         "check": "the rig's own readback held the directive",
+         "pass": true,
+         "detail": "fired=1 vec_used=False"
+        },
+        {
+         "check": "scheduler 0's sticky FIRE bit is set",
+         "pass": true,
+         "detail": "fired=1"
+        }
+       ],
+       "pin": "pin_nmi",
+       "hold": 2,
+       "runs": [
+        [
+         547,
+         2
+        ]
+       ],
+       "all_runs": {
+        "pin_int": [],
+        "pin_nmi": [
+         [
+          547,
+          2
+         ]
+        ],
+        "pin_poll_n": [
+         [
+          0,
+          4063
+         ]
+        ]
+       },
+       "measured": 2,
+       "fired": 1,
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
+       "n_rows": 4063,
+       "sha256": "e253a09e91911b3d24f740110960c4a908b9fb0a6b8c503030d3eef51605929e"
+      },
+      {
+       "leg": "P4",
+       "title": "clause (b) directed: pin_nmi x hold = 300   [the cell the corpus CANNOT produce -- \u00a720.3]",
+       "ok": true,
+       "checks": [
+        {
+         "check": "exactly ONE run on pin_nmi",
+         "pass": true,
+         "detail": "runs=[[547, 300]]"
+        },
+        {
+         "check": "its length is 300 +/- 1 clock",
+         "pass": true,
+         "detail": "measured 300"
+        },
+        {
+         "check": "0 runs on the other interrupt pin (pin_int)",
+         "pass": true,
+         "detail": "runs=[]"
+        },
+        {
+         "check": "the rig's own readback held the directive",
+         "pass": true,
+         "detail": "fired=1 vec_used=False"
+        },
+        {
+         "check": "scheduler 0's sticky FIRE bit is set",
+         "pass": true,
+         "detail": "fired=1"
+        }
+       ],
+       "pin": "pin_nmi",
+       "hold": 300,
+       "runs": [
+        [
+         547,
+         300
+        ]
+       ],
+       "all_runs": {
+        "pin_int": [],
+        "pin_nmi": [
+         [
+          547,
+          300
+         ]
+        ],
+        "pin_poll_n": [
+         [
+          0,
+          4063
+         ]
+        ]
+       },
+       "measured": 300,
+       "fired": 1,
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
+       "n_rows": 4063,
+       "sha256": "f07a5f0d44f36127ff935f21dba0bcd74382daecddb60aace253b9255aa1de93"
+      },
+      {
+       "leg": "P5",
+       "title": "clause (b) directed: pin_nmi x hold = 20",
+       "ok": true,
+       "checks": [
+        {
+         "check": "exactly ONE run on pin_nmi",
+         "pass": true,
+         "detail": "runs=[[547, 20]]"
+        },
+        {
+         "check": "its length is 20 +/- 1 clock",
+         "pass": true,
+         "detail": "measured 20"
+        },
+        {
+         "check": "0 runs on the other interrupt pin (pin_int)",
+         "pass": true,
+         "detail": "runs=[]"
+        },
+        {
+         "check": "the rig's own readback held the directive",
+         "pass": true,
+         "detail": "fired=1 vec_used=False"
+        },
+        {
+         "check": "scheduler 0's sticky FIRE bit is set",
+         "pass": true,
+         "detail": "fired=1"
+        }
+       ],
+       "pin": "pin_nmi",
+       "hold": 20,
+       "runs": [
+        [
+         547,
+         20
+        ]
+       ],
+       "all_runs": {
+        "pin_int": [],
+        "pin_nmi": [
+         [
+          547,
+          20
+         ]
+        ],
+        "pin_poll_n": [
+         [
+          0,
+          4063
+         ]
+        ]
+       },
+       "measured": 20,
+       "fired": 1,
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
+       "n_rows": 4063,
+       "sha256": "2cbf6fbdff3983003e3884d7da61fa97a3912d1d0aafec07f97acf6dbc8975f8"
+      },
+      {
+       "leg": "V1",
+       "title": "clause (c): interception at TVEC = 0000:bf00 -> 0bf00",
+       "ok": true,
+       "checks": [
+        {
+         "check": "MEMR at linear 0x00008 present",
+         "pass": true,
+         "detail": "1 reads"
+        },
+        {
+         "check": "0x00008 returns the TVEC IP half 0xbf00",
+         "pass": true,
+         "detail": "data=0xbf00"
+        },
+        {
+         "check": "MEMR at linear 0x0000A present",
+         "pass": true,
+         "detail": "1 reads"
+        },
+        {
+         "check": "0x0000A returns the TVEC CS half 0x0000",
+         "pass": true,
+         "detail": "data=0x0000"
+        },
+        {
+         "check": "vec_armed is high across the intercepted reads",
+         "pass": true,
+         "detail": "ip.vec=1 cs.vec=1"
+        },
+        {
+         "check": "the next CODE T1 is at 0x0bf00",
+         "pass": true,
+         "detail": "0x0bf00"
+        },
+        {
+         "check": "STATUS[6]: the overlay actually served a CS half",
+         "pass": true,
+         "detail": "vec_used=True"
+        },
+        {
+         "check": "the terminator's sticky FIRE bit is set",
+         "pass": true,
+         "detail": "fired=4"
+        },
+        {
+         "check": "the CPU did NOT reach the image's own wrong vector (0x0b000)",
+         "pass": true,
+         "detail": ""
+        }
+       ],
+       "tvec": [
+        0,
+        48896
+       ],
+       "next_code": 48896,
+       "dumped": true,
+       "done_marker": 61453,
+       "vec_used": true,
+       "fired": 4,
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
+       "n_rows": 4063,
+       "sha256": "45cfe04271b4775834a7fd3be2044da1fb44bb03c9548493590ebdd5d9a8796a"
+      },
+      {
+       "leg": "V2",
+       "title": "clause (c): interception at TVEC = 0bf0:0008 -> 0bf08",
+       "ok": true,
+       "checks": [
+        {
+         "check": "MEMR at linear 0x00008 present",
+         "pass": true,
+         "detail": "1 reads"
+        },
+        {
+         "check": "0x00008 returns the TVEC IP half 0x0008",
+         "pass": true,
+         "detail": "data=0x0008"
+        },
+        {
+         "check": "MEMR at linear 0x0000A present",
+         "pass": true,
+         "detail": "1 reads"
+        },
+        {
+         "check": "0x0000A returns the TVEC CS half 0x0bf0",
+         "pass": true,
+         "detail": "data=0x0bf0"
+        },
+        {
+         "check": "vec_armed is high across the intercepted reads",
+         "pass": true,
+         "detail": "ip.vec=1 cs.vec=1"
+        },
+        {
+         "check": "the next CODE T1 is at 0x0bf08",
+         "pass": true,
+         "detail": "0x0bf08"
+        },
+        {
+         "check": "STATUS[6]: the overlay actually served a CS half",
+         "pass": true,
+         "detail": "vec_used=True"
+        },
+        {
+         "check": "the terminator's sticky FIRE bit is set",
+         "pass": true,
+         "detail": "fired=4"
+        },
+        {
+         "check": "the CPU did NOT reach the image's own wrong vector (0x0b000)",
+         "pass": true,
+         "detail": ""
+        }
+       ],
+       "tvec": [
+        3056,
+        8
+       ],
+       "next_code": 48904,
+       "dumped": false,
+       "done_marker": 61453,
+       "vec_used": true,
+       "fired": 4,
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
+       "n_rows": 4063,
+       "sha256": "c3b8951824f3a290789d92350afa3a92cb8a83376c33a031fe4d4e42a40cff1c"
+      },
+      {
+       "leg": "N1",
+       "title": "clause (c) NEGATIVE CONTROL: the same image and the same TVEC with vecsub_en = 0 must NOT terminate",
+       "ok": true,
+       "checks": [
+        {
+         "check": "the NMI still fired (the control differs in vecsub ONLY)",
+         "pass": true,
+         "detail": "fired=4"
+        },
+        {
+         "check": "vec_armed NEVER rises anywhere in the capture",
+         "pass": true,
+         "detail": "0 rows armed"
+        },
+        {
+         "check": "STATUS[6] clear: the overlay served nothing",
+         "pass": true,
+         "detail": "vec_used=False"
+        },
+        {
+         "check": "0x00008 returns the IMAGE's own wrong vector 0xb000",
+         "pass": true,
+         "detail": "data=0xb000"
+        },
+        {
+         "check": "0x0000A returns the image's own CS 0x0000",
+         "pass": true,
+         "detail": "data=0x0000"
+        },
+        {
+         "check": "the CPU DID reach the wrong vector 0x0b000",
+         "pass": true,
+         "detail": ""
+        },
+        {
+         "check": "it did NOT terminate: no 15-word dump and no done marker",
+         "pass": true,
+         "detail": "dump=no done=None"
+        }
+       ],
+       "tvec": [
+        0,
+        48896
+       ],
+       "dumped": false,
+       "vec_used": false,
+       "fired": 4,
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
+       "n_rows": 4063,
+       "sha256": "187fcb8bfb880ab13df44d42f5c237eab58f4eb36fda64b31c02e751d28b61a9"
+      }
+     ],
+     "retained": {
+      "P1": {
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
+       "n_rows": 4063,
+       "sha256": "69e998000ebb8f305bce06bdc8682d60937290df73f0063c4a86ae2d45e02823"
+      },
+      "P2": {
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
+       "n_rows": 4063,
+       "sha256": "8b993ed7ade52d00c9e57cb51881e8c19af729c88f6d2c3bd37ae732e5e86b91"
+      },
+      "P3": {
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
+       "n_rows": 4063,
+       "sha256": "e253a09e91911b3d24f740110960c4a908b9fb0a6b8c503030d3eef51605929e"
+      },
+      "P4": {
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
+       "n_rows": 4063,
+       "sha256": "f07a5f0d44f36127ff935f21dba0bcd74382daecddb60aace253b9255aa1de93"
+      },
+      "P5": {
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
+       "n_rows": 4063,
+       "sha256": "2cbf6fbdff3983003e3884d7da61fa97a3912d1d0aafec07f97acf6dbc8975f8"
+      },
+      "V1": {
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
+       "n_rows": 4063,
+       "sha256": "45cfe04271b4775834a7fd3be2044da1fb44bb03c9548493590ebdd5d9a8796a"
+      },
+      "V2": {
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
+       "n_rows": 4063,
+       "sha256": "c3b8951824f3a290789d92350afa3a92cb8a83376c33a031fe4d4e42a40cff1c"
+      },
+      "N1": {
+       "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
+       "n_rows": 4063,
+       "sha256": "187fcb8bfb880ab13df44d42f5c237eab58f4eb36fda64b31c02e751d28b61a9"
+      }
+     },
+     "stimulus": {
+      "anchor_linear": 33024,
+      "delay": 400,
+      "sled": 64,
+      "wrong_at": 45056,
+      "spin_image_sha256": "d46a1d3bda3ece9a3617350993bff2a80ac607b8463770c7a8ed35794554621d",
+      "wrong_image_sha256": "4d3f53e0c31617964040ded8be8f0d1828abb70d8b2d5fbd314b2cf89dfca921"
+     },
+     "inta_vector_measured": 255,
+     "holds_proved": [
+      2,
+      20,
+      300
+     ],
+     "pins_proved": [
+      "pin_int",
+      "pin_nmi"
+     ],
+     "tvecs_proved": [
+      [
+       0,
+       48896
+      ],
+      [
+       3056,
+       8
+      ]
+     ],
+     "failing_legs": [],
+     "div_guards_unpinned": [],
+     "verdict": "MET",
+     "finished": "2026-08-10T20:27:57Z"
+    },
+    "pin_level_clause": "A-8: per directive, on the pin that directive names",
+    "c6b": {
+     "ruling": "A-8: per directive, on the pin that directive names",
+     "seeds": 3840,
+     "unevaluable_shared_pin": 561,
+     "unevaluable_ks": [
+      "fz2c/403000",
+      "fz2c/403008",
+      "fz2c/403009",
+      "fz2c/403012",
+      "fz2c/403013",
+      "fz2c/403014",
+      "fz2c/403016",
+      "fz2c/403017",
+      "fz2c/403021",
+      "fz2c/403022",
+      "fz2c/403028",
+      "fz2c/403035",
+      "fz2c/403037",
+      "fz2c/403038",
+      "fz2c/403041",
+      "fz2c/403045",
+      "fz2c/403047",
+      "fz2c/403052",
+      "fz2c/403058",
+      "fz2c/403059"
+     ],
+     "directives": 4638,
+     "directive_ok": 4638,
+     "directive_bad": 0,
+     "runs_per_directive": {
+      "term:1": 3279,
+      "stim:1": 1359
+     },
+     "holds_evaluated": {
+      "20": 3279,
+      "300": 679,
+      "2": 680
+     },
+     "bad_detail": [],
+     "strict_single_run_bad": 0
+    },
+    "scoreable": true
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-7": {
+   "statement": "no capture reaches 4,096 bus cycles",
+   "registered": "0 seeds at or beyond 4,096",
+   "measured": {
+    "scored": 3840,
+    "max": 957,
+    "at_or_over": 0,
+    "ks": []
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-8": {
+   "statement": "board discipline",
+   "registered": "div_guard PINNED on 100 % of probes; 0 unpinned readbacks",
+   "measured": {
+    "div_guards": 63,
+    "unpinned": 0,
+    "unpinned_detail": []
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-10": {
+   "statement": "transport",
+   "registered": "circuit breaker not tripped; no short stratum; the transport-error count is REPORTED, not barred",
+   "measured": {
+    "quarantines": 0,
+    "run_error_lines": 0,
+    "consecutive_quarantine_break_at": null,
+    "halted": null,
+    "c9_errors": 0
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-9": {
+   "statement": "the capture is stable, rows AND arch",
+   "registered": "192 / 192 stable over 3 reps",
+   "measured": {
+    "seeds": 192,
+    "stable": 192,
+    "unstable": 0,
+    "errors": 0
+   },
+   "verdict": "MET",
+   "finding": null
+  },
+  "C-11": {
+   "statement": "bank integrity: the census bank IS the frozen rule and the two populations are never pooled",
+   "registered": "census bank == the 480 enumerated seeds, seed for seed; 0 `_capped` on either cid; standing bank <= 3,500 seeds REPLAYED PER GATE RUN (sec.2.1's reading, ruled 2026-08-09); 0 seeds in both banks",
+   "measured": {
+    "census_banked": 480,
+    "census_expected": 480,
+    "census_exact": true,
+    "enriched_banked": 143,
+    "capped": {
+     "census": 0,
+     "enriched": 0
+    },
+    "total": 623,
+    "replayed": 621,
+    "all_banked_incl_superseded": 3865,
+    "excluded": {
+     "census": 0,
+     "enriched": 2
+    },
+    "replayed_incl_excluded": 623,
+    "superseded_cids": [
+     "mc1",
+     "mc2",
+     "t30-brkem",
+     "t30-raw"
+    ],
+    "overlap": 0
+   },
+   "verdict": "MET",
+   "finding": null
+  }
+ },
+ "pops": {
+  "census": {
+   "cid": "fz2c",
+   "captured": 960,
+   "per_stratum": [
+    {
+     "j": 0,
+     "stratum": "cen/soup/noevt/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 1,
+     "stratum": "cen/soup/noevt/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 2,
+     "stratum": "cen/soup/noevt/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 3,
+     "stratum": "cen/soup/stim/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 78,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 4,
+     "stratum": "cen/soup/stim/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 79,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 77,
+      "FUNCTIONAL": 2,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 5,
+     "stratum": "cen/soup/stim/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 76,
+     "arch_exact": 75,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 76,
+      "FUNCTIONAL": 3,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 6,
+     "stratum": "cen/raw/noevt/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 75,
+     "arch_exact": 66,
+     "unscoreable": 12,
+     "verdicts": {
+      "SUCCESS": 75,
+      "KNOWN_ACCEPTED": 5
+     }
+    },
+    {
+     "j": 7,
+     "stratum": "cen/raw/noevt/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 75,
+     "arch_exact": 63,
+     "unscoreable": 15,
+     "verdicts": {
+      "KNOWN_ACCEPTED": 5,
+      "SUCCESS": 75
+     }
+    },
+    {
+     "j": 8,
+     "stratum": "cen/raw/noevt/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 60,
+     "unscoreable": 19,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 9,
+     "stratum": "cen/raw/stim/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 70,
+     "unscoreable": 10,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 10,
+     "stratum": "cen/raw/stim/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 64,
+     "unscoreable": 15,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 11,
+     "stratum": "cen/raw/stim/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 71,
+     "unscoreable": 9,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    }
+   ],
+   "rows_exact_mean_pct": 97.29,
+   "arch_exact_mean_pct": 89.9,
+   "unscoreable_total": 87
+  },
+  "enriched": {
+   "cid": "fz2e",
+   "captured": 2880,
+   "per_stratum": [
+    {
+     "j": 12,
+     "stratum": "enr/soup/noevt/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 13,
+     "stratum": "enr/soup/noevt/fix1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 76,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 78,
+      "FUNCTIONAL": 2
+     }
+    },
+    {
+     "j": 14,
+     "stratum": "enr/soup/noevt/fix2",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 80,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 15,
+     "stratum": "enr/soup/noevt/fix3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 78,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 16,
+     "stratum": "enr/soup/noevt/wrand1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 80,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 17,
+     "stratum": "enr/soup/noevt/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 80,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 18,
+     "stratum": "enr/soup/noevt/wrand7",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 19,
+     "stratum": "enr/soup/noevt/wrand15",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 20,
+     "stratum": "enr/soup/noevt/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 80,
+     "arch_exact": 80,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 80
+     }
+    },
+    {
+     "j": 21,
+     "stratum": "enr/soup/stim/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 79,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 78,
+      "TIMING": 1,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 22,
+     "stratum": "enr/soup/stim/fix1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 79,
+     "unscoreable": 0,
+     "verdicts": {
+      "SUCCESS": 78,
+      "FUNCTIONAL": 1,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 23,
+     "stratum": "enr/soup/stim/fix2",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 79,
+      "TIMING": 1
+     }
+    },
+    {
+     "j": 24,
+     "stratum": "enr/soup/stim/fix3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 77,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 2,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 25,
+     "stratum": "enr/soup/stim/wrand1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 76,
+     "arch_exact": 77,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 76,
+      "FUNCTIONAL": 2,
+      "KNOWN_ACCEPTED": 2
+     }
+    },
+    {
+     "j": 26,
+     "stratum": "enr/soup/stim/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 78,
+     "unscoreable": 2,
+     "verdicts": {
+      "SUCCESS": 78,
+      "FUNCTIONAL": 2
+     }
+    },
+    {
+     "j": 27,
+     "stratum": "enr/soup/stim/wrand7",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
+     }
+    },
+    {
+     "j": 28,
+     "stratum": "enr/soup/stim/wrand15",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 75,
+     "arch_exact": 78,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 75,
+      "FUNCTIONAL": 2,
+      "TIMING": 1,
+      "KNOWN_ACCEPTED": 2
+     }
+    },
+    {
+     "j": 29,
+     "stratum": "enr/soup/stim/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 79,
+     "unscoreable": 1,
+     "verdicts": {
+      "SUCCESS": 79,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 30,
+     "stratum": "enr/raw/noevt/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 69,
+     "arch_exact": 68,
+     "unscoreable": 8,
+     "verdicts": {
+      "SUCCESS": 69,
+      "KNOWN_ACCEPTED": 11
+     }
+    },
+    {
+     "j": 31,
+     "stratum": "enr/raw/noevt/fix1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 61,
+     "unscoreable": 19,
+     "verdicts": {
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
+     }
+    },
+    {
+     "j": 32,
+     "stratum": "enr/raw/noevt/fix2",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 74,
+     "arch_exact": 67,
+     "unscoreable": 11,
+     "verdicts": {
+      "KNOWN_ACCEPTED": 5,
+      "SUCCESS": 74,
+      "FUNCTIONAL": 1
+     }
+    },
+    {
+     "j": 33,
+     "stratum": "enr/raw/noevt/fix3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 64,
+     "unscoreable": 14,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 34,
+     "stratum": "enr/raw/noevt/wrand1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 68,
+     "unscoreable": 11,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 35,
+     "stratum": "enr/raw/noevt/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 70,
+     "unscoreable": 10,
+     "verdicts": {
+      "SUCCESS": 79,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 36,
+     "stratum": "enr/raw/noevt/wrand7",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 76,
+     "arch_exact": 61,
+     "unscoreable": 18,
+     "verdicts": {
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
+     }
+    },
+    {
+     "j": 37,
+     "stratum": "enr/raw/noevt/wrand15",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 67,
+     "unscoreable": 13,
+     "verdicts": {
+      "SUCCESS": 79,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 38,
+     "stratum": "enr/raw/noevt/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 79,
+     "arch_exact": 69,
+     "unscoreable": 11,
+     "verdicts": {
+      "SUCCESS": 79,
+      "KNOWN_ACCEPTED": 1
+     }
+    },
+    {
+     "j": 39,
+     "stratum": "enr/raw/stim/fix0",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 75,
+     "arch_exact": 63,
+     "unscoreable": 16,
+     "verdicts": {
+      "SUCCESS": 75,
+      "KNOWN_ACCEPTED": 5
+     }
+    },
+    {
+     "j": 40,
+     "stratum": "enr/raw/stim/fix1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 76,
+     "arch_exact": 67,
+     "unscoreable": 11,
+     "verdicts": {
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
+     }
+    },
+    {
+     "j": 41,
+     "stratum": "enr/raw/stim/fix2",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 70,
+     "unscoreable": 10,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 42,
+     "stratum": "enr/raw/stim/fix3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 74,
+     "arch_exact": 63,
+     "unscoreable": 17,
+     "verdicts": {
+      "SUCCESS": 74,
+      "KNOWN_ACCEPTED": 6
+     }
+    },
+    {
+     "j": 43,
+     "stratum": "enr/raw/stim/wrand1",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 76,
+     "arch_exact": 66,
+     "unscoreable": 11,
+     "verdicts": {
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
+     }
+    },
+    {
+     "j": 44,
+     "stratum": "enr/raw/stim/wrand3",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 75,
+     "arch_exact": 68,
+     "unscoreable": 11,
+     "verdicts": {
+      "KNOWN_ACCEPTED": 5,
+      "SUCCESS": 75
+     }
+    },
+    {
+     "j": 45,
+     "stratum": "enr/raw/stim/wrand7",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 78,
+     "arch_exact": 62,
+     "unscoreable": 18,
+     "verdicts": {
+      "SUCCESS": 78,
+      "KNOWN_ACCEPTED": 2
+     }
+    },
+    {
+     "j": 46,
+     "stratum": "enr/raw/stim/wrand15",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 77,
+     "arch_exact": 65,
+     "unscoreable": 13,
+     "verdicts": {
+      "SUCCESS": 77,
+      "KNOWN_ACCEPTED": 3
+     }
+    },
+    {
+     "j": 47,
+     "stratum": "enr/raw/stim/wvec-uni",
+     "n": 80,
+     "captured": 80,
+     "rows_exact": 76,
+     "arch_exact": 67,
+     "unscoreable": 11,
+     "verdicts": {
+      "SUCCESS": 76,
+      "KNOWN_ACCEPTED": 4
+     }
+    }
+   ],
+   "rows_exact_mean_pct": 96.81,
+   "arch_exact_mean_pct": 90.35,
+   "unscoreable_total": 249
+  }
+ }
+}
