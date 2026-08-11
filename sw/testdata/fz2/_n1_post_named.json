@@ -1,0 +1,84 @@
+{
+ "tool": "sw/fz2_replay.py",
+ "ts": "2026-08-11T23:02:18Z",
+ "ledger": "sw/testdata/fz2/fz2_failure_ledger_f17_2026-08-11.json",
+ "leg": "ret",
+ "tb_sys_receipt": "8b9d350ebb7c036bf3abb1080f3ee454c05f44fe216a12fd9928449bd2aff12a",
+ "tb_sys_tree": "e44b250a33e705f4d1da5916a4aa95d10be5a8496fc752949ffc8560548e26c9",
+ "git": {
+  "head": "4aa3a9cc2e70b1d516bc59d6203a723dff948b7a",
+  "describe": "4aa3a9cc2e-dirty",
+  "dirty_tracked": true
+ },
+ "era_report": [
+  "bitstream   26c19f613e2caae8\u2026  flashed 2026-08-11T13:49:17Z  git 85babd2e4a-dirty",
+  "receipt     287665a1027b42dd\u2026  fz2 FLASH#17 RETENTION ret1",
+  "its inputs  86/88 hash IDENTICAL in the tree at HEAD",
+  "  MOVED     hdl/nec_test_ucore.qsf   [EXEMPT: Quartus rewrites it in place, \u00a770.7; carries no RTL]",
+  "  MOVED     hdl/rtl/ucore/v30u_eu.sv   <-- RTL"
+ ],
+ "era_ok": false,
+ "tables": [
+  {
+   "name": "tb_sys REPLAY (both directives + overlay + the seed's own wait source)",
+   "n": 2,
+   "agree": 1,
+   "cells": {
+    "False_True": 1,
+    "False_False": 1
+   },
+   "first_bad_same": 0,
+   "first_bad_both_fail": 0,
+   "disagreements": {
+    "fabric_pass_replay_fail": [
+     "fz2c/404040@651"
+    ],
+    "fabric_fail_replay_pass": []
+   }
+  }
+ ],
+ "rows": [
+  {
+   "seed": "fz2c/404040",
+   "cid": "fz2c",
+   "k": 404040,
+   "tier": "soup",
+   "fabric_bad": 0,
+   "fabric_first": null,
+   "win": 2001,
+   "wait_mode": "wrand",
+   "has_evt": true,
+   "sys": {
+    "n": 2001,
+    "nrows": 4063,
+    "bad": 1325,
+    "flick": 0,
+    "first": 651,
+    "fired": 5,
+    "vecused": 1
+   },
+   "family": "(fabric PASS)"
+  },
+  {
+   "seed": "fz2e/531000",
+   "cid": "fz2e",
+   "k": 531000,
+   "tier": "raw",
+   "fabric_bad": 0,
+   "fabric_first": null,
+   "win": 4000,
+   "wait_mode": "wrand",
+   "has_evt": true,
+   "sys": {
+    "n": 4000,
+    "nrows": 4063,
+    "bad": 0,
+    "flick": 0,
+    "first": null,
+    "fired": 5,
+    "vecused": 1
+   },
+   "family": "(fabric PASS)"
+  }
+ ]
+}
