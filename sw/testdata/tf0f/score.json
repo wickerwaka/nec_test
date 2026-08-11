@@ -1,0 +1,2955 @@
+{
+ "controls": {
+  "notf": {
+   "cells": 16,
+   "entry_counts": [
+    0
+   ],
+   "nonzero": []
+  }
+ },
+ "boundary": {
+  "nop": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_off": 6,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "clc": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_off": 6,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "incaw": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_off": 6,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "movi": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 8,
+    "K5": 8,
+    "K4": 8,
+    "K2": 8
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "addrr": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 7,
+    "K7": 7,
+    "K3": 7,
+    "K5": 7,
+    "K4": 7,
+    "K2": 7
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "pfx1": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 7,
+    "K5": 7,
+    "K4": 7,
+    "K2": 7
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K3",
+    "K5",
+    "K4",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "pfx2": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 9,
+    "K3": 8,
+    "K5": 8,
+    "K4": 6,
+    "K2": 6
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K3",
+    "K5"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "pfx3": {
+   "chip": {
+    "9": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "K1": 10,
+    "K7": 10,
+    "K3": 9,
+    "K5": 9,
+    "K4": 6,
+    "K2": 6
+   },
+   "chip_unique": true,
+   "chip_off": 9,
+   "core_off": 9,
+   "kinds_matched": [
+    "K3",
+    "K5"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "pfx4": {
+   "chip": {
+    "10": 96
+   },
+   "core": {
+    "10": 96
+   },
+   "pred": {
+    "K1": 11,
+    "K7": 11,
+    "K3": 10,
+    "K5": 10,
+    "K4": 6,
+    "K2": 6
+   },
+   "chip_unique": true,
+   "chip_off": 10,
+   "core_off": 10,
+   "kinds_matched": [
+    "K3",
+    "K5"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "x13": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 8,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "x1b": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 8,
+    "K3": 9,
+    "K5": 8,
+    "K4": 9,
+    "K2": 8
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 9,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "x18": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 8,
+    "K3": 9,
+    "K5": 8,
+    "K4": 9,
+    "K2": 8
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 9,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "x28": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 8,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "x33": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 8,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "y1e": {
+   "chip": {
+    "10": 96
+   },
+   "core": {
+    "11": 96
+   },
+   "pred": {
+    "K1": 11,
+    "K7": 10,
+    "K3": 11,
+    "K5": 10,
+    "K4": 11,
+    "K2": 10
+   },
+   "chip_unique": true,
+   "chip_off": 10,
+   "core_off": 11,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  },
+  "z1b": {
+   "chip": {
+    "9": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "K1": 10,
+    "K7": 9,
+    "K3": 9,
+    "K5": 6,
+    "K4": 9,
+    "K2": 6
+   },
+   "chip_unique": true,
+   "chip_off": 9,
+   "core_off": 9,
+   "kinds_matched": [
+    "K7",
+    "K3",
+    "K4"
+   ],
+   "n_cells": 16,
+   "n_traps": 96
+  }
+ },
+ "kinds": {
+  "K1": {
+   "agree": 5,
+   "of": 16,
+   "misses": [
+    "pfx1",
+    "pfx2",
+    "pfx3",
+    "pfx4",
+    "x13",
+    "x1b",
+    "x18",
+    "x28",
+    "x33",
+    "y1e",
+    "z1b"
+   ],
+   "says": "ONE unit per architectural instruction: a prefix stack and its opcode are one unit, `0F xx` is one unit"
+  },
+  "K7": {
+   "agree": 12,
+   "of": 16,
+   "misses": [
+    "pfx1",
+    "pfx2",
+    "pfx3",
+    "pfx4"
+   ],
+   "says": "the prefix stack is not a unit, but the `0F` escape byte is"
+  },
+  "K3": {
+   "agree": 10,
+   "of": 16,
+   "misses": [
+    "x13",
+    "x1b",
+    "x18",
+    "x28",
+    "x33",
+    "y1e"
+   ],
+   "says": "the prefix STACK is one extra unit whatever its depth; the `0F` escape byte is NOT a unit"
+  },
+  "K5": {
+   "agree": 15,
+   "of": 16,
+   "misses": [
+    "z1b"
+   ],
+   "says": "the prefix STACK is one extra unit whatever its depth; the `0F` escape byte IS a unit -- the shape the A3/D1/D2 diagnosis predicts for silicon"
+  },
+  "K4": {
+   "agree": 7,
+   "of": 16,
+   "misses": [
+    "pfx2",
+    "pfx3",
+    "pfx4",
+    "x13",
+    "x1b",
+    "x18",
+    "x28",
+    "x33",
+    "y1e"
+   ],
+   "says": "every prefix BYTE is its own unit; the `0F` escape byte is NOT"
+  },
+  "K2": {
+   "agree": 12,
+   "of": 16,
+   "misses": [
+    "pfx2",
+    "pfx3",
+    "pfx4",
+    "z1b"
+   ],
+   "says": "\u00a786's PROSE READ LITERALLY: every prefix byte is its own unit AND the `0F` escape byte is its own"
+  }
+ },
+ "diff": [
+  {
+   "cell": "x13_w0_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x13_w0_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x13_w0_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x13_w0_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x13_w1_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x13_w1_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x13_w1_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x13_w1_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x13_w2_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x13_w2_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    9
+   ]
+  },
+  {
+   "cell": "x13_w2_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x13_w2_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    9
+   ]
+  },
+  {
+   "cell": "x13_w3_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x13_w3_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    9
+   ]
+  },
+  {
+   "cell": "x13_w3_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x13_w3_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    9
+   ]
+  },
+  {
+   "cell": "x1b_w0_a0",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    12
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x1b_w0_a1",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    13
+   ]
+  },
+  {
+   "cell": "x1b_w0_a2",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    12
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x1b_w0_a3",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    13
+   ]
+  },
+  {
+   "cell": "x1b_w1_a0",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x1b_w1_a1",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x1b_w1_a2",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x1b_w1_a3",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x1b_w2_a0",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x1b_w2_a1",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x1b_w2_a2",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x1b_w2_a3",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x1b_w3_a0",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x1b_w3_a1",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x1b_w3_a2",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x1b_w3_a3",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x18_w0_a0",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    12
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x18_w0_a1",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    13
+   ]
+  },
+  {
+   "cell": "x18_w0_a2",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    12
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x18_w0_a3",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    13
+   ]
+  },
+  {
+   "cell": "x18_w1_a0",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x18_w1_a1",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x18_w1_a2",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x18_w1_a3",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x18_w2_a0",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x18_w2_a1",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x18_w2_a2",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x18_w2_a3",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x18_w3_a0",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x18_w3_a1",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x18_w3_a2",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    10
+   ]
+  },
+  {
+   "cell": "x18_w3_a3",
+   "chip": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "core": [
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+   ],
+   "chip_lastcode": [
+    9
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x28_w0_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x28_w0_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x28_w0_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x28_w0_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x28_w1_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x28_w1_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x28_w1_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x28_w1_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x28_w2_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x28_w2_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x28_w2_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x28_w2_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x28_w3_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x28_w3_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x28_w3_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x28_w3_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x33_w0_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x33_w0_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x33_w0_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x33_w0_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x33_w1_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x33_w1_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x33_w1_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x33_w1_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x33_w2_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x33_w2_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x33_w2_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x33_w2_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x33_w3_a0",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x33_w3_a1",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "x33_w3_a2",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    10
+   ],
+   "core_lastcode": [
+    12
+   ]
+  },
+  {
+   "cell": "x33_w3_a3",
+   "chip": [
+    7,
+    7,
+    7,
+    7,
+    7,
+    7
+   ],
+   "core": [
+    8,
+    8,
+    8,
+    8,
+    8,
+    8
+   ],
+   "chip_lastcode": [
+    11
+   ],
+   "core_lastcode": [
+    11
+   ]
+  },
+  {
+   "cell": "y1e_w0_a0",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    14
+   ],
+   "core_lastcode": [
+    14
+   ]
+  },
+  {
+   "cell": "y1e_w0_a1",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    13
+   ],
+   "core_lastcode": [
+    15
+   ]
+  },
+  {
+   "cell": "y1e_w0_a2",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    14
+   ],
+   "core_lastcode": [
+    14
+   ]
+  },
+  {
+   "cell": "y1e_w0_a3",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    13
+   ],
+   "core_lastcode": [
+    15
+   ]
+  },
+  {
+   "cell": "y1e_w1_a0",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    14
+   ],
+   "core_lastcode": [
+    14
+   ]
+  },
+  {
+   "cell": "y1e_w1_a1",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    13
+   ],
+   "core_lastcode": [
+    13
+   ]
+  },
+  {
+   "cell": "y1e_w1_a2",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    14
+   ],
+   "core_lastcode": [
+    14
+   ]
+  },
+  {
+   "cell": "y1e_w1_a3",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    13
+   ],
+   "core_lastcode": [
+    13
+   ]
+  },
+  {
+   "cell": "y1e_w2_a0",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    14
+   ],
+   "core_lastcode": [
+    14
+   ]
+  },
+  {
+   "cell": "y1e_w2_a1",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    13
+   ],
+   "core_lastcode": [
+    13
+   ]
+  },
+  {
+   "cell": "y1e_w2_a2",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    14
+   ],
+   "core_lastcode": [
+    14
+   ]
+  },
+  {
+   "cell": "y1e_w2_a3",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    13
+   ],
+   "core_lastcode": [
+    13
+   ]
+  },
+  {
+   "cell": "y1e_w3_a0",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    14
+   ],
+   "core_lastcode": [
+    14
+   ]
+  },
+  {
+   "cell": "y1e_w3_a1",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    13
+   ],
+   "core_lastcode": [
+    13
+   ]
+  },
+  {
+   "cell": "y1e_w3_a2",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    14
+   ],
+   "core_lastcode": [
+    14
+   ]
+  },
+  {
+   "cell": "y1e_w3_a3",
+   "chip": [
+    10,
+    10,
+    10,
+    10,
+    10,
+    10
+   ],
+   "core": [
+    11,
+    11,
+    11,
+    11,
+    11,
+    11
+   ],
+   "chip_lastcode": [
+    13
+   ],
+   "core_lastcode": [
+    13
+   ]
+  }
+ ],
+ "columns": {
+  "n_entries": {
+   "diff": 0,
+   "compared": 272
+  },
+  "pushed_off": {
+   "diff": 96,
+   "compared": 272
+  },
+  "pushed_off_set": {
+   "diff": 96,
+   "compared": 272
+  },
+  "lastcode_off_set": {
+   "diff": 42,
+   "compared": 272
+  },
+  "uniform": {
+   "diff": 0,
+   "compared": 272
+  },
+  "term_done": {
+   "diff": 2,
+   "compared": 272
+  }
+ },
+ "confirm": {
+  "repeated": 34,
+  "of": 272,
+  "take_unstable": [],
+  "stream_distinct": []
+ }
+}

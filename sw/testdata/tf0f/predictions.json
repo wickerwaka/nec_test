@@ -1,6 +1,6 @@
 {
  "tool": "tf0f_cell predict",
- "ts": "2026-08-11T22:45:11Z",
+ "ts": "2026-08-11T22:52:28Z",
  "block": 16,
  "R": 6,
  "waits": [
@@ -26,36 +26,90 @@
  },
  "kinds": {
   "K1": {
+   "lattice": true,
    "prefix": "none",
    "escape": "no",
    "says": "ONE unit per architectural instruction: a prefix stack and its opcode are one unit, `0F xx` is one unit"
   },
   "K7": {
+   "lattice": true,
    "prefix": "none",
    "escape": "yes",
    "says": "the prefix stack is not a unit, but the `0F` escape byte is"
   },
   "K3": {
+   "lattice": true,
    "prefix": "stack",
    "escape": "no",
    "says": "the prefix STACK is one extra unit whatever its depth; the `0F` escape byte is NOT a unit"
   },
   "K5": {
+   "lattice": true,
    "prefix": "stack",
    "escape": "yes",
    "says": "the prefix STACK is one extra unit whatever its depth; the `0F` escape byte IS a unit -- the shape the A3/D1/D2 diagnosis predicts for silicon"
   },
   "K4": {
+   "lattice": true,
    "prefix": "byte",
    "escape": "no",
    "says": "every prefix BYTE is its own unit; the `0F` escape byte is NOT"
   },
   "K2": {
+   "lattice": true,
    "prefix": "byte",
    "escape": "yes",
    "says": "\u00a786's PROSE READ LITERALLY: every prefix byte is its own unit AND the `0F` escape byte is its own"
+  },
+  "KM": {
+   "lattice": false,
+   "prefix": null,
+   "escape": null,
+   "says": "THE MEASURED SILICON LAW (derived, not pre-registered): one unit, plus ONE MORE iff the opcode byte is not the first byte -- once, however deep and however many kinds of decoration"
+  },
+  "KC": {
+   "lattice": false,
+   "prefix": null,
+   "escape": null,
+   "says": "the ucore's own measured behaviour: KM with the `0F` escape not counting as decoration"
   }
  },
+ "derivation_legs": [
+  "nop",
+  "clc",
+  "incaw",
+  "movi",
+  "addrr",
+  "pfx1",
+  "pfx2",
+  "pfx3",
+  "pfx4",
+  "x13",
+  "x1b",
+  "x18",
+  "x28",
+  "x33",
+  "y1e",
+  "z1b",
+  "notf"
+ ],
+ "validation_legs": [
+  "v_p2x",
+  "v_p4x",
+  "v_pfxi",
+  "v_rep",
+  "v_lock",
+  "v_x39",
+  "v_x1f",
+  "v_x10",
+  "v_x2a",
+  "v_y13",
+  "v_add",
+  "v_movm",
+  "v_push",
+  "v_xchg",
+  "v_notf"
+ ],
  "probes": {
   "nop": {
    "bytes": "90",
@@ -64,13 +118,16 @@
    "n_prefix": 0,
    "escaped": false,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 6,
     "K7": 6,
     "K3": 6,
     "K5": 6,
     "K4": 6,
-    "K2": 6
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
    }
   },
   "clc": {
@@ -80,13 +137,16 @@
    "n_prefix": 0,
    "escaped": false,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 6,
     "K7": 6,
     "K3": 6,
     "K5": 6,
     "K4": 6,
-    "K2": 6
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
    }
   },
   "incaw": {
@@ -96,13 +156,16 @@
    "n_prefix": 0,
    "escaped": false,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 6,
     "K7": 6,
     "K3": 6,
     "K5": 6,
     "K4": 6,
-    "K2": 6
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
    }
   },
   "movi": {
@@ -112,13 +175,16 @@
    "n_prefix": 0,
    "escaped": false,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 8,
     "K7": 8,
     "K3": 8,
     "K5": 8,
     "K4": 8,
-    "K2": 8
+    "K2": 8,
+    "KM": 8,
+    "KC": 8
    }
   },
   "addrr": {
@@ -128,13 +194,16 @@
    "n_prefix": 0,
    "escaped": false,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 7,
     "K7": 7,
     "K3": 7,
     "K5": 7,
     "K4": 7,
-    "K2": 7
+    "K2": 7,
+    "KM": 7,
+    "KC": 7
    }
   },
   "pfx1": {
@@ -144,13 +213,16 @@
    "n_prefix": 1,
    "escaped": false,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 8,
     "K7": 8,
     "K3": 7,
     "K5": 7,
     "K4": 7,
-    "K2": 7
+    "K2": 7,
+    "KM": 7,
+    "KC": 7
    }
   },
   "pfx2": {
@@ -160,13 +232,16 @@
    "n_prefix": 2,
    "escaped": false,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 9,
     "K7": 9,
     "K3": 8,
     "K5": 8,
     "K4": 6,
-    "K2": 6
+    "K2": 6,
+    "KM": 8,
+    "KC": 8
    }
   },
   "pfx3": {
@@ -176,13 +251,16 @@
    "n_prefix": 3,
    "escaped": false,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 10,
     "K7": 10,
     "K3": 9,
     "K5": 9,
     "K4": 6,
-    "K2": 6
+    "K2": 6,
+    "KM": 9,
+    "KC": 9
    }
   },
   "pfx4": {
@@ -192,13 +270,16 @@
    "n_prefix": 4,
    "escaped": false,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 11,
     "K7": 11,
     "K3": 10,
     "K5": 10,
     "K4": 6,
-    "K2": 6
+    "K2": 6,
+    "KM": 10,
+    "KC": 10
    }
   },
   "x13": {
@@ -208,13 +289,16 @@
    "n_prefix": 0,
    "escaped": true,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 8,
     "K7": 7,
     "K3": 8,
     "K5": 7,
     "K4": 8,
-    "K2": 7
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
    }
   },
   "x1b": {
@@ -224,13 +308,16 @@
    "n_prefix": 0,
    "escaped": true,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 9,
     "K7": 8,
     "K3": 9,
     "K5": 8,
     "K4": 9,
-    "K2": 8
+    "K2": 8,
+    "KM": 8,
+    "KC": 9
    }
   },
   "x18": {
@@ -240,13 +327,16 @@
    "n_prefix": 0,
    "escaped": true,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 9,
     "K7": 8,
     "K3": 9,
     "K5": 8,
     "K4": 9,
-    "K2": 8
+    "K2": 8,
+    "KM": 8,
+    "KC": 9
    }
   },
   "x28": {
@@ -256,13 +346,16 @@
    "n_prefix": 0,
    "escaped": true,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 8,
     "K7": 7,
     "K3": 8,
     "K5": 7,
     "K4": 8,
-    "K2": 7
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
    }
   },
   "x33": {
@@ -272,13 +365,16 @@
    "n_prefix": 0,
    "escaped": true,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 8,
     "K7": 7,
     "K3": 8,
     "K5": 7,
     "K4": 8,
-    "K2": 7
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
    }
   },
   "y1e": {
@@ -288,13 +384,16 @@
    "n_prefix": 0,
    "escaped": true,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 11,
     "K7": 10,
     "K3": 11,
     "K5": 10,
     "K4": 11,
-    "K2": 10
+    "K2": 10,
+    "KM": 10,
+    "KC": 11
    }
   },
   "z1b": {
@@ -304,13 +403,16 @@
    "n_prefix": 1,
    "escaped": true,
    "control": false,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 10,
     "K7": 9,
     "K3": 9,
     "K5": 6,
     "K4": 9,
-    "K2": 6
+    "K2": 6,
+    "KM": 9,
+    "KC": 9
    }
   },
   "notf": {
@@ -320,13 +422,301 @@
    "n_prefix": 0,
    "escaped": true,
    "control": true,
+   "stage": "derivation",
    "pushed_off": {
     "K1": 9,
     "K7": 8,
     "K3": 9,
     "K5": 8,
     "K4": 9,
-    "K2": 8
+    "K2": 8,
+    "KM": 8,
+    "KC": 9
+   }
+  },
+  "v_p2x": {
+   "bytes": "2e3e0f1be84f",
+   "len": 6,
+   "what": "2 prefixes + 0F 1B, mod=3",
+   "n_prefix": 2,
+   "escaped": true,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 11,
+    "K7": 10,
+    "K3": 10,
+    "K5": 7,
+    "K4": 6,
+    "K2": 6,
+    "KM": 10,
+    "KC": 10
+   }
+  },
+  "v_p4x": {
+   "bytes": "2e3e26360f1be84f",
+   "len": 8,
+   "what": "4 prefixes + 0F 1B, mod=3 -- the deepest decoration",
+   "n_prefix": 4,
+   "escaped": true,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 13,
+    "K7": 12,
+    "K3": 12,
+    "K5": 9,
+    "K4": 6,
+    "K2": 6,
+    "KM": 12,
+    "KC": 12
+   }
+  },
+  "v_pfxi": {
+   "bytes": "2eb83412",
+   "len": 4,
+   "what": "CS: MOV AW,0x1234",
+   "n_prefix": 1,
+   "escaped": false,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 9,
+    "K7": 9,
+    "K3": 8,
+    "K5": 8,
+    "K4": 8,
+    "K2": 8,
+    "KM": 8,
+    "KC": 8
+   }
+  },
+  "v_rep": {
+   "bytes": "f301d8",
+   "len": 3,
+   "what": "REP prefix + ADD AW,BW",
+   "n_prefix": 1,
+   "escaped": false,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 7,
+    "K5": 7,
+    "K4": 7,
+    "K2": 7,
+    "KM": 7,
+    "KC": 7
+   }
+  },
+  "v_lock": {
+   "bytes": "f001d8",
+   "len": 3,
+   "what": "LOCK prefix + ADD AW,BW",
+   "n_prefix": 1,
+   "escaped": false,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 7,
+    "K5": 7,
+    "K4": 7,
+    "K2": 7,
+    "KM": 7,
+    "KC": 7
+   }
+  },
+  "v_x39": {
+   "bytes": "0f39c004",
+   "len": 4,
+   "what": "0F 39 -- INS reg,imm4, mod=3",
+   "n_prefix": 0,
+   "escaped": true,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 9,
+    "K7": 8,
+    "K3": 9,
+    "K5": 8,
+    "K4": 9,
+    "K2": 8,
+    "KM": 8,
+    "KC": 9
+   }
+  },
+  "v_x1f": {
+   "bytes": "0f1fc003",
+   "len": 4,
+   "what": "0F 1F -- bitop rm,imm, mod=3",
+   "n_prefix": 0,
+   "escaped": true,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 9,
+    "K7": 8,
+    "K3": 9,
+    "K5": 8,
+    "K4": 9,
+    "K2": 8,
+    "KM": 8,
+    "KC": 9
+   }
+  },
+  "v_x10": {
+   "bytes": "0f10c0",
+   "len": 3,
+   "what": "0F 10 -- bitop rm,CL, mod=3",
+   "n_prefix": 0,
+   "escaped": true,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
+   }
+  },
+  "v_x2a": {
+   "bytes": "0f2ac0",
+   "len": 3,
+   "what": "0F 2A -- ROR4, mod=3",
+   "n_prefix": 0,
+   "escaped": true,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
+   }
+  },
+  "v_y13": {
+   "bytes": "0f13060000",
+   "len": 5,
+   "what": "0F 13 -- bitop [DS0:0], CL, mod=0 direct (EA = linear 0x2000)",
+   "n_prefix": 0,
+   "escaped": true,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 10,
+    "K7": 9,
+    "K3": 10,
+    "K5": 9,
+    "K4": 10,
+    "K2": 9,
+    "KM": 9,
+    "KC": 10
+   }
+  },
+  "v_add": {
+   "bytes": "81c03412",
+   "len": 4,
+   "what": "ADD AW,0x1234 -- 4 bytes, opcode IS the first byte",
+   "n_prefix": 0,
+   "escaped": false,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 9,
+    "K7": 9,
+    "K3": 9,
+    "K5": 9,
+    "K4": 9,
+    "K2": 9,
+    "KM": 9,
+    "KC": 9
+   }
+  },
+  "v_movm": {
+   "bytes": "a10000",
+   "len": 3,
+   "what": "MOV AW,[DS0:0] -- 3 bytes",
+   "n_prefix": 0,
+   "escaped": false,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 8,
+    "K5": 8,
+    "K4": 8,
+    "K2": 8,
+    "KM": 8,
+    "KC": 8
+   }
+  },
+  "v_push": {
+   "bytes": "50",
+   "len": 1,
+   "what": "PUSH AW -- 1 byte",
+   "n_prefix": 0,
+   "escaped": false,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
+   }
+  },
+  "v_xchg": {
+   "bytes": "93",
+   "len": 1,
+   "what": "XCHG AW,BW -- 1 byte",
+   "n_prefix": 0,
+   "escaped": false,
+   "control": false,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
+   }
+  },
+  "v_notf": {
+   "bytes": "2e0f1be84f",
+   "len": 5,
+   "what": "the NULL, validation set: `push 0x000`, decorated probe",
+   "n_prefix": 1,
+   "escaped": true,
+   "control": true,
+   "stage": "validation",
+   "pushed_off": {
+    "K1": 10,
+    "K7": 9,
+    "K3": 9,
+    "K5": 6,
+    "K4": 9,
+    "K2": 6,
+    "KM": 9,
+    "KC": 9
    }
   }
  },
@@ -398,7 +788,67 @@
   "notf_a0": "0f007e66e8161c67508752aa51d9ae1bbd680d36fefa2e8a6c5f196319183dbb",
   "notf_a1": "7b70afdaf20fe6b3565e1145c5e2f9db866ae78bdb48835b5505cb4ae0d0f215",
   "notf_a2": "d53f74d4861519bf63d216d5f8ea1ef67812e4e59b40c9c0d442657986cefc5f",
-  "notf_a3": "cb04cb85cc70578fa2d9c479a8ba35b8a2226e7946b6fb863b53515e4c71ba45"
+  "notf_a3": "cb04cb85cc70578fa2d9c479a8ba35b8a2226e7946b6fb863b53515e4c71ba45",
+  "v_p2x_a0": "7c1733833b637691c5b855af7a735ec9670f6f4dabf2ff66e391ba84374cbf00",
+  "v_p2x_a1": "16d8cbd6d13eb9dc3819ff120a8a1002a4bb1d9c69bfcf7a69fcc8f2232cc48e",
+  "v_p2x_a2": "51955b73bc2fe18f52d4b14c63dbbb0c1f915d95e6df913bd0358437e0d8c682",
+  "v_p2x_a3": "8d7c936b91732fdfc6c17922e1621269ba895e2370dbf12cc326b419dbd67f84",
+  "v_p4x_a0": "b4cbf0ad6285414fc76c6b6be117c1a673faabc659b42efa34a5a5fceac45c5f",
+  "v_p4x_a1": "5c08a34c32b35eb82649010fa7917e4c8da045ac86ab22487b8cc9d8698a5a33",
+  "v_p4x_a2": "0ff5ba74380b4848961b5efcc7ed785f5d3e3ba58373287ccf1905501312801f",
+  "v_p4x_a3": "cfb773375f4dcc0755f55f564fcfce029605b60d1cf76581cc7f9dce2b87ddd2",
+  "v_pfxi_a0": "47cc194e1d502575f9d485d948a933810a58268f0f86a892fa2bebbb17cf0bd3",
+  "v_pfxi_a1": "619ced370d6c0a7a8d218e8cf9ca73ece1f3633b659a79569eff29cab403c0f6",
+  "v_pfxi_a2": "37ca2b41e7ece4d4084087b9046086878a46f4c230a5ff4dbb8d2023570d1530",
+  "v_pfxi_a3": "77b184258542d35c5c598b258ecf3c296a6985db4879b7500263f02f520dd3be",
+  "v_rep_a0": "841d72640a333dfe5c2fa5318fb97b4642b2df622bdbc621fa1c0446eaa65f61",
+  "v_rep_a1": "544db149987ed270002f35f9a466ba9ffd3d89d0344374f629458d3f79b257b1",
+  "v_rep_a2": "51849eebddac66536860a8eaf4c9acb6da1825ae93c497299ec9dde4d58ee041",
+  "v_rep_a3": "a74e322e44cb428b582e5258894e59fde3a4eca0d23d2ebf1e7696790e4fd866",
+  "v_lock_a0": "3449c7458c0fea3c8535349ce4109cd349ddc2fd356356cae03f103bff1b36e4",
+  "v_lock_a1": "706db5652b6aa92ddf3b2edcb5f71d2024b7bdc3557d11448d63d0356c9f098e",
+  "v_lock_a2": "b751f603bf38c6511767ca8fc2d1433de4b64071d67134af17ea02e28837fea1",
+  "v_lock_a3": "60019397670580684aff27889117a52c68d2688ac15169b266cf6ce510bdafb7",
+  "v_x39_a0": "3dc4ea064c9afdc29cf2fa1a8a16f70cac01939d7658b11bd6523bc02469ad5c",
+  "v_x39_a1": "ebe9feed9c3fd6e99df21d6c31d12627e37ce70c467e4fc3c4130ffce420fb27",
+  "v_x39_a2": "69b665320079735d6d53f36aaba29963028146517c59533beaee6ffaeb8bcd69",
+  "v_x39_a3": "105c14eef297e8a30a7211abbaacb729d69eaf93d75fbaead8474998e8051e38",
+  "v_x1f_a0": "c4cf62801b66a7303189e05abedff96cdca02a793be235532c41c07ee0c43a1d",
+  "v_x1f_a1": "d5b579db2e05f0a0370be19d46f26a38e5d7b81c8a8f4ece9160bdb685eb0291",
+  "v_x1f_a2": "24dd2dad491ea9a549036edfe525f7c0bca6c7cd48c4bd6979927dc0f1c21545",
+  "v_x1f_a3": "2fadfd06c1f9545a562d093a5f63fc63b549e2ccd48000bab9719a6235076f89",
+  "v_x10_a0": "2c369a19fac6221731ad10a1b0418405d3462a1deee50e964d0573e5be5f3f0e",
+  "v_x10_a1": "d238f864551a82f5e2a912a25acf197c2ca8e48f7b972c797138faabc51794d9",
+  "v_x10_a2": "65adc77275a39102a6bfcd36a6d0d566b911af02f3d4be6df5a46c6080e92336",
+  "v_x10_a3": "5c6babbc234d7e823379c4db520681fdb2370e2f9e20242e99c6fe070817f78f",
+  "v_x2a_a0": "5c3fec419e58fca6d1b0ea867d73d760a390162425fb4600a419a2ca126f2072",
+  "v_x2a_a1": "3bb6c24b71f1e4a806830752edf29ebae93a8cbad353dd43d8837974d1c381ff",
+  "v_x2a_a2": "d347bdb9a42116d1bbe7375d8c6e764649de6c6472f507cd2ceaf26b9d7c33fa",
+  "v_x2a_a3": "0333f3cb491215854264c9d37d13b44d56d454e7a90083ae4307d5f679501646",
+  "v_y13_a0": "bae437e3017200ac0f7adef301e3872d0e5e9df6c2a127706789cde53a513dad",
+  "v_y13_a1": "108a3b841644430450c28918e2d65202deac06fbceb924cfdd7e498f2c3ae6e6",
+  "v_y13_a2": "ae62186ba92e8a7f42fab023c68063af5c09bc8817f8d3394b65596f93255c7d",
+  "v_y13_a3": "e213b65a99484a253d8780582732ebf0c5cb6535b7a55657972611ed7da88f16",
+  "v_add_a0": "a3f1aecb29085b9860470f5c5c15e9cb75f5f34a1e6fd0985e7bf4cc8c1b9e99",
+  "v_add_a1": "2bf6c690020d26ccedc81bafc473f5c47f23682e41e8d109551d471cd44b6523",
+  "v_add_a2": "b41a9f5e2754ae8353d68af6975acbe779313eee93b61b29d5a78f46e33e77bb",
+  "v_add_a3": "6e60fd992e3e2fcfa58694d6e013039a74c1962e28f4b95deccec755644ebbb6",
+  "v_movm_a0": "2201b7e89c8de8adf8e9c8295d5c72fb92a0caf172df63ab0a205db0ee0efeac",
+  "v_movm_a1": "60b440bfd187942ea5261eede234877c2934ec4e527c86525ef36e85ed21639e",
+  "v_movm_a2": "3cf99ff8def58690743af806db90954aad7cbec1f64de678af46cc7f9f75ee65",
+  "v_movm_a3": "3823a3cbf3f28640c55ebb718c0294ece32491cf1a83522b4d630d519bce1ba2",
+  "v_push_a0": "6cf959d5e13c8bf33d62e7c269e59db9f4cdd10ed7a7ba8ab7c3d6ff1c212088",
+  "v_push_a1": "12abe56295bda1305543a54b8ec34f3457c87aa31c7ae9b072200536fe4ac9ac",
+  "v_push_a2": "0beb15e156139438002d0686b787f63f441120f634ce730a4d7bbcc48989dbd6",
+  "v_push_a3": "819d76c82b2d524d469ab7377d5a18a615fffd48878dbd5944e4b1d523329044",
+  "v_xchg_a0": "1ee2b747684a4476d8ea6b8d9b96dc1e2da50c1ea25182a37ea4840cf3ad3fc9",
+  "v_xchg_a1": "1b3c6b51e704e59e9b77df7e06bba5945b70965d7867219aaeedd5bc9548cb19",
+  "v_xchg_a2": "e1fd69bfe7cc79bd85aa901a5768c95516cdd20741cb676b101bdc01bbb7fad0",
+  "v_xchg_a3": "a32fb1d7b1daa4f531429ff172a1b450cb6298683981c2e2a311ba9aab1f396a",
+  "v_notf_a0": "d88d43a520d8f15f62ad429914e20e5d7d73dcca230d753f662cda9dec077247",
+  "v_notf_a1": "1e34162431410fa24e80b58e5f51f40e6ccbc977b31ab3121e6497d2b3c61e06",
+  "v_notf_a2": "744fd4382b4434c1f2b45d24596f799bebc077bb704ea1f4f4c963cace939b75",
+  "v_notf_a3": "cea9118ead6b281b926781a32ef6aae662f011e89126719cb576e59f9fcc14dd"
  },
  "cells": 272,
  "discrimination": {
@@ -519,6 +969,112 @@
     9
    ],
    "separates": true
+  },
+  "v_p2x": {
+   "distinct": [
+    6,
+    7,
+    10,
+    11
+   ],
+   "separates": true
+  },
+  "v_p4x": {
+   "distinct": [
+    6,
+    9,
+    12,
+    13
+   ],
+   "separates": true
+  },
+  "v_pfxi": {
+   "distinct": [
+    8,
+    9
+   ],
+   "separates": true
+  },
+  "v_rep": {
+   "distinct": [
+    7,
+    8
+   ],
+   "separates": true
+  },
+  "v_lock": {
+   "distinct": [
+    7,
+    8
+   ],
+   "separates": true
+  },
+  "v_x39": {
+   "distinct": [
+    8,
+    9
+   ],
+   "separates": true
+  },
+  "v_x1f": {
+   "distinct": [
+    8,
+    9
+   ],
+   "separates": true
+  },
+  "v_x10": {
+   "distinct": [
+    7,
+    8
+   ],
+   "separates": true
+  },
+  "v_x2a": {
+   "distinct": [
+    7,
+    8
+   ],
+   "separates": true
+  },
+  "v_y13": {
+   "distinct": [
+    9,
+    10
+   ],
+   "separates": true
+  },
+  "v_add": {
+   "distinct": [
+    9
+   ],
+   "separates": false
+  },
+  "v_movm": {
+   "distinct": [
+    8
+   ],
+   "separates": false
+  },
+  "v_push": {
+   "distinct": [
+    6
+   ],
+   "separates": false
+  },
+  "v_xchg": {
+   "distinct": [
+    6
+   ],
+   "separates": false
+  },
+  "v_notf": {
+   "distinct": [
+    6,
+    9,
+    10
+   ],
+   "separates": true
   }
  },
  "non_discriminating": [
@@ -526,6 +1082,10 @@
   "clc",
   "incaw",
   "movi",
-  "addrr"
+  "addrr",
+  "v_add",
+  "v_movm",
+  "v_push",
+  "v_xchg"
  ]
 }

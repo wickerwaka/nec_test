@@ -168,8 +168,50 @@ PROBES = {
                                                     "place of `push 0x100`, "
                                                     "same probe, same geometry"),
 }
-CONTROL_LEGS = ("notf",)
-PROBE_ORDER = list(PROBES)
+
+# --------------------------------------------------------------------------- #
+# THE DISJOINT VALIDATION POPULATION.
+#
+# The standing rule: *"A refuted key's REPLACEMENT must be validated on data
+# that was not used to select it."*  The measured law `KM` (below) was selected
+# on the 16 legs above; every leg here is a byte sequence that appears NOWHERE
+# in that set, and its per-leg prediction is registered in
+# `docs/notes/tf0f_cell_erratum_2026-08-11.md` BEFORE it is captured.
+# --------------------------------------------------------------------------- #
+VPROBES = {
+    # prefix stack AND `0F` escape, at depths the derivation set never reached
+    "v_p2x":  (bytes([0x2E, 0x3E, 0x0F, 0x1B, 0xE8, 0x4F]),
+               "2 prefixes + 0F 1B, mod=3"),
+    "v_p4x":  (bytes([0x2E, 0x3E, 0x26, 0x36, 0x0F, 0x1B, 0xE8, 0x4F]),
+               "4 prefixes + 0F 1B, mod=3 -- the deepest decoration"),
+    # a prefix on a NON-escaped multi-byte op
+    "v_pfxi": (bytes([0x2E, 0xB8, 0x34, 0x12]),     "CS: MOV AW,0x1234"),
+    # prefixes that are NOT segment overrides
+    "v_rep":  (bytes([0xF3, 0x01, 0xD8]),           "REP prefix + ADD AW,BW"),
+    "v_lock": (bytes([0xF0, 0x01, 0xD8]),           "LOCK prefix + ADD AW,BW"),
+    # `0F` forms the derivation set never used
+    "v_x39":  (bytes([0x0F, 0x39, 0xC0, 0x04]),     "0F 39 -- INS reg,imm4, mod=3"),
+    "v_x1f":  (bytes([0x0F, 0x1F, 0xC0, 0x03]),     "0F 1F -- bitop rm,imm, mod=3"),
+    "v_x10":  (bytes([0x0F, 0x10, 0xC0]),           "0F 10 -- bitop rm,CL, mod=3"),
+    "v_x2a":  (bytes([0x0F, 0x2A, 0xC0]),           "0F 2A -- ROR4, mod=3"),
+    "v_y13":  (bytes([0x0F, 0x13, 0x06, 0x00, 0x00]),
+               "0F 13 -- bitop [DS0:0], CL, mod=0 direct (EA = linear 0x2000)"),
+    # UNDECORATED legs of new lengths -- the other side of the predicate
+    "v_add":  (bytes([0x81, 0xC0, 0x34, 0x12]),     "ADD AW,0x1234 -- 4 bytes, "
+                                                    "opcode IS the first byte"),
+    "v_movm": (bytes([0xA1, 0x00, 0x00]),           "MOV AW,[DS0:0] -- 3 bytes"),
+    "v_push": (bytes([0x50]),                       "PUSH AW -- 1 byte"),
+    "v_xchg": (bytes([0x93]),                       "XCHG AW,BW -- 1 byte"),
+    # and the NULL again, on a validation-set probe
+    "v_notf": (bytes([0x2E, 0x0F, 0x1B, 0xE8, 0x4F]),
+               "the NULL, validation set: `push 0x000`, decorated probe"),
+}
+PROBES.update(VPROBES)
+
+CONTROL_LEGS = ("notf", "v_notf")
+DERIVATION = [k for k in PROBES if k not in VPROBES]
+VALIDATION = list(VPROBES)
+PROBE_ORDER = DERIVATION + VALIDATION
 
 WAITS = (0, 1, 2, 3)
 ALIGNS = (0, 1, 2, 3)
@@ -330,7 +372,7 @@ def features(rows, probe, align, meta):
 # --------------------------------------------------------------------------- #
 def grid(strata=None):
     """[(probe, waits, align)] -- the whole declared grid, in run order."""
-    sel = strata or PROBE_ORDER
+    sel = strata or DERIVATION
     cells = []
     for p in sel:
         for w in WAITS:
@@ -472,7 +514,7 @@ def _merge(outdir, table):
 
 def _select(arg):
     if not arg:
-        return PROBE_ORDER
+        return DERIVATION
     want = [x for x in arg.split(",") if x]
     bad = [x for x in want if x not in PROBES]
     if bad:
@@ -702,6 +744,27 @@ def cmd_run(a):
 # starts at offset 4 and every pad NOP is its own one-byte unit.
 PREFIX_BYTES = (0x26, 0x2E, 0x36, 0x3E, 0xF0, 0xF2, 0xF3)
 
+#
+# Two further rules are carried BESIDE the lattice and are labelled as what
+# they are -- rules DERIVED FROM A MEASURED COLUMN, not registered before it:
+#
+#   KM  the MEASURED SILICON LAW.  An instruction contributes ONE boundary
+#       unit, plus ONE MORE iff its OPCODE BYTE IS NOT ITS FIRST BYTE -- i.e.
+#       iff it carries a prefix stack and/or an `0F` escape.  The extra unit is
+#       ONE however deep the decoration is and however many KINDS of decoration
+#       are present, which is what separates it from every additive member of
+#       the lattice.  DERIVED on the 16 `DERIVATION` legs; VALIDATED on the 15
+#       disjoint `VALIDATION` legs, whose per-leg predictions are registered in
+#       `tf0f_cell_erratum_2026-08-11.md` before capture.
+#   KC  the same predicate with the `0F` escape REMOVED -- i.e. the ucore's own
+#       measured behaviour, carried so the two engines can be scored on one
+#       scale.
+#
+# ⚠ `pushed_off` measures the COUNT of units a probe contributes (1 vs 2), not
+# WHERE the second one sits: at a count of 2 the third unit is the first pad
+# byte whatever the second unit's position.  "The second boundary is AT the
+# opcode byte" is therefore an INTERPRETATION of `KM`, not a measurement, and
+# it is flagged as such wherever it is written.
 KINDS = {
     "K1": ("none", "no"),
     "K7": ("none", "yes"),
@@ -710,6 +773,7 @@ KINDS = {
     "K4": ("byte", "no"),
     "K2": ("byte", "yes"),
 }
+DERIVED_KINDS = ("KM", "KC")
 KIND_SAYS = {
     "K1": "ONE unit per architectural instruction: a prefix stack and its "
           "opcode are one unit, `0F xx` is one unit",
@@ -722,6 +786,11 @@ KIND_SAYS = {
     "K4": "every prefix BYTE is its own unit; the `0F` escape byte is NOT",
     "K2": "§86's PROSE READ LITERALLY: every prefix byte is its own unit AND "
           "the `0F` escape byte is its own",
+    "KM": "THE MEASURED SILICON LAW (derived, not pre-registered): one unit, "
+          "plus ONE MORE iff the opcode byte is not the first byte -- once, "
+          "however deep and however many kinds of decoration",
+    "KC": "the ucore's own measured behaviour: KM with the `0F` escape not "
+          "counting as decoration",
 }
 
 
@@ -739,6 +808,13 @@ def _starts(probe, kind):
     p, _ = PROBES[probe]
     o = len(SETTER)
     n_pfx, esc = _shape(probe)
+    if kind in DERIVED_KINDS:
+        dec = (n_pfx > 0) or (esc and kind == "KM")
+        # the second unit is placed at the OPCODE byte; `st[2]` is insensitive
+        # to that choice (see the note above), so the placement is a label, not
+        # a claim
+        st = [o] + ([o + n_pfx + (1 if esc else 0)] if dec else [])
+        return sorted(set(st + list(range(o + len(p), BLOCK))))
     pmode, emode = KINDS[kind]
     if pmode == "none":
         st = [o]
@@ -773,8 +849,11 @@ def cmd_predict(a):
          "block": BLOCK, "R": R, "waits": list(WAITS), "aligns": list(ALIGNS),
          "setter": SETTER.hex(), "clearer": CLEARER.hex(),
          "handler": HANDLER.hex(), "regs": REGS,
-         "kinds": {k: {"prefix": v[0], "escape": v[1], "says": KIND_SAYS[k]}
-                   for k, v in KINDS.items()},
+         "kinds": {k: {"lattice": (k in KINDS),
+                       "prefix": KINDS[k][0] if k in KINDS else None,
+                       "escape": KINDS[k][1] if k in KINDS else None,
+                       "says": v} for k, v in KIND_SAYS.items()},
+         "derivation_legs": DERIVATION, "validation_legs": VALIDATION,
          "probes": {}, "images": {}, "cells": len(grid())}
     for k in PROBE_ORDER:
         b, what = PROBES[k]
@@ -783,7 +862,8 @@ def cmd_predict(a):
             "bytes": b.hex(), "len": len(b), "what": what,
             "n_prefix": n_pfx, "escaped": esc,
             "control": k in CONTROL_LEGS,
-            "pushed_off": {kd: predict_off(k, kd) for kd in KINDS},
+            "stage": ("validation" if k in VALIDATION else "derivation"),
+            "pushed_off": {kd: predict_off(k, kd) for kd in KIND_SAYS},
         }
     for k in PROBE_ORDER:
         for al in ALIGNS:
@@ -841,8 +921,8 @@ def cmd_score(a):
               f"-- {'PASS' if not bad else 'FAIL ' + str(bad)}")
 
     print("\n== 1. THE MEASURED BOUNDARY, per probe: pushed_off\n")
-    print(f"  {'probe':7s} {'bytes':14s} | {'chip pushed_off':22s} | "
-          f"{'core':10s} | " + " ".join(KIND_SAYS))
+    print(f"  {'stg':4s} {'probe':7s} {'bytes':16s} | {'chip':7s} | "
+          f"{'core':7s} | " + " ".join(f"{k:>3s}" for k in KIND_SAYS))
     for probe in PROBE_ORDER:
         if probe in CONTROL_LEGS:
             continue
@@ -867,27 +947,53 @@ def cmd_score(a):
             "core_off": (next(iter(cvals)) if len(cvals) == 1 else None),
             "kinds_matched": hit, "n_cells": len(sel),
             "n_traps": sum(vals.values())}
-        print(f"  {probe:7s} {PROBES[probe][0].hex():14s} | "
-              f"{str(dict(vals)):22s} | {str(dict(cvals)):10s} | "
-              + " ".join(f"{kd}={pr.get(kd)}" for kd in KIND_SAYS)
-              + (f"   -> {','.join(hit)}" if hit else ""))
+        out["boundary"][probe]["stage"] = ("val" if probe in VALIDATION
+                                           else "der")
+        print(f"  {out['boundary'][probe]['stage']:4s} {probe:7s} "
+              f"{PROBES[probe][0].hex():16s} | "
+              f"{str(dict(vals)):7s} | {str(dict(cvals)):7s} | "
+              + " ".join(f"{str(pr.get(kd)):>3s}" for kd in KIND_SAYS)
+              + (f"   -> {','.join(hit)}" if hit else "   -> NONE"))
 
-    print("\n== 2. WHICH BOUNDARY RULE SURVIVES, over the discriminating probes")
-    for kd, txt in KIND_SAYS.items():
-        agree, tot, miss = 0, 0, []
-        for probe, b in out["boundary"].items():
-            pv = b["pred"].get(kd)
-            if pv is None:
-                continue
-            tot += 1
-            if b["chip_unique"] and b["chip_off"] == pv:
-                agree += 1
-            else:
-                miss.append(probe)
-        out["kinds"][kd] = {"agree": agree, "of": tot, "misses": miss,
-                            "says": txt}
-        print(f"  {kd}: {agree}/{tot} probes"
-              f"{'   misses: ' + ','.join(miss) if miss else '   <== SURVIVES'}")
+    print("\n== 2. WHICH BOUNDARY RULE SURVIVES -- the two populations SEPARATELY")
+    for stage, legs in (("DERIVATION", DERIVATION), ("VALIDATION", VALIDATION)):
+        pop = [p for p in legs if p in out["boundary"]]
+        if not pop:
+            continue
+        print(f"\n  -- {stage} ({len(pop)} legs) --")
+        for kd, txt in KIND_SAYS.items():
+            agree, tot, miss = 0, 0, []
+            for probe in pop:
+                b = out["boundary"][probe]
+                pv = b["pred"].get(kd)
+                if pv is None:
+                    continue
+                tot += 1
+                if b["chip_unique"] and b["chip_off"] == pv:
+                    agree += 1
+                else:
+                    miss.append(probe)
+            out["kinds"].setdefault(kd, {})[stage] = {
+                "agree": agree, "of": tot, "misses": miss, "says": txt}
+            print(f"    {kd}: {agree}/{tot} legs"
+                  f"{'   misses: ' + ','.join(miss) if miss else '   <== ALL'}")
+        # and the same for the CORE column, so the two engines are on one scale
+        for kd in ("KM", "KC"):
+            agree, tot, miss = 0, 0, []
+            for probe in pop:
+                b = out["boundary"][probe]
+                pv = b["pred"].get(kd)
+                if pv is None:
+                    continue
+                tot += 1
+                if b["core_off"] is not None and b["core_off"] == pv:
+                    agree += 1
+                else:
+                    miss.append(probe)
+            out["kinds"].setdefault(kd, {})[stage + "_core"] = {
+                "agree": agree, "of": tot, "misses": miss}
+            print(f"    {kd} vs CORE: {agree}/{tot} legs"
+                  f"{'   misses: ' + ','.join(miss) if miss else '   <== ALL'}")
 
     print("\n== 3. chip vs core, cell for cell")
     diff, tot = Counter(), Counter()
