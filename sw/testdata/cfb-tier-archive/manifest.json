@@ -1,0 +1,10 @@
+{
+ "what": "ERR-1 -- the 621 banked fz2 entries and sig_ledger.json as they stood BEFORE the replay_verdict re-derivation",
+ "why": "docs/notes/cfb_rederive_prereg_2026-08-11.md / docs/notes/invalidation_ledger.md ERR-1",
+ "note": "byte-identical copies.  chip_rows here are TRUE silicon and are IDENTICAL to the live bank's -- only the DERIVED replay_verdict/replay_sig/replay_sub columns and the ledger's replay-sig keys differ after the rewrite.  NOTHING GATES ON THESE COPIES: they are outside tests/v30/fuzz_bank/ so bank_status.seed_paths() cannot glob them.",
+ "as_of_commit": "921e756534",
+ "archived_utc": "2026-08-11T20:36:07Z",
+ "count_files": 622,
+ "count_seeds": 621,
+ "sha256sums_sha256": "4c2162cd6f2a6785ca722b01211696859a55580d75bfe9a69de635a5e15075ac"
+}
