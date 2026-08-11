@@ -60,8 +60,71 @@ def _find_done_t1(rows, window):
     return None
 
 
+def _tier_domain_falsifier():
+    """THE TIER DOMAIN IS A CONTRACT AND THIS IS ITS FALSIFIER.
+
+    `Ctx.tier` is only ever compared for EQUALITY, so an out-of-domain value
+    does not raise -- it makes every `ctx.tier == "A"` / `== "B"` branch
+    silently False, INCLUDING the arch-dump comparison.  That is exactly what
+    `check_fuzz_bank.replay_classify` did until 2026-08-11: it passed the banked
+    config literal ("soup"/"raw") straight into `Ctx`, and because `fuzz_bank`
+    computes the banked `replay_verdict` by calling that same function, the
+    621-seed round-trip compared the defect against itself and read green.
+    `docs/notes/cfb_tier_prereg_2026-08-11.md`.
+
+    So the test asserts BOTH halves: the mapping's own domain, and that the
+    banked call site actually applies it -- the Ctx `replay_classify` hands to
+    `classify` must carry 'A'/'B' when fed a banked-style entry.  Board-free and
+    TB-free: the replay's regeneration and TB legs are stubbed, because what is
+    under test is the context, not the capture."""
+    import check_fuzz_bank as cfb                        # noqa: PLC0415
+    import fuzz_campaign as fzc                          # noqa: PLC0415
+    import timed_fuzz as tf                              # noqa: PLC0415
+
+    check("ctx_tier maps the config vocabulary onto Ctx.tier",
+          fzc.ctx_tier("soup") == "A" and fzc.ctx_tier("raw") == "B")
+    for bad in ("A", "B", "Soup", "", None, 0):
+        try:
+            fzc.ctx_tier(bad)
+            raised = False
+        except ValueError:
+            raised = True
+        except Exception:                                # noqa: BLE001
+            raised = False
+        check(f"ctx_tier RAISES outside its domain ({bad!r})", raised)
+
+    saved = (fzc.derive_case, fzc.build, fzc.compose_case, tf.banked_wvec,
+             check_seq.run_tb, fc.classify)
+    seen = {}
+
+    def _spy(real, sim, ctx, engine=None):
+        seen["tier"] = ctx.tier
+        return fc.Verdict(fc.SUCCESS, "", None, 0, 0, 1, False, False, True,
+                          True, [], [], None, fc.SIGV, None)
+    try:
+        fzc.derive_case = lambda cid, k, ov: {}
+        fzc.build = lambda cfg: {}
+        fzc.compose_case = lambda g, cfg: (b"\x00", {"anchor_linear": 0})
+        tf.banked_wvec = lambda e: None
+        check_seq.run_tb = lambda *a, **kw: [{}]
+        fc.classify = _spy
+        for lit, want in (("soup", "A"), ("raw", "B")):
+            entry = {"cid": "tst", "k": 1, "ov": {}, "tier": lit,
+                     "waits": {"wrand": False, "fixed": 0}, "evt": None,
+                     "chip_rows": [{}], "seed": f"tst/{lit}",
+                     "cfg_hash": "0" * 12, "image_sha256": "x"}
+            seen.clear()
+            cfb.replay_classify(entry, None)
+            check(f"replay_classify maps the banked {lit!r} tier -> {want!r}",
+                  seen.get("tier") == want, f"(got {seen.get('tier')!r})")
+    finally:
+        (fzc.derive_case, fzc.build, fzc.compose_case, tf.banked_wvec,
+         check_seq.run_tb, fc.classify) = saved
+
+
 def main():
     print("test_fuzz_classify:")
+    _tier_domain_falsifier()
     g, rows = _tb_capture()
     print(f"  (TB capture: {len(rows)} rows, {g['n_ins']} ins)")
     ctxA = fc.Ctx(tier="A", waits=0, wrand=False, real_is_chip=False)

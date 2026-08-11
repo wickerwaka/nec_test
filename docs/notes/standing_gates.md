@@ -404,7 +404,7 @@ and nothing was deleted.
 |---|---|---|
 | **the bars** | `python3 sw/fz2_w1.py bars` | **11 / 11 MET** since A-14, `sw/testdata/fz2/fz2_bars.json`, 2026-08-10T02:50:20Z.  Offline; ~25 s.  It was **10 / 11, NOT MET: C-1** on the 01:34:24Z artifact; §36–§37 is the move and **read the ⚠ under C-1 before quoting it** |
 | **the lint** | `python3 sw/fz2_w1.py lint` | **PASS, 0 hits, 48 stratum rows.**  It cross-checks the campaign document against the code — if a doc edit trips it, **fix the doc** |
-| **bank integrity** | `python3 sw/check_fuzz_bank.py` | **PASS · 621 banked seeds · stable 621 / improved 0 / worse 0 · gen_drift 0 · regen_err 0 · float-floor 0 · new-sig TIMING 0**, ~266 s.  See the ⚠ on the number below |
+| **bank integrity** | `python3 sw/check_fuzz_bank.py` | ⚠ **RED SINCE 2026-08-11, BY AN INSTRUMENT FIX, AND EXPECTED: `FAIL · 621 banked seeds · stable 531 / improved 0 / worse 90 · gen_drift 0 · regen_err 0 · float-floor 35 · new-sig TIMING 148`**, ~266 s.  **THE TREE DID NOT REGRESS — THE INSTRUMENT STARTED SCORING.**  `replay_classify`'s dead tier branches were closed (the ✅ ADDENDUM below, and `docs/notes/cfb_tier_prereg_2026-08-11.md`); all 90 movers are attributed to two newly-live branches (55 soup `done_mismatch`, 35 raw fixed-window), and the arch column the finding named is live on **123** soup seeds with **0** differing.  **THREE FIGURES ARE ALL TRUE AND THEY ARE NOT THE SAME FIGURE**: **621 · stable 621 · worse 0** is the DEFECTIVE instrument, re-measured on this tree the same day and NOT retracted — it is that instrument's number; **621 · stable 531 · worse 90** is the MAPPED instrument on the SAME bank; and the 90 are mis-scorings of the bank's DERIVED `replay_verdict` column, which `fuzz_bank.py:261` wrote by calling this very function.  **Do not quote a stable count without naming which instrument produced it.**  It goes green again only when `replay_verdict` is re-derived under its own pre-registration — booked, not taken; **the bank was NOT rewritten to make this row green** |
 | the classifier's own tests | `python3 sw/test_fuzz_classify.py` · `python3 sw/test_fuzz_accept.py` | **PASS / PASS**, 0 failures each |
 | the `ps3_8080` detector's non-vacuity | `python3 sw/fz2_a2_replay.py` | **PASS, 0 failures** — 87 / 116 on the **disjoint** `t30-brkem` bank, where 8080 entry is known to exist |
 | **A-4's non-vacuity** (`stalled`) | `python3 sw/fz2_stall.py falsify` | **PASS, rc 0** — fires on **0 / 659** terminator-REACHED captures in the current bank, **0 / 455** in the INV-2 archive |
@@ -489,6 +489,91 @@ before/after partition must be itemized seed by seed and the gate's bar
 re-registered, which is why it is a WORK ITEM and not a quiet fix.
 (It also proves the `open_bus` retirement could not have moved this gate: the
 retired rule's first line was `if ctx.tier != "B": return None`.)
+
+**✅ ADDENDUM 2026-08-11 — CLOSED.  THE FIX IS IN, THE FALSIFIER RAN, AND IT
+MOVED 90 VERDICTS.  THE GATE IS NOW RED AND IS RE-REGISTERED RED.**
+Pre-registration + full mover table: `docs/notes/cfb_tier_prereg_2026-08-11.md`
+(committed BEFORE the fix; results appended below its own rule).  Append-only —
+nothing above this addendum is retracted.
+
+* **The fix.** `sw/fuzz_campaign.py` gains **`ctx_tier(tier)`**, the ONE home of
+  the `soup`/`raw` → `'A'`/`'B'` mapping, which **RAISES** outside its domain;
+  `_ctx_for` now calls it and `check_fuzz_bank.py:81` becomes
+  `fc.Ctx(tier=fzc.ctx_tier(entry["tier"]), …)`.  Nothing else changed — same
+  tree, same TB binary, same bank, same captures.
+* **BEFORE (unfixed, `8b8b89a7fe`, re-measured this sitting):**
+  `PASS | 621 | stable 621 improved 0 worse 0 | gen_drift 0 regen_err 0 |
+  float-floor 0 | new-sig TIMING 0` — the registered figure exactly.
+* **AFTER:** `FAIL | 621 | stable 531 improved 0 worse 90 | gen_drift 0
+  regen_err 0 | float-floor 35 | new-sig TIMING 148`.
+* **Why the green was never evidence:** `fuzz_bank.py:261` computes the banked
+  `replay_verdict` **by calling `replay_classify` itself**, so the same
+  defective call site was both banker and checker and the round-trip compared
+  the defect against itself.  `stable 621` was a statement about the
+  determinism of the instrument.
+* **ALL 90 MOVERS ARE ATTRIBUTED, 0 UNATTRIBUTED**, measured by replaying each
+  seed ONCE and classifying the pair TWICE (literal vs mapped), with the
+  literal column reproducing the banked verdict on 621/621 as the control:
+  **55 soup** — `done_mismatch` came alive (`fuzz_classify.py:586`); 33
+  `TIMING`→`FUNCTIONAL`, 22 `KNOWN_ACCEPTED`→`FUNCTIONAL`; `n` and `bad_rows`
+  **byte-identical before and after** on all 55.  **35 raw** — tier B's fixed
+  4,000-row window came alive (`:562`); all `SUCCESS` → `TIMING` (25) or
+  `KNOWN_ACCEPTED` (10).  `float-floor 35` is exactly this class, seed for seed.
+* ⚠ **A REGISTERED PREDICTION MISSED, REPORTED AS REGISTERED.**  P-2 predicted
+  the raw window could only SHRINK.  It **GROWS**: the unmapped path is not the
+  whole capture but `diff_rows`'s **done-shrunk** default
+  (`min(len, len, 4000, dend+8)`), and a raw seed's chip leg FORGES a done
+  marker out of random bytes, collapsing it to a few hundred rows — which is the
+  very thing tier B exists to refuse.  440–2,606 → 4,000.  Mechanism right,
+  direction wrong.
+* ✅ **THE ARCH COLUMN — THE ONE THE FINDING WAS WRITTEN ABOUT — IS LIVE AND
+  CLEAN: 123 SOUP SEEDS REACH IT AND 0 DIFFER.**  Of 296 soup seeds, 65 have
+  the marker on one leg only, 87 on neither (85 QUARANTINE), 21 are outranked
+  by a functional store mismatch; **123 evaluate `arch_dump` and all 123
+  AGREE**.  Stated as MEASURED.  Independent hand-check outside the gate: 8/8
+  replays reproduce the banked `chip_arch` byte for byte, and `fz2c/402000`
+  differs on all ten architectural words while classifying `func:…` — so the
+  0 is PRECEDENCE, not vacuity.
+* **`new-sig TIMING 148` is an INSTRUMENT EFFECT, registered in advance (P-4),
+  NOT 148 new mechanisms**: `ctx.tier` is hashed into the signature
+  (`:687`), so **399** seeds' sigs move and **0** keep a non-null sig — the
+  ledger's replay sigs are all keyed on `"soup"`/`"raw"` and none can match a
+  mapped run.
+* **DISPOSITION.  The 90 are MIS-SCORINGS OF THE BANK'S DERIVED COLUMN, NOT
+  REGRESSIONS OF THE TREE** — nothing about the RTL, the model, the TB binary
+  or the silicon captures moved; the identical row pairs are being read by a
+  classifier finally in its own domain.  **THE BANK WAS NOT REWRITTEN**
+  (`git status` over `tests/v30/fuzz_bank/` clean; `chip_rows` are silicon and
+  `replay_verdict`, though derived, is not re-derived behind an instrument fix).
+  **A truthful RED gate is worth more than a green one whose data was edited to
+  agree with it.**
+* **NEXT WORK ITEM, BOOKED NOT TAKEN**: re-derive `replay_verdict` and the
+  ledger's replay signatures on the mapped classifier, under its own
+  pre-registration, movement reported in place — the INV-1 precedent
+  (`invalidation_ledger.md` § CLOSURE).  Until then this gate FAILS by exactly
+  these 90 seeds and **the failure is expected, itemized and attributed**.
+* **GLOBAL AUDIT: exactly ONE instance existed in `sw/` and it is fixed.**
+  `fuzz_campaign.py:660` (now via `ctx_tier`), `fz2_a1_replay.py:78` and
+  `fz2_a10_replay.py:72` map correctly (the latter two map into a
+  `fuzz_classify` loaded from git and cannot import today's helper — named, left
+  as is); `f7a_arbitrate.py:112` and `calibrate_cadence.py:50` pass the literal
+  `"A"`, in domain; the 24 test sites are in domain.  Every other `r["tier"]`
+  reader is reporting/provenance, where the config vocabulary is correct.
+* **BOOKED, NOT FIXED — different mechanisms at the same call site**:
+  `has_halt` (absent from 621/621 banked entries; **inert**, nothing reads
+  `ctx.has_halt`), `with_drift` (never passed, so the replay computes no drift
+  metrics — affects the `drift` field, not the verdict), and **the `wvec` wait
+  class**: `_ctx_for` treats a wait VECTOR as varying (`wrand=True, waits=0`)
+  and `replay_classify` does not, so **169 of 621** seeds are classified under a
+  wait class the campaign would not have given them (reaches the
+  `tw_in_w0_chip` alarm at `:394`, the signature's wait class, and
+  `fuzz_accept.py:443`).
+* **THE DEFECT CANNOT SILENTLY RETURN**: `sw/test_fuzz_classify.py` gains
+  `_tier_domain_falsifier()` — 9 board-free checks that `ctx_tier` maps and
+  RAISES, and that `replay_classify` itself hands `classify` a `'A'`/`'B'` ctx
+  when fed a banked-style entry.  **Proved non-vacuous**: with `ctx_tier`
+  monkeypatched back to the identity all 9 FAIL, the call-site pair with exactly
+  the defect's signature, `(got 'soup')` / `(got 'raw')`.
 
 **⚠ `check_fuzz_bank` IS 621, AND THREE DIFFERENT NUMBERS ARE ALL TRUE.**
 **623** banked *files* on disk (`fz2c` 480 + `fz2e` 143) − **2** EXC-1
@@ -967,6 +1052,11 @@ sweeps **97 · 93 · 45 · 44 = 279/283**, same four family-D survivors ·
 / 214 flops · `r7_lint` PASS 0 violations · `test_artifact` 45/45 ·
 `gen_ucore_qsf --check` PASS · `check_fuzz_bank` PASS 621 stable ·
 `ulockstep` 17,350/17,350 (INFORMATIONAL — the model is defunct).
+*(Annotation added 2026-08-11, the receipt itself unedited: that
+`check_fuzz_bank` **PASS 621 stable** is the **DEFECTIVE instrument's** figure —
+`replay_classify`'s tier branches were dead when it was taken.  It was true of
+that instrument and is not retracted, but **it is not this tree's standing
+state**: see the gate table row and the ✅ ADDENDUM of 2026-08-11.)
 **G6 TWO DRAWS, both PASS and IDENTICAL: Fmax 39.63 MHz, worst setup +6.016 ns,
 TNS 0.000 setup AND hold on every domain, ALMs 12,330 (29 %), 0 errors, 0
 latches, 0 `lpm_divide`; 88-file input manifest `065887d02fde8893…` on both;

@@ -78,7 +78,18 @@ def replay_classify(entry, engine):
     except Exception:                                    # noqa: BLE001
         return sha, ASSERT_PARK, None, "tb_abort"
     chip = entry["chip_rows"]
-    ctx = fc.Ctx(tier=entry["tier"], waits=fixed, wrand=bool(w.get("wrand")),
+    # THE BANKED `tier` IS A CONFIG LITERAL AND `Ctx.tier` IS NOT.  `entry`
+    # carries "soup"/"raw" (`fuzz_bank._entry`, straight from `cfg["tier"]`);
+    # `Ctx.tier`'s domain is 'A'/'B'.  Passed through unmapped -- as this call
+    # site did until 2026-08-11 -- every `ctx.tier == "A"` / `== "B"` branch in
+    # `classify` is silently False, INCLUDING THE ARCH-DUMP COMPARISON, and this
+    # gate replayed 621 seeds while scoring nothing on the arch column.  It read
+    # green because `fuzz_bank` computes the banked `replay_verdict` by calling
+    # THIS function, so the round-trip compared the defect against itself.
+    # `fuzz_campaign.ctx_tier` is the one home of the mapping and it RAISES on
+    # anything outside the domain.  `docs/notes/cfb_tier_prereg_2026-08-11.md`.
+    ctx = fc.Ctx(tier=fzc.ctx_tier(entry["tier"]), waits=fixed,
+                 wrand=bool(w.get("wrand")),
                  real_is_chip=True, brkem_pos=entry.get("brkem_pos", []),
                  lea_mod3_pos=entry.get("lea_mod3_pos", []),
                  has_halt=entry.get("has_halt", False), cid=entry["cid"],

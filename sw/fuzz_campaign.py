@@ -648,6 +648,30 @@ def _raw_lea_mod3_pos(image, real):
     return out
 
 
+def ctx_tier(tier):
+    """THE ONE MAPPING from a config/banked tier literal to `Ctx.tier`.
+
+    The two vocabularies are different on purpose -- a config says `soup`/`raw`
+    and `fuzz_classify.Ctx.tier`'s declared domain is `'A'`/`'B'`
+    (`fuzz_classify.py`) -- and the translation between them is a FUNCTION with
+    ONE home, because it existed inline here while `check_fuzz_bank` passed the
+    banked literal straight through.  `Ctx.tier` is only ever compared for
+    equality, so an out-of-domain value does not raise: it makes every
+    `ctx.tier == "A"` and `ctx.tier == "B"` branch silently False, including the
+    arch-dump comparison, and the gate replays rows while scoring nothing.
+    See `docs/notes/cfb_tier_prereg_2026-08-11.md`.
+
+    It RAISES outside {"soup", "raw"} rather than falling through to "B": the
+    whole defect was a silent domain mismatch, so a domain error must be loud.
+    """
+    if tier not in ("soup", "raw"):
+        raise ValueError(
+            f"ctx_tier: {tier!r} is not a tier literal; the domain is "
+            "'soup'/'raw' (config side).  If you are holding an already-mapped "
+            "Ctx.tier ('A'/'B'), do not map it twice.")
+    return "A" if tier == "soup" else "B"
+
+
 def _ctx_for(cfg, g, tb_only):
     w = cfg["waits"]
     # A wvec seed is a VARYING-wait run, so the classifier is told `wrand`:
@@ -657,7 +681,7 @@ def _ctx_for(cfg, g, tb_only):
     # rule written for an axis before that axis has ever been surveyed is a
     # fitted rule.
     varying = w["wrand"] or bool(cfg.get("wvec"))
-    return Ctx(tier="A" if cfg["tier"] == "soup" else "B",
+    return Ctx(tier=ctx_tier(cfg["tier"]),
                waits=0 if varying else w["fixed"], wrand=varying,
                real_is_chip=not tb_only,
                brkem_pos=g.get("brkem_pos", []),
