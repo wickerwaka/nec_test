@@ -615,6 +615,86 @@ def _sha_dir(dd):
 
 
 # --------------------------------------------------------------------------- #
+def cmd_confirm(a):
+    """RE-CAPTURE the boundary cells at high repetition.
+
+    A threshold is only a threshold if the clock either side of it is STABLE.
+    This re-runs every cell of the named strata whose `fall_off` lands within
+    `--band` clocks of the measured T*, `--reps` times each, and reports the
+    distinct capture streams per cell.  A cell that flips is CHARACTERISED, not
+    forced to be deterministic (the RR1 / s13 P5 precedent)."""
+    v30run, HOST, div_guard, pin_div, DIV = _board()
+    cal = _cal()
+    board = _load("board")
+    d = OUT / "board-confirm"
+    d.mkdir(parents=True, exist_ok=True)
+    man = {"tool": "ie_pinfall_cell confirm", "host": HOST, "use_core": False,
+           "div": DIV, "reps": a.reps, "band": a.band,
+           "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+           "flash": _flash_pin(), "div_guards": [], "cells": {}}
+    print("== single-writer / reachability")
+    man["preflight"] = single_writer(HOST)
+    if man["preflight"]["single_writer"] != "OK":
+        raise SystemExit("single-writer check did not pass -- STOP")
+    pin_div()
+    man["div_guards"].append(("preflight", div_guard("confirm")))
+    want = _select(a.strata)
+    errs = 0
+    unstable = []
+    t0 = time.time()
+    for leg, w, _full in want:
+        ts_, _sharp, _sel = threshold(board, leg, w)
+        if ts_ is None:
+            continue
+        key = stratum_key(leg, w)
+        img, meta = image_of(leg)
+        anchor_lin = meta["anchor_linear"]
+        cells = [r for r in board
+                 if r["leg"] == leg and r["waits"] == w and r.get("ok")
+                 and r.get("fall_off") is not None
+                 and abs(r["fall_off"] - ts_) <= a.band]
+        man["div_guards"].append((key, div_guard(key)))
+        shard = {}
+        for r in cells:
+            shas, takes = [], []
+            keep = {}
+            for _ in range(a.reps):
+                recs, fired, words = v30run.run_image(
+                    img, HOST, tag="iepfc", waits=w, use_core=False, div=DIV,
+                    evt=(anchor_lin, r["delay"], r["hold"], 0),
+                    want_raw=True, cap=cal["cells"][key]["ncap"])
+                sha = hashlib.sha256(
+                    ("\n".join(f"{x:016x}" for x in words) + "\n").encode()
+                ).hexdigest()
+                shas.append(sha)
+                takes.append(features(_rows_from_words(words), leg,
+                                      anchor_lin).get("taken"))
+                keep.setdefault(sha, [f"{x:016x}" for x in words])
+            rec = {"reps": a.reps, "distinct": len(set(shas)),
+                   "shas": shas, "takes": takes,
+                   "take_stable": len(set(takes)) == 1,
+                   "T_star": ts_, "fall_off": r["fall_off"],
+                   "rise_off": r["rise_off"], "hold": r["hold"]}
+            man["cells"][r["cell"]] = rec
+            shard[r["cell"]] = keep
+            if not rec["take_stable"] or rec["distinct"] > 1:
+                unstable.append(r["cell"])
+        with gzip.open(d / f"{key}.raw.json.gz", "wt") as fh:
+            json.dump(shard, fh, separators=(",", ":"))
+        print(f"  {key}: {len(cells)} boundary cells x {a.reps} reps  "
+              f"T*={ts_}  ({time.time() - t0:.0f}s)", flush=True)
+    man["div_guards"].append(("final", div_guard("final")))
+    man["unstable"] = unstable
+    man["transport_errors"] = errs
+    man["seconds"] = round(time.time() - t0, 1)
+    (d / "manifest.json").write_text(json.dumps(man, indent=1))
+    print(f"\n  confirm: {len(man['cells'])} cells x {a.reps} reps, "
+          f"{len(unstable)} unstable")
+    print(f"  SHA256SUMS: {_sha_dir(d)} files")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
 # the PRE-REGISTERED hypothesis table
 # --------------------------------------------------------------------------- #
 # Each hypothesis names the SMALLEST `fall_off` at which a maskable request is
@@ -739,7 +819,13 @@ def threshold(rows, leg, waits):
     return min(tk), sharp, sel
 
 
+COLS = ["taken", "ack_off", "n_inta", "halt_first", "n_halt", "halt_off",
+        "ack_off_hlt", "wake_prefetch", "rise", "fall", "t_ei", "anchor_t1",
+        "n_rows"]
+
+
 def cmd_score(a):
+    from collections import Counter
     board = _load("board")
     core = None
     try:
@@ -747,10 +833,31 @@ def cmd_score(a):
     except SystemExit:
         pass
     ck = {r["cell"]: r for r in (core or [])}
-    print("== T*  (min fall_off TAKEN, rise strictly before t_ei)\n")
+    out = {"thresholds": {}, "wake": {}, "columns": {}, "controls": {},
+           "disagree": [], "phase_diffs": []}
+
+    print("== 0. THE §3 CONTROLS -- nothing below is quotable without these\n")
+    for leg in ("ierun", "iehlt"):
+        for w in (0, 3):
+            sel = [r for r in board if r["leg"] == leg and r["waits"] == w]
+            if not sel:
+                continue
+            pre = [r for r in sel if not r["ok"]]
+            ok = [r for r in sel if r["ok"]]
+            tk = [r for r in ok if r["taken"]]
+            out["controls"][stratum_key(leg, w)] = {
+                "n": len(sel), "pre_di": len(pre), "ok": len(ok),
+                "ok_taken": len(tk),
+                "not_taken_holds": sorted({r["hold"] for r in ok
+                                           if not r["taken"]})}
+            print(f"  {leg} w{w}: {len(sel)} cells -- {len(pre)} recognised "
+                  f"BEFORE t_ei (IE was set: the pin path works), "
+                  f"{len(tk)}/{len(ok)} of the rest TAKEN; the untaken are "
+                  f"holds {sorted({r['hold'] for r in ok if not r['taken']})}")
+
+    print("\n== 1. T*  (min fall_off TAKEN, rise strictly before t_ei)\n")
     print("  leg      w | board T*  sharp | core T*  sharp | delta")
-    out = {"thresholds": {}, "wake": {}, "disagree": []}
-    for leg in ("eirun", "eihlt", "ierun", "iehlt"):
+    for leg in ("eirun", "eihlt"):
         for w in (0, 1, 2, 3):
             bt, bs, sel = threshold(board, leg, w)
             if not sel:
@@ -762,44 +869,75 @@ def cmd_score(a):
             dl = None if (bt is None or ct is None) else bt - ct
             print(f"  {leg:8s} {w} | {str(bt):8s} {str(bs):5s} | "
                   f"{str(ct):7s} {str(cs):5s} | {dl}")
-    print("\n== hypothesis verdicts (eirun, the clean recognition leg)")
+
+    print("\n== 2. hypothesis verdicts (eirun, the clean recognition leg)")
     for w in (0, 1, 2, 3):
-        bt, bs, _ = threshold(board, "eirun", w)
+        bt, _bs, _ = threshold(board, "eirun", w)
         if bt is None:
             continue
-        for name, h in HYPOTHESES.items():
-            v = "CONFIRMED" if h["T_star"] == bt else "REFUTED"
-            print(f"  w{w}  {name:16s} T*={h['T_star']:>3}  -> {v}")
-    print("\n== wake prefetch (eihlt): CODE cycles between HALT display and INTA")
+        hits = [n for n, h in HYPOTHESES.items() if h["T_star"] == bt]
+        print(f"  w{w}: T* = {bt}  -> "
+              f"{hits[0] if hits else 'NONE of the registered five'}"
+              f"{'' if hits else ' (registered outcome six/seven)'}")
+
+    print("\n== 3. wake prefetch (eihlt): CODE cycles, HALT display -> INTA")
     for w in (0, 1, 2, 3):
         sel = [r for r in board if r["leg"] == "eihlt" and r["waits"] == w
                and r.get("ok") and r.get("wake_prefetch") is not None]
         if not sel:
             continue
         vals = sorted({r["wake_prefetch"] for r in sel})
-        out["wake"][f"w{w}"] = {"values": vals, "n": len(sel)}
-        print(f"  w{w}: n={len(sel)}  wake_prefetch values={vals}")
+        dis = sum(1 for r in sel
+                  if ck.get(r["cell"], {}).get("wake_prefetch")
+                  != r["wake_prefetch"])
+        out["wake"][f"w{w}"] = {"values": vals, "n": len(sel),
+                                "core_disagreements": dis}
+        parts = []
         for v in vals:
-            g = [r for r in sel if r["wake_prefetch"] == v]
-            ros = sorted({r["rise_off"] for r in g})
-            print(f"      ={v}: {len(g)} cells  rise_off in "
-                  f"[{min(ros)},{max(ros)}]")
-    print("\n== board vs core, cell for cell")
-    n = d = 0
+            g = [r["rise_off"] for r in sel if r["wake_prefetch"] == v]
+            parts.append(f"{v}: rise_off [{min(g)},{max(g)}] x{len(g)}")
+        print(f"  w{w}: n={len(sel)}  {' | '.join(parts)}  "
+              f"core disagreements {dis}")
+
+    print("\n== 4. board vs core, EVERY measured column")
+    diff, tot = Counter(), Counter()
     for r in board:
         c = ck.get(r["cell"])
         if not c or not r.get("ok") or not c.get("ok"):
             continue
-        n += 1
-        if bool(r.get("taken")) != bool(c.get("taken")):
-            d += 1
-            out["disagree"].append({"cell": r["cell"],
-                                    "board": r.get("taken"),
-                                    "core": c.get("taken"),
-                                    "rise_off": r.get("rise_off"),
-                                    "fall_off": r.get("fall_off")})
-    print(f"  {n} comparable cells, {d} TAKE disagreements")
+        for k in COLS:
+            tot[k] += 1
+            if r.get(k) != c.get(k):
+                diff[k] += 1
+                out["phase_diffs"].append(
+                    {"cell": r["cell"], "col": k, "board": r.get(k),
+                     "core": c.get(k), "rise_off": r.get("rise_off"),
+                     "fall_off": r.get("fall_off"), "hold": r.get("hold")})
+                if k == "taken":
+                    out["disagree"].append(
+                        {"cell": r["cell"], "board": r.get("taken"),
+                         "core": c.get("taken"), "rise_off": r.get("rise_off"),
+                         "fall_off": r.get("fall_off")})
+    for k in COLS:
+        out["columns"][k] = {"diff": diff[k], "compared": tot[k]}
+        flag = "  <== DIFFERS" if diff[k] else ""
+        print(f"  {k:16s} {diff[k]:5d} / {tot[k]:5d}{flag}")
+
+    print("\n== 5. the high-repetition confirmation")
+    cp = OUT / "board-confirm" / "manifest.json"
+    if cp.exists():
+        m = json.loads(cp.read_text())
+        cells = m["cells"]
+        tk = [k for k, v in cells.items() if not v["take_stable"]]
+        ds = [k for k, v in cells.items() if v["distinct"] > 1]
+        out["confirm"] = {"cells": len(cells), "reps": m["reps"],
+                          "take_unstable": len(tk),
+                          "stream_distinct": len(ds)}
+        print(f"  {len(cells)} boundary cells x {m['reps']} reps = "
+              f"{len(cells) * m['reps']} captures: TAKE-unstable {len(tk)}, "
+              f"stream-distinct {len(ds)}")
     (OUT / "score.json").write_text(json.dumps(out, indent=1))
+    print(f"\n  -> {OUT / 'score.json'}")
     return 0
 
 
@@ -851,9 +989,14 @@ def cmd_seats(a):
                  family=(rec or {}).get("family"))
         rows_out.append(r)
         af = [a["ack_minus_fall"] for a in r["chip_acks"]]
+        mr = [(m["chip"], m["core_minus_chip"], m["chip_halt_rows_before"])
+              for m in r["matched_runs"]]
         print(f"  {seed:14s} chip runs={r['chip_n_runs']} core runs="
-              f"{r['core_n_runs']} (core-chip {r['extra_core_runs']:+d})  "
-              f"pin rises={r['chip_n_rise']}  ack-fall={af}")
+              f"{r['core_n_runs']} ({r['extra_core_runs']:+d})  "
+              f"extra HALT-adjacent={r['halt_adjacent_extra']}/"
+              f"{len(r['extra_runs'])}  ack-fall={af}")
+        print(f"                 matched (chip_row, core-chip, chip HALT rows "
+              f"before)={mr}")
         print(f"                 {why}")
     (OUT / "seats.json").write_text(json.dumps(
         {"threshold": sc.get("thresholds", {}), "seats": rows_out}, indent=1))
@@ -914,6 +1057,45 @@ def _seat_features(path):
                          "pin_at_ack": bool(rows[r[0]]["pin_int"])})
         out[f"{tag}_acks"] = acks
     out["extra_core_runs"] = out["core_n_runs"] - out["chip_n_runs"]
+    # THE SEAT TEST THE DIRECTED CELL MAKES POSSIBLE.  The cell's only
+    # board-vs-core TAKE divergence is at a HALT WAKE, so a seat is in that
+    # regime only if the acknowledge the core adds is HALT-adjacent.  Counted
+    # on the core's own rows, engine-free: BS = HALT in the 40 clocks before
+    # each core acknowledge run the chip does not have.
+    chip_rows = cap.get("real") or []
+    core_rows = cap.get("sim") or []
+
+    def _runs(rows):
+        ia = [i for i, r in enumerate(rows)
+              if r["t"] == 1 and r["bs_early"] == 0]
+        rr = []
+        for i in ia:
+            if rr and i - rr[-1][-1] < 12:
+                rr[-1].append(i)
+            else:
+                rr.append([i])
+        return rr
+    rc, ro = _runs(chip_rows), _runs(core_rows)
+    extra = [r for r in ro if not any(abs(r[0] - x[0]) < 30 for x in rc)]
+    out["extra_runs"] = [
+        {"at": r[0],
+         "halt_rows_before": sum(1 for i in range(max(0, r[0] - 40), r[0])
+                                 if core_rows[i]["bs_early"] == 3)}
+        for r in extra]
+    out["halt_adjacent_extra"] = sum(1 for e in out["extra_runs"]
+                                     if e["halt_rows_before"])
+    # and, for the runs BOTH legs have, how far apart they are
+    out["matched_runs"] = []
+    for x in rc:
+        if not ro:
+            continue
+        m = min(ro, key=lambda b: abs(b[0] - x[0]))
+        if abs(m[0] - x[0]) < 40:
+            out["matched_runs"].append(
+                {"chip": x[0], "core": m[0], "core_minus_chip": m[0] - x[0],
+                 "chip_halt_rows_before": sum(
+                     1 for i in range(max(0, x[0] - 25), x[0])
+                     if chip_rows[i]["bs_early"] == 3)})
     return out
 
 
@@ -944,6 +1126,13 @@ def main():
     p.add_argument("--force", action="store_true",
                    help="proceed past a failed single-writer check (recorded)")
     p.set_defaults(fn=cmd_run)
+
+    p = sub.add_parser("confirm")
+    p.add_argument("--strata", default="eihlt_w0,eihlt_w1,eihlt_w2,eihlt_w3,"
+                                       "eirun_w0,eirun_w1,eirun_w2,eirun_w3")
+    p.add_argument("--reps", type=int, default=11)
+    p.add_argument("--band", type=int, default=2)
+    p.set_defaults(fn=cmd_confirm)
 
     sub.add_parser("score").set_defaults(fn=cmd_score)
     sub.add_parser("seats").set_defaults(fn=cmd_seats)

@@ -1,5 +1,62 @@
 {
- "threshold": {},
+ "threshold": {
+  "eirun_w0": {
+   "board": 3,
+   "board_sharp": true,
+   "core": 3,
+   "core_sharp": true,
+   "n": 134
+  },
+  "eirun_w1": {
+   "board": 4,
+   "board_sharp": true,
+   "core": 4,
+   "core_sharp": true,
+   "n": 134
+  },
+  "eirun_w2": {
+   "board": 5,
+   "board_sharp": true,
+   "core": 5,
+   "core_sharp": true,
+   "n": 134
+  },
+  "eirun_w3": {
+   "board": 6,
+   "board_sharp": true,
+   "core": 6,
+   "core_sharp": true,
+   "n": 140
+  },
+  "eihlt_w0": {
+   "board": 2,
+   "board_sharp": true,
+   "core": 1,
+   "core_sharp": true,
+   "n": 134
+  },
+  "eihlt_w1": {
+   "board": 3,
+   "board_sharp": true,
+   "core": 2,
+   "core_sharp": true,
+   "n": 134
+  },
+  "eihlt_w2": {
+   "board": 4,
+   "board_sharp": true,
+   "core": 3,
+   "core_sharp": true,
+   "n": 134
+  },
+  "eihlt_w3": {
+   "board": 5,
+   "board_sharp": true,
+   "core": 4,
+   "core_sharp": true,
+   "n": 140
+  }
+ },
  "seats": [
   {
    "capture": "sw/testdata/campaigns/fz2c/captures/soup_404040_ceb839c47c2a.json.gz",
@@ -63,6 +120,22 @@
     }
    ],
    "extra_core_runs": 0,
+   "extra_runs": [],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 358,
+     "core": 358,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    },
+    {
+     "chip": 654,
+     "core": 654,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2c/404040",
    "why": "\u00a764.1 sharp -- silicon AGREES (takes); run-arm == 2",
    "in_f17_ledger": false,
@@ -138,6 +211,27 @@
     }
    ],
    "extra_core_runs": 1,
+   "extra_runs": [
+    {
+     "at": 528,
+     "halt_rows_before": 0
+    }
+   ],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 231,
+     "core": 231,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    },
+    {
+     "chip": 379,
+     "core": 379,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2c/405002",
    "why": "c2a -- silicon disagrees; run-arm == 2",
    "in_f17_ledger": true,
@@ -197,6 +291,21 @@
     }
    ],
    "extra_core_runs": 1,
+   "extra_runs": [
+    {
+     "at": 1334,
+     "halt_rows_before": 0
+    }
+   ],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 1037,
+     "core": 1037,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2c/405013",
    "why": "c2a -- silicon disagrees; run-arm == 2",
    "in_f17_ledger": true,
@@ -280,6 +389,31 @@
     }
    ],
    "extra_core_runs": 2,
+   "extra_runs": [
+    {
+     "at": 637,
+     "halt_rows_before": 0
+    },
+    {
+     "at": 650,
+     "halt_rows_before": 0
+    }
+   ],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 398,
+     "core": 398,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    },
+    {
+     "chip": 411,
+     "core": 411,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2c/405072",
    "why": "c2a -- silicon disagrees; run-arm == 2",
    "in_f17_ledger": true,
@@ -339,6 +473,21 @@
     }
    ],
    "extra_core_runs": 1,
+   "extra_runs": [
+    {
+     "at": 1476,
+     "halt_rows_before": 0
+    }
+   ],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 1179,
+     "core": 1179,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2e/512056",
    "why": "c2a -- silicon disagrees; run-arm == 2",
    "in_f17_ledger": true,
@@ -390,6 +539,16 @@
     }
    ],
    "extra_core_runs": 0,
+   "extra_runs": [],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 1067,
+     "core": 1067,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2e/531000",
    "why": "silicon AGREES; run-arm == 3",
    "in_f17_ledger": false,
@@ -457,6 +616,22 @@
     }
    ],
    "extra_core_runs": 0,
+   "extra_runs": [],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 278,
+     "core": 278,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    },
+    {
+     "chip": 437,
+     "core": 437,
+     "core_minus_chip": 0,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2e/513019",
    "why": "improved by the C2 landing; run-arm == 5",
    "in_f17_ledger": true,
@@ -524,6 +699,22 @@
     }
    ],
    "extra_core_runs": 0,
+   "extra_runs": [],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 246,
+     "core": 253,
+     "core_minus_chip": 7,
+     "chip_halt_rows_before": 2
+    },
+    {
+     "chip": 441,
+     "core": 439,
+     "core_minus_chip": -2,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2c/404071",
    "why": "C2 seat -- silicon SUSPENDS at the vectoring wake",
    "in_f17_ledger": true,
@@ -591,6 +782,22 @@
     }
    ],
    "extra_core_runs": 0,
+   "extra_runs": [],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 237,
+     "core": 246,
+     "core_minus_chip": 9,
+     "chip_halt_rows_before": 2
+    },
+    {
+     "chip": 427,
+     "core": 425,
+     "core_minus_chip": -2,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2e/514044",
    "why": "C2 seat -- silicon SUSPENDS at the vectoring wake",
    "in_f17_ledger": true,
@@ -650,6 +857,22 @@
     }
    ],
    "extra_core_runs": -1,
+   "extra_runs": [],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 586,
+     "core": 602,
+     "core_minus_chip": 16,
+     "chip_halt_rows_before": 2
+    },
+    {
+     "chip": 604,
+     "core": 602,
+     "core_minus_chip": -2,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2e/516001",
    "why": "C2 seat -- silicon SUSPENDS at the vectoring wake",
    "in_f17_ledger": true,
@@ -717,6 +940,22 @@
     }
    ],
    "extra_core_runs": 0,
+   "extra_runs": [],
+   "halt_adjacent_extra": 0,
+   "matched_runs": [
+    {
+     "chip": 473,
+     "core": 490,
+     "core_minus_chip": 17,
+     "chip_halt_rows_before": 0
+    },
+    {
+     "chip": 493,
+     "core": 490,
+     "core_minus_chip": -3,
+     "chip_halt_rows_before": 0
+    }
+   ],
    "seed": "fz2e/516065",
    "why": "C2 -- 2 INTA both legs, divergence is WHEN not HOW MANY",
    "in_f17_ledger": true,
