@@ -104,7 +104,8 @@ fresh session needs before it quotes anything:
   all --cases 0` **169,000/169,000** · `ulockstep --golden all --cases 50`
   **17,350/17,350** · the four HLT sweeps **97 · 93 · 45 · 44 = 279/283** ·
   `ss_lint` **PASS, `SS_VERSION` 0x8C / 224 addresses / 212 flops / `SS_TAG`
-  0x8CE0** · **`r7_lint` PASS** · `check_fuzz_bank` **PASS, 621 seeds** ·
+  0x8CE0** · **`r7_lint` PASS** · `check_fuzz_bank` **⚠ RE-REGISTERED RED 2026-08-11
+  (531/90 attributed — the old PASS was vacuous; see its own bullet)** ·
   `fz2_w1 lint` **PASS** · `fz2_w1 bars` **11/11 MET** (was 10/11; **A-14**
   re-registered E-1c's MEANING by USER RULING — read the ⚠ below before quoting
   it).
@@ -403,14 +404,28 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   **EXC-2** (the three in the FLASH #13 corpus, no manifest record — the reason
   is `fz2_corpus_prereg_2026-08-08.md` §34.6). **Every drop is PRINTED, never
   silent**, and that is itself a falsifier.
-- **`sw/check_fuzz_bank.py` is PASS at 621 SEEDS on `fuzz-v2-on-relanding`** —
-  `stable 621 / improved 0 / worse 0 / gen_drift 0 / regen_err 0 /
-  new-sig TIMING 0`, ~266 s, re-measured 2026-08-10 at `399ba6729d`. ⚠ **Three
-  numbers are all true and they are not the same number**: **623** banked FILES
-  on disk (`fz2c` 480 + `fz2e` 143), **−2** EXC-1 exclusions, **= 621**
-  REPLAYED; and **3,865** is the pre-SUP-1 population, still one flag away and
-  still FAILING for D9's reason. `6b044475c7`'s *"PASS/623"* predates EXC-1 and
-  is that commit's number, not this tree's.
+- **`sw/check_fuzz_bank.py` is RE-REGISTERED RED since 2026-08-11
+  (`09ec85e4bb`): `FAIL / 621 / stable 531 / worse 90`, EVERY MOVER ATTRIBUTED
+  — and the old PASS was VACUOUS.** The tier-domain fix (banked `"soup"/"raw"`
+  was fed into `fc.Ctx`, whose domain is `'A'/'B'`, so every tier branch in the
+  replay was DEAD, arch-dump comparison included) revealed that
+  `fuzz_bank.py:261` wrote the banked `replay_verdict` by calling the SAME
+  defective `replay_classify` — banker and checker shared the defect, so
+  `stable 621` measured the defect's determinism, not the bank. The 90 movers
+  are itemized in `cfb_tier_prereg_2026-08-11.md` §R.2 (55 soup
+  `done_mismatch` come-alive, 35 raw window come-alive = `float-floor 35`);
+  `gen_drift 0 / regen_err 0` — no rig defect. The live arch column is CLEAN:
+  123 soup seeds reach the dump comparison, 0 differ. `new-sig TIMING 148` is
+  the registered instrument effect (tier is hashed into the signature).
+  **Re-deriving the banked verdicts on the mapped classifier is BOOKED, not
+  taken** — it rewrites bank entries and needs its own pre-registration
+  (INV-1 precedent); until then RED-by-exactly-these-90 is the expected
+  reading. ⚠ **Three numbers are all true and they are not the same number**:
+  **623** banked FILES on disk (`fz2c` 480 + `fz2e` 143), **−2** EXC-1
+  exclusions, **= 621** REPLAYED; and **3,865** is the pre-SUP-1 population,
+  still one flag away and still FAILING for D9's reason. *(Superseded: the
+  2026-08-10 registration at `399ba6729d` read `PASS / stable 621 / worse 0`;
+  `6b044475c7`'s "PASS/623" predates EXC-1.)*
 - **`sw/fz2_w1.py bars` is the fuzz-v2 standing scorer — 11/11 MET since A-14**
   (`sw/testdata/fz2/fz2_bars.json`, 2026-08-10T02:50:20Z, offline,
   ~25 s), with `sw/fz2_w1.py lint` **PASS / 0 hits / 48 stratum rows** beside it
