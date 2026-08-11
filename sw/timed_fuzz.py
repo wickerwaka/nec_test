@@ -130,11 +130,23 @@ def excuse(entry, recs, win, evt_replay=False):
         # and no gate may pretend one is.
         return "EVT"
     if len(fa.open_bus_escape_metrics(recs, win)[0]) >= 8:
-        # The program escaped the image and the chip is reading the rig's
-        # OPEN BUS (ad_data == ad_addr feedthrough).  The simulator's memory
-        # is the 64 KB-mirrored image the board is wired as, so it reads
-        # image bytes there: the divergence is the RIG, not the model.
-        # Detected with the bank's OWN detector.
+        # The program made >= 8 CODE fetches above linear 0x10000 -- it left
+        # the loaded 64 KB image.  Detected with the bank's OWN detector.
+        #
+        # ⚠ ERRATUM 2026-08-11, PROSE ONLY -- THE NAME AND THE POPULATION ARE
+        # UNCHANGED, TO THE SEED.  This comment used to say the chip "is
+        # reading the rig's OPEN BUS (ad_data == ad_addr feedthrough)" and that
+        # the divergence "is the RIG, not the model".  THERE IS NO OPEN BUS ON
+        # THIS RIG: `hdl/rtl/test_mem.sv` decodes `addr[15:1]` and mirrors the
+        # image across the whole 1 MB space, so BOTH legs read defined image
+        # bytes out of image, and the `ad_data == ad_addr` test is the address
+        # phase of a multiplexed bus (a tautology -- 140,741 of 140,741 chip
+        # CODE T1 rows).  The exclusion is retained under its registered name
+        # because it is a PRE-REGISTERED population of the v1 campaign and
+        # every ratchet quoting `OPEN_BUS N` is scored against it; re-opening
+        # it is a different piece of work from retiring the accept rule
+        # (`sw/fuzz_accept.py` tombstone, 2026-08-11).  What is withdrawn is
+        # the claim that these seeds diverge BECAUSE of the rig.
         #
         # THE PREDICATE MOVED, THE POPULATION DID NOT.  This used to call
         # `fuzz_classify._open_bus_escaped_before`, which fuzz-v2 T4 replaced

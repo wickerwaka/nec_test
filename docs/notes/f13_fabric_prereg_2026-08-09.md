@@ -596,6 +596,23 @@ C-9's stability leg (192 seeds × 3 reps, 192 stable) did not contain one; at
 0.31 % the expected count in a 192-seed sample is 0.6, so 0 is unremarkable and
 the two measurements do not conflict.
 
+> ⚠ **ERRATUM, 2026-08-11 — THE MECHANISM SENTENCE ABOVE AND BELOW IS
+> WITHDRAWN; THE MEASUREMENT AND THE MISSED READING ARE NOT.**  §13.1 explains
+> the 12 socket movers with *"the raw tier is by construction the one that runs
+> off into open-bus feedthrough space, where the chip's own trajectory depends
+> on what the floating bus returns"*, and reads the bar as *"a corpus with an
+> open-bus tier does not have a 100 %-reproducible socket leg"*.  **THERE IS NO
+> OPEN BUS ON THIS RIG**: `hdl/rtl/test_mem.sv` decodes `addr[15:1]` and mirrors
+> the 64K image across the whole 1 MB space, so out-of-image fetches return
+> defined image bytes on both legs and nothing floats — measured in
+> `fz2_corpus_prereg_2026-08-08.md` §38.2, and the accept rule that minted the
+> `open_bus` label was RETIRED 2026-08-11 (`sw/fuzz_accept.py` tombstone).  What
+> stands: 12 of 3,840, 11 raw / 1 soup, `image_sha256` identical on all 3,840,
+> six changing the socket run's own path, the bar MISSED, and no before/after
+> claim.  The escaped-tier association is a **MEASURED CORRELATION with an
+> UNPROVEN MECHANISM** — hypothesis and falsifier in
+> `fz2_f14_results_2026-08-10.md` §4.1.  No number here moves.
+
 **The bar was registered at 100 % and it is MISSED.**  The right reading is that
 a corpus with an open-bus tier does not have a 100 %-reproducible socket leg,
 and the 12 seeds are listed in `sw/testdata/fz2/fz2_f13_c1_moves.json` so that

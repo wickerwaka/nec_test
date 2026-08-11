@@ -101,9 +101,15 @@ WHAT IS *NOT* MEASURED HERE, STATED SO IT IS NOT ASSUMED
     `fz2_ledger`'s rule for `fz2_ledger`'s reason (§38.9: the partition is a
     record of how the bus structure classified each seed, not a re-reading).
   * NOTHING here says whose fault a divergence is.  63 of the 113 are
-    ESCAPED open-bus seeds, which F14 §4 established have no reproducible
-    bus; the census reports that overlap per class and does not adjust for
-    it.
+    ESCAPED seeds; the census reports that overlap per class and does not
+    adjust for it.  ⚠ CORRECTED 2026-08-11: this used to read "ESCAPED
+    open-bus seeds, which F14 §4 established have no reproducible bus".
+    There is no open bus on this rig -- `hdl/rtl/test_mem.sv` mirrors the
+    64K image across the whole 1 MB space, so an escaped program's
+    instruction stream IS defined on both legs.  The escaped class's
+    capture-to-capture flicker is a MEASURED CORRELATION whose MECHANISM IS
+    UNPROVEN.  The classification below is unaffected: it rests on dump
+    identity and row alignment, never on the escape.
 
 USAGE
     python3 sw/fz2_materiality.py                      # the whole census
@@ -440,14 +446,20 @@ def report(res, led, out=sys.stdout):
     # ---- (d) escaped overlap --------------------------------------------- #
     p("")
     p("-" * 78)
-    p("  (d) THE ESCAPED / OPEN-BUS OVERLAP   (the noise-prone class)")
+    p("  (d) THE ESCAPED OVERLAP   (the noise-prone class)")
     p("-" * 78)
     esc = [r for r in res if (r["escaped_n"] or 0) > 0]
     p(f"  escaped seeds among the {n}: {len(esc)}   "
       f"(`escaped_n > 0`)")
-    p(f"  F14 §4 / F17 §4.3a: an escaped program has NO REPRODUCIBLE BUS, so a")
-    p(f"  divergence on one is not by itself attributable to the core.  The")
-    p(f"  overlap is REPORTED; nothing below is adjusted for it.")
+    p(f"  The escaped class flickers capture to capture (F14 §4 / F17 §4.3a),")
+    p(f"  so a divergence on one is weaker evidence about the core.  ERRATUM")
+    p(f"  2026-08-11: the reason given there -- 'an escaped program has no")
+    p(f"  reproducible bus' -- rested on an open-bus story that is FALSE on")
+    p(f"  this rig (test_mem.sv mirrors the image across the 1 MB space, so an")
+    p(f"  escaped program's instruction stream IS defined).  The flicker is a")
+    p(f"  MEASURED CORRELATION; its MECHANISM IS UNPROVEN.  The overlap is")
+    p(f"  REPORTED; nothing below is adjusted for it, and no class below rests")
+    p(f"  on it -- the classification is dump identity + row alignment.")
     ec = collections.Counter(r["klass"] for r in esc)
     nc = collections.Counter(r["klass"] for r in res
                              if (r["escaped_n"] or 0) == 0)

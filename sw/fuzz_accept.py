@@ -30,6 +30,11 @@ Three rule types (sw/testdata/fuzz_accept_rules.json + fuzz_accept_static.json):
 
   static_seed (covers functional + timing) - an exact/wildcard {key: "CLASS:
               reason (ledger ref)"} table, the known_divergences.json idiom.
+
+RETIRED: `open_bus_escape` (2026-08-11, user ruling).  The rules file still
+names it; the engine now SKIPS it and says so on stderr.  The tombstone above
+`RETIRED_RULE_TYPES` states both defects (a false electrical story and a
+tautological predicate).  Banked `open_bus` labels are NOT rewritten.
 """
 import json
 import sys
@@ -299,16 +304,38 @@ class LeaMod3Rule:
 
 
 def open_bus_escape_metrics(real, window):
-    """Chip-side open-bus escape signature. On this rig, CODE fetches to
-    addresses OUTSIDE the loaded 64K image (linear >= 0x10000) read back pure
-    address feedthrough (ad_data == ad_addr & 0xFFFF) - nothing drives the
-    multiplexed AD bus, so the CPU executes its own address bits. A raw-whole
-    seed that far-jumps out of the image runs this open-bus stream, where chip
-    and behavioural core legitimately desync (queue-timing on garbage operands).
+    """The v1-era out-of-image CODE-fetch counter.  RETAINED, UNCHANGED, AND NO
+    LONGER CARRYING AN ELECTRICAL CLAIM.
 
-    Returns (escape_rows, n_out, first_out_row): the T1 rows of feedthrough
-    out-of-image fetches, the total out-of-image code fetches, and the first
-    out-of-image fetch row."""
+    Returns (escape_rows, n_out, first_out_row): the CODE T1 rows at linear
+    >= 0x10000 whose `ad_data == ad_addr & 0xFFFF`, the total out-of-image code
+    fetches, and the first out-of-image fetch row.
+
+    ⚠ WHAT IT DOES **NOT** MEAN.  This used to be documented as an "open-bus
+    escape signature" - out-of-image fetches reading address feedthrough because
+    "nothing drives the multiplexed AD bus".  **THAT STORY IS FALSE ON THIS
+    RIG.**  `hdl/rtl/test_mem.sv` decodes `addr[15:1]` and leaves `addr[19:16]`
+    unconnected, so the 64K image is MIRRORED across the whole 1 MB space and
+    every fetch, escaped or not, returns defined image bytes on BOTH legs.  And
+    the `ad_data == ad_addr & 0xFFFF` test is the ADDRESS phase of a multiplexed
+    bus, so it is a tautology on its own domain: it held on 140,741 of 140,741
+    chip CODE T1 rows over all 725 retained FLASH #13 captures, 100.0000 %, zero
+    counterexamples.  What the counter actually measures is therefore
+    ">= N code fetches above 64 K", which under fuzz-v2's randomized segments is
+    a statement about segment arithmetic.  (`fuzz_classify.escaped_code_region`;
+    `docs/notes/fz2_corpus_prereg_2026-08-08.md` §38.2.)
+
+    IT IS KEPT BECAUSE TWO REGISTERED POPULATIONS ARE DEFINED BY ITS EXACT
+    COUNT, and re-opening them is a different piece of work from retiring a
+    label: `timed_fuzz.excuse`'s `OPEN_BUS` exclusion over the four v1 banks,
+    and the `ob_escape = {feed, out, frac}` field the capture path banks, which
+    `wrfuzz_w2.open_bus` reads as the wrfuzz campaign's pre-registered
+    exclusion.  The rows, the test and the count are unchanged; only the
+    mechanism claim is withdrawn.
+
+    THE V2 DIAGNOSTIC FOR "THIS PROGRAM LEFT ITS CODE REGION" IS
+    `fuzz_classify.escaped_code_region` (`escaped` / `escaped_n`), which works
+    in the PHYSICAL-OFFSET domain - the only one `test_mem.sv` decodes."""
     esc_rows = []
     n_out = 0
     first_out = None
@@ -326,50 +353,81 @@ def open_bus_escape_metrics(real, window):
     return esc_rows, n_out, first_out
 
 
-class OpenBusEscapeRule:
-    """Raw-tier accepted class: the seed's execution ESCAPED the loaded 64K
-    image into unmapped space, where the rig returns open-bus address
-    feedthrough and chip/core desync on garbage operands (task #29 P7, k=16).
-    Accept iff the chip capture shows a sustained feedthrough escape BEFORE the
-    first divergent row; a divergence BEFORE the escape point is a real in-image
-    bug and the rule REFUSES (same fail-safe as brkem_gap). Raw tier only -
-    soup stays in the loaded image by construction.
+# ===========================================================================
+# TOMBSTONE -- `OpenBusEscapeRule` / the `open_bus` acceptance class.
+# RETIRED 2026-08-11 BY USER RULING, WITH ITS REASON STATED.
+#
+# It was a raw-tier (B) KNOWN_ACCEPTED rule: accept a divergence iff the chip
+# capture showed >= 8 out-of-image CODE fetches reading `ad_data == addr &
+# 0xFFFF` before the first divergent row.  TWO DEFECTS RETIRED IT, and they are
+# named here rather than dropped silently:
+#
+#   (1) THE ELECTRICAL STORY WAS FALSE ON THIS RIG.  The rule's own reason
+#       string said the board returns "open-bus address feedthrough" because
+#       "nothing drives the multiplexed AD bus" out of image.  There is no open
+#       bus here: `hdl/rtl/test_mem.sv` decodes `addr[15:1]` and leaves
+#       `addr[19:16]` unconnected, so the 64K image is MIRRORED across the whole
+#       1 MB space and every fetch, escaped or not, returns defined image bytes
+#       on BOTH legs.  The rule's board-vs-TB note ("the BOARD feeds back the
+#       address, the TB mirrors the image") described a difference that does not
+#       exist.  Prereg §38.2(a); `fuzz_classify.escaped_code_region`.
+#
+#   (2) THE PREDICATE WAS A TAUTOLOGY, AND IT DID NOT DISCRIMINATE.
+#       `ad_data == ad_addr & 0xFFFF` on a chip CODE T1 row is the ADDRESS phase
+#       of a multiplexed bus: it held on 140,741 of 140,741 such rows over all
+#       725 retained FLASH #13 captures, 100.0000 %, zero counterexamples.  The
+#       rule therefore reduced to ">= 8 code fetches above 64 K", which under
+#       fuzz-v2's randomized segments is segment arithmetic.  It fired on 243 of
+#       251 NON-diverging raw seeds (96.8 %) -- a class covering 97 % of the
+#       successes is not a failure class -- and across the 153 seeds it accepted
+#       the first divergence was NEVER within 8 rows of the escape (min 147,
+#       median 1,374, max 3,517).  Prereg §38.2(b)(c).
+#
+# THE CORRECT VOCABULARY IS `escaped`: `fuzz_classify.escaped_code_region`, the
+# fuzz-v2 PHYSICAL-OFFSET containment diagnostic reported as `escaped` /
+# `escaped_n` on every result line.  It is a diagnostic and never an exclusion.
+#
+# THIS COMPLETES TWO EARLIER RULINGS RATHER THAN OPENING A NEW ONE: amendment
+# A-15 (prereg §38, user, 2026-08-09) already ruled that `open_bus` is "a
+# description of a divergence, not a disposition of it", and explicitly left
+# `sw/fuzz_accept.py` alone; the 2026-08-11 ruling finishes the job in the code.
+#
+# NOTHING BANKED IS REWRITTEN.  Banked `KNOWN_ACCEPTED/open_bus` verdicts, their
+# `sub` strings and their `rule_hits` are historical record and stand exactly as
+# captured (prereg §38.3).  `sw/fuzz_report.py` renders the banked label as
+# `escaped (legacy label: open_bus)` so old data stays readable while the false
+# name stops propagating.  `open_bus_escape_metrics` above is RETAINED with its
+# behaviour unchanged -- see its docstring for the two registered populations
+# that are defined by its exact count.
+# ===========================================================================
+RETIRED_RULE_TYPES = {
+    "open_bus_escape":
+        "retired 2026-08-11 by user ruling -- there is no open bus on this rig "
+        "(test_mem.sv mirrors the image across the 1 MB space) and the rule's "
+        "`ad_data == addr & 0xFFFF` test is the address phase of a multiplexed "
+        "bus, true on 140,741 of 140,741 chip CODE T1 rows.  The fuzz-v2 "
+        "vocabulary is `escaped` (fuzz_classify.escaped_code_region).  See the "
+        "tombstone in sw/fuzz_accept.py.",
+}
 
-    NOTE (board vs TB): out-of-image reads differ by leg source. The BOARD
-    returns address feedthrough (data == addr & 0xFFFF); the Verilator TB
-    mirrors the 64K image (addr & 0xFFFF), so a banked raw escape replayed
-    chip-vs-TB will NOT show the same open-bus stream. The bank stores the
-    chip-vs-TB round-trip verdict AT BANK TIME, which already absorbs this; this
-    rule keys on the CHIP capture only (vctx['real'])."""
-    covers = ("functional", "timing")
-    name = "open_bus_escape"
+_ANNOUNCED = set()
 
-    def __init__(self, cfg):
-        self.cfg = cfg
-        self.min_fetches = cfg.get("min_escape_fetches", 8)
-        self.frac_min = cfg.get("escape_frac_min", 0.5)
 
-    def apply(self, vctx):
-        ctx = vctx["ctx"]
-        if ctx.tier != "B":                     # raw only
-            return None
-        dr = vctx["dr"]
-        esc, n_out, _first_out = open_bus_escape_metrics(vctx["real"], dr.n)
-        if len(esc) < self.min_fetches:
-            return None                         # no sustained escape -> surface
-        if n_out and len(esc) / n_out < self.frac_min:
-            return None                         # out-of-image but not open-bus
-        escape_row = esc[0]
-        fb = dr.first
-        if fb is not None and fb < escape_row:
-            return None                         # divergence BEFORE escape -> real
-        frac = len(esc) / max(1, n_out)
-        vctx["sub_out"] = (f"open_bus:escape@{escape_row} "
-                           f"feed={len(esc)}/{n_out} ({frac:.2f})")
-        return RuleHit(self.name, "open_bus",
-                       f"raw open-bus escape: {len(esc)} feedthrough fetches "
-                       f"(escape row {escape_row}, first_bad {fb}); "
-                       f"out-of-image feed-frac {frac:.2f}", vctx["covers"])
+def _announce_retired(rtype):
+    """A config that still names a RETIRED rule type is SKIPPED LOUDLY.
+
+    Announced on stderr, once per process, rather than raised: the rules file
+    `sw/testdata/fuzz_accept_rules.json` is banked config that the retirement
+    sitting deliberately did not edit, and EVERY consumer of
+    `AcceptEngine.load()` -- `check_fuzz_bank`, `fuzz_bank`, `fuzz_campaign`,
+    `sm3_sigctl`, `f7a_arbitrate`, `inv1_recapture` -- would die on a raise.
+    What must not happen is a SILENT skip, and this is the thing that prevents
+    it."""
+    if rtype in _ANNOUNCED:
+        return
+    _ANNOUNCED.add(rtype)
+    print(f"fuzz_accept: rule type {rtype!r} is RETIRED and is NOT loaded -- "
+          f"{RETIRED_RULE_TYPES[rtype]}", file=sys.stderr)
 
 
 class CadenceFloorRule:
@@ -453,8 +511,8 @@ class AcceptEngine(fc.AcceptEngine):
                 rules.append(BrkemGapRule(r))
             elif r["type"] == "lea_mod3":
                 rules.append(LeaMod3Rule(r))
-            elif r["type"] == "open_bus_escape":
-                rules.append(OpenBusEscapeRule(r))
+            elif r["type"] in RETIRED_RULE_TYPES:
+                _announce_retired(r["type"])
             elif r["type"] == "cadence_floor":
                 rules.append(CadenceFloorRule(r))
         sdoc = {}

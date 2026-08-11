@@ -1390,9 +1390,26 @@ def eval_case(cid, k, ov, tb_only, host, build_stale, keep_rows=False,
     line = result_line(cfg, g, sha, v, di, _gen_git(), build_stale,
                         time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                         bus_cycles=bus_cycles, arch=arch)
-    # raw-tier open-bus escape metric: how much of the run left the 64K image
-    # into open-bus feedthrough space (task #29 P7; drives the rollup escape
-    # fraction and the open_bus_escape accept rule).
+    # raw-tier ESCAPE metric: how many CODE fetches of the run landed above
+    # linear 0x10000, i.e. outside the loaded 64K image (task #29 P7).
+    #
+    # ⚠ ERRATUM 2026-08-11, PROSE ONLY -- THE FIELD, ITS NAME AND ITS
+    # ARITHMETIC ARE DELIBERATELY UNCHANGED.  This used to read "into open-bus
+    # feedthrough space ... drives the rollup escape fraction and the
+    # open_bus_escape accept rule".  Two corrections.  (a) THERE IS NO OPEN
+    # BUS: `hdl/rtl/test_mem.sv` decodes `addr[15:1]` and mirrors the image
+    # across the whole 1 MB space, so these fetches return defined image bytes
+    # on both legs, and the metric's `ad_data == addr & 0xFFFF` test is the
+    # address phase of a multiplexed bus.  (b) THE ACCEPT RULE IT FED IS
+    # RETIRED (`sw/fuzz_accept.py` tombstone, 2026-08-11).
+    #
+    # `ob_escape` IS NOT RENAMED BECAUSE IT GATES: `wrfuzz_w2.open_bus` reads
+    # `ob_escape.feed >= 8` as the wrfuzz campaign's PRE-REGISTERED exclusion
+    # (prereg §2.4, validated 259/260 against the row-level detector), and
+    # `sw/fuzz_report.py` reads it for the raw escape budget.  The fuzz-v2
+    # diagnostic for the same question in the domain that actually decodes is
+    # `escaped` / `escaped_n` (`fuzz_classify.escaped_code_region`), written on
+    # every result line beside this one.
     if cfg["tier"] == "raw" and real:
         esc, n_out, _ = open_bus_escape_metrics(real, v.n)
         line["ob_escape"] = {"feed": len(esc), "out": n_out,

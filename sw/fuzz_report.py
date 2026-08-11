@@ -67,25 +67,44 @@ def report(cids):
     for cid, r in all_rows:
         for h in r.get("rule_hits", []):
             rh[h["klass"]] += 1
+    # ⚠ `open_bus` IS A RETIRED LABEL, RENDERED AND NEVER RENAMED.  The rule
+    # that minted it was retired 2026-08-11 (see the tombstone in
+    # `sw/fuzz_accept.py`: a false electrical story plus a tautological
+    # predicate).  Banked data still carries the word on thousands of lines and
+    # banked labels are HISTORICAL RECORD -- they are not rewritten -- so the
+    # lookup key stays `open_bus` and only the DISPLAY changes, to the honest
+    # fuzz-v2 vocabulary (`escaped`, `fuzz_classify.escaped_code_region`).
     canon = ("8080-gap", "cadence", "lea-mod3", "open_bus")
+    display = {"open_bus": "escaped (legacy label: open_bus)"}
     for klass in canon:
         c = rh.get(klass, 0)
-        L.append(f"- {klass}: {c}{'  <-- STALE (zero hits)' if c == 0 else ''}\n")
+        if klass == "open_bus":
+            note = "  <-- RETIRED rule (2026-08-11); banked data only"
+        else:
+            note = "  <-- STALE (zero hits)" if c == 0 else ""
+        L.append(f"- {display.get(klass, klass)}: {c}{note}\n")
     for klass, c in rh.items():
         if klass not in canon:
-            L.append(f"- {klass}: {c}\n")
+            L.append(f"- {display.get(klass, klass)}: {c}\n")
 
-    # 2b. raw open-bus escape budget: how much of the raw-whole population
-    # far-jumps out of the 64K image into open-bus feedthrough space.
+    # 2b. raw ESCAPE budget: how much of the raw-whole population executes
+    # CODE fetches above linear 0x10000.  ⚠ THE COUNTER IS `ob_escape.feed` AND
+    # ITS NAME IS THE ONLY THING LEFT OF THE OPEN-BUS STORY.  There is no open
+    # bus on this rig -- `hdl/rtl/test_mem.sv` mirrors the 64K image across the
+    # whole 1 MB space -- so these fetches read defined image bytes on both
+    # legs.  The field name and its arithmetic are UNCHANGED because
+    # `wrfuzz_w2.open_bus` reads them as that campaign's pre-registered
+    # exclusion; only the claim is withdrawn.
     raw = [r for cid, r in all_rows if r["tier"] == "raw" and r.get("ob_escape")]
     if raw:
         escaped = [r for r in raw if r["ob_escape"]["feed"] >= 8]
         fracs = sorted(r["ob_escape"]["frac"] for r in raw)
         med = fracs[len(fracs) // 2]
-        L.append("\n## Raw open-bus escape budget\n\n"
-                 f"- raw seeds with capture: {len(raw)}; escaped (>=8 feedthrough "
-                 f"fetches): {len(escaped)} ({100 * len(escaped) / len(raw):.0f}%); "
-                 f"median out-of-image feed-fraction: {med:.2f}\n")
+        L.append("\n## Raw escape budget (`ob_escape.feed`, legacy name)\n\n"
+                 f"- raw seeds with capture: {len(raw)}; escaped (>=8 "
+                 f"out-of-image code fetches): {len(escaped)} "
+                 f"({100 * len(escaped) / len(raw):.0f}%); "
+                 f"median out-of-image fetch-fraction: {med:.2f}\n")
 
     # 3. signatures
     sigs = Counter(r["sig"] for cid, r in all_rows if r.get("sig"))

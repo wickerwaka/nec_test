@@ -4950,6 +4950,24 @@ re-capture in every leaf including `sig`.
 FLASH #13 changed the part's 8080 behaviour.  It is the same non-reproducibility
 `0ac4c2a83a` declined to draw a conclusion from, showing up in one more column.
 
+> ⚠ **ERRATUM, 2026-08-11 — §33.1's MECHANISM IS WITHDRAWN; ITS OBSERVATION AND
+> ITS DISPOSITION ARE NOT.**  This section, and the `0ac4c2a83a` quote inside
+> it, explain the socket leg's non-reproducibility with *"a corpus with an
+> open-bus tier"* and *"values that come off an open bus"*.  **THERE IS NO OPEN
+> BUS ON THIS RIG**, and §38.2 of this very document measures why:
+> `hdl/rtl/test_mem.sv` decodes `addr[15:1]` and mirrors the 64K image across
+> the whole 1 MB space, so the raw tier's out-of-image writes and fetches touch
+> **defined image bytes**, on both legs; and the `open_bus` label those seeds
+> carry is the accept rule's, whose predicate held on 140,741 of 140,741 chip
+> CODE T1 rows.  The rule is **RETIRED** as of 2026-08-11 (`sw/fuzz_accept.py`
+> tombstone).  What stands unchanged: the 12 movers, the 3 seeds named above,
+> `image_sha256` identical on all 3,840, the MISSED reading of the fabric bar
+> C1, and the refusal to draw a before/after conclusion.  What is withdrawn is
+> the *reason*: escaped seeds are the non-reproducible ones by MEASURED
+> CORRELATION, and the mechanism is **UNPROVEN** — the standing hypothesis and
+> its falsifier are in `fz2_f14_results_2026-08-10.md` §4.1.  No bar, rate or
+> cell in this document moves.
+
 ### 33.2 THE BARS AS RUN — `sw/testdata/fz2/fz2_bars.json`, 2026-08-10T01:17:38Z
 
 **9/11 MET.  NOT MET: C-1, C-3.**
@@ -5768,6 +5786,25 @@ class, the WHERE.
 * `sw/fuzz_accept.py` is **not** changed by this amendment.  The rules keep
   running and keep labelling; what changes is that the label is no longer read
   as an exclusion.
+  * ⚠ **SUPERSEDED IN ITS SECOND CLAUSE BY A LATER USER RULING, 2026-08-11 —
+    APPENDED, NOT REWRITTEN.**  A-15 left the code alone deliberately, and that
+    was correct for A-15.  On 2026-08-11 the user ruled the *vocabulary* out
+    too, and `OpenBusEscapeRule` is now **RETIRED from `sw/fuzz_accept.py`**,
+    with a tombstone naming both defects §38.2 measured — the false electrical
+    story (a) and the tautological predicate (b)(c).  The engine no longer loads
+    it; the rules file `sw/testdata/fuzz_accept_rules.json` still names the type
+    and was **not** edited, so the loader SKIPS it and announces the retirement
+    on stderr rather than doing so silently.  Everything in the first bullet
+    still holds: **no banked verdict, `sub`, `sig`, `rule_hits` or capture is
+    edited**, and `sw/fuzz_report.py` renders the banked label as
+    `escaped (legacy label: open_bus)` so old data stays readable.
+    `fuzz_accept.open_bus_escape_metrics` is **retained with its behaviour
+    unchanged**, because `timed_fuzz.excuse`'s v1 `OPEN_BUS` exclusion and the
+    banked `ob_escape` field `wrfuzz_w2.open_bus` reads are registered
+    populations that this retirement does not re-open.  **No bar, rate, class
+    count or verdict moved:** `fz2_w1 lint` PASS and `bars` 11/11 MET before and
+    after, `fz2_materiality` controls 113/113 with all five class counts
+    byte-identical, `check_fuzz_bank` PASS 621.
 * Amendments A-1 through A-14 stand.  A-12's discard arithmetic in particular is
   **adopted**, not overridden: the three `ps3_8080` seeds stay out of the
   denominator.

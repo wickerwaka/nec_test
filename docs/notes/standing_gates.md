@@ -1423,6 +1423,27 @@ through the capture path's own `ob_escape.feed` counter (validated 259/260
 against the row-level function).  It costs **1.7 points of `S`** and it is the
 one used.  Ledger §3.4 **F-8**.
 
+⚠ **ERRATUM 2026-08-11 — `open_bus` IS A NAME, NOT A MECHANISM, AND NO FIGURE
+IN THIS SECTION MOVES.**  By USER RULING the `OpenBusEscapeRule` acceptance
+class is **RETIRED** from `sw/fuzz_accept.py` (tombstone in that file, with both
+defects named).  **There is no open bus on this rig**: `hdl/rtl/test_mem.sv`
+decodes `addr[15:1]` and leaves `addr[19:16]` unconnected, so the 64K image is
+MIRRORED across the whole 1 MB space and every fetch — escaped or not — returns
+defined image bytes **on both legs**; and the detector's `ad_data == addr &
+0xFFFF` test on a chip CODE T1 row is the ADDRESS phase of a multiplexed bus,
+true on **140,741 of 140,741** such rows across the FLASH #13 corpus
+(`fz2_corpus_prereg_2026-08-08.md` §38.2).  What the counter measures is
+"≥ 8 CODE fetches above linear 0x10000".  **THE PRE-REGISTERED EXCLUSION ABOVE
+IS UNCHANGED, TO THE SEED, AND KEEPS ITS REGISTERED NAME** — `wrfuzz_w2.open_bus`
+and `timed_fuzz.excuse` still read `ob_escape.feed ≥ 8`, so `S`, `B`, the
+2,379/2,515, the 635 and the 55/196 all stand exactly as registered.  What is
+withdrawn is only the claim that the excluded seeds diverge *because of the
+rig*.  The honest fuzz-v2 vocabulary for the same question is **`escaped`**
+(`fuzz_classify.escaped_code_region`, physical-offset domain).  Banked
+`KNOWN_ACCEPTED/open_bus` labels are historical record and are **not**
+rewritten; `sw/fuzz_report.py` renders them as
+`escaped (legacy label: open_bus)`.
+
 ⚠ **AND THE NINE CONTROL STRATA DO NOT REPRODUCE ANY REMEMBERED COLUMN, BY
 MEASUREMENT.**  The promoted bank's per-wait-class figures are a SELECTION
 artefact (**100.0 % on six of nine soup classes**), and the mc1/mc2/t30

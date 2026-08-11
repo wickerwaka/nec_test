@@ -335,7 +335,21 @@ with their done-marker positions instead.
 
 ---
 
-## 5. (d) THE ESCAPED / OPEN-BUS OVERLAP — READ THIS BEFORE ATTRIBUTING ANYTHING
+## 5. (d) THE ESCAPED OVERLAP — READ THIS BEFORE ATTRIBUTING ANYTHING
+
+> ⚠ **CORRECTION, 2026-08-11 (same day, after the census was written).** This
+> section was headed *"THE ESCAPED / OPEN-BUS OVERLAP"* and quoted F14 §4's
+> *"an escaped program has no reproducible bus"* as its reason. **That reason is
+> withdrawn** — there is no open bus on this rig (`hdl/rtl/test_mem.sv` decodes
+> `addr[15:1]` and mirrors the image across the whole 1 MB space), so an escaped
+> program's instruction stream **is** defined, on both legs. The erratum is
+> `fz2_f14_results_2026-08-10.md` §4.1. **THE CENSUS'S CLASSIFICATION IS
+> UNAFFECTED, AND THIS IS THE LOAD-BEARING POINT:** every class in §§1–4 is
+> assigned from **dump identity and row alignment** — `arch_dump` equality, the
+> clock-domain and cycle-index schedule tests, and the differing-column
+> partition. **The escape is REPORTED beside the classes and is never an input
+> to them.** No class count, control, rate or seed list in this document moves;
+> what changes is the *reason* the escaped overlap is flagged as a caveat.
 
 **63 of the 113 are escaped seeds** (`escaped_n > 0`).
 
@@ -347,13 +361,19 @@ with their done-marker positions instead.
 | COSMETIC | 13 | 6 | | 3 | 16 |
 | UNSCOREABLE | **11** | **0** | | 0 | 11 |
 
-⚠ **F14 §4, invoked again at F17 §4.3a: an escaped program has no reproducible
-bus.** A divergence measured on one is not by itself attributable to the core —
-F17 §4.3a withdrew a seat-level claim for exactly this reason, and F17 §4.3b
-then refuted the obvious rule ("an escaped seed may not be a seat") because 7 of
-that sitting's 8 registered seats were escaped. **So this is a caveat on
-attribution, not an exclusion, and nothing in this document is adjusted for
-it.**
+⚠ **THE ESCAPED CLASS FLICKERS CAPTURE TO CAPTURE** (F14 §4, invoked again at
+F17 §4.3a), so a divergence measured on one is weaker evidence about the core —
+F17 §4.3a withdrew a seat-level claim for that reason, and F17 §4.3b then
+refuted the obvious rule ("an escaped seed may not be a seat") because 7 of that
+sitting's 8 registered seats were escaped. **So this is a caveat on attribution,
+not an exclusion, and nothing in this document is adjusted for it.**
+
+**As corrected above: the flicker is a MEASURED CORRELATION and its MECHANISM IS
+UNPROVEN.** The standing hypothesis — chaotic path amplification, where one
+row flip at the corpus's ~0.26 % noise floor early in a long garbage path
+separates the two trajectories — is stated with its falsifier in
+`fz2_f14_results_2026-08-10.md` §4.1 and **has not been run**. Do not cite this
+section, or F14 §4, for a mechanism.
 
 The practical consequence: **the highest-confidence functional residue is the
 10 `soup`-tier, non-escaped FUNCTIONAL seeds** — `fz2c/404041`, `fz2c/405002`,
@@ -364,7 +384,8 @@ remaining 25 are escaped and carry the F14 §4 caveat.
 
 **All 11 UNSCOREABLE seeds are escaped raw seeds.** The class is not scattered
 across the corpus; it is concentrated exactly where the campaign already knows
-the bus is not reproducible.
+the captures are least reproducible (corrected 2026-08-11: *"where the bus is
+not reproducible"*, which asserted the withdrawn mechanism).
 
 ---
 
@@ -402,7 +423,7 @@ The ledger derives `new_failure` against the **F13-era committed ledger**, not
 against F16, and it names **seven**: the five above (excluding `fz2e/527051`,
 which carries a family and so is not "new" to F13) plus `fz2e/532032`
 (**COSMETIC**, 2 `qs` rows) and `fz2e/534041` (**FUNCTIONAL**, `CW`+`SP`, the
-seed F16 §5.4 already handled under the same escaped-bus rule). Both sets are
+seed F16 §5.4 already handled under the same escaped-seed caveat). Both sets are
 printed by the tool, because quoting one under the other's name is how an anchor
 stops anchoring.
 

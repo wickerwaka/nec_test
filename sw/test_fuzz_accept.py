@@ -14,6 +14,7 @@ Covers:
   * the KNOWN_ACCEPTED-carries-a-rule-hit invariant through fuzz_classify
   * rule-hit counting / zero-hit reporting
 """
+import json
 import sys
 from pathlib import Path
 
@@ -73,9 +74,11 @@ def _fetch_cap(addrs, waited=None, gaps=None):
 
 
 def _ob_fetch(addr, feed=True):
-    """A CODE fetch whose T1 row carries open-bus feedthrough (ad_data ==
-    addr & 0xFFFF) when feed=True, else a normal (non-feedthrough) fetch. The
-    rule reads the T1 row's ad_data, mirroring the real captures."""
+    """A CODE fetch whose T1 row carries `ad_data == addr & 0xFFFF` when
+    feed=True, else a fetch that does not (which on real silicon does not
+    happen: the T1 row IS the address phase of a multiplexed bus, and the
+    equality held on 140,741 of 140,741 chip CODE T1 rows -- see
+    `fuzz_accept.open_bus_escape_metrics`)."""
     data = (addr & 0xFFFF) if feed else ((addr + 0x100) & 0xFFFF)
     return [{"t": 1, "bs_early": 4, "qs": 1, "ube_n": 0, "ad_addr": addr,
              "ad_data": data, "ps": 0},
@@ -88,9 +91,17 @@ def _ob_fetch(addr, feed=True):
 
 
 def test_open_bus():
+    """⚠ WHAT THIS TEST NO LONGER TESTS.  `OpenBusEscapeRule` was RETIRED
+    2026-08-11 by user ruling (`sw/fuzz_accept.py` tombstone: a false
+    electrical story plus a tautological predicate), so the six checks that
+    exercised its accept/refuse arms are GONE WITH IT rather than left asserting
+    a class that cannot be reached.  What survives is exactly what still has a
+    consumer: the `open_bus_escape_metrics` COUNTER, which defines
+    `timed_fuzz.excuse`'s registered v1 `OPEN_BUS` population and the banked
+    `ob_escape` field `wrfuzz_w2.open_bus` reads; the falsifier that the retired
+    rule really is gone from the engine; and A-1's full-classify expectation."""
     eng = fa.AcceptEngine.load()
-    R = fa.OpenBusEscapeRule({"min_escape_fetches": 8, "escape_frac_min": 0.5})
-    # 2 in-image fetches, then 12 out-of-image feedthrough fetches (the escape)
+    # 2 in-image fetches, then 12 out-of-image fetches (the escape)
     real = _ob_fetch(0x0500) + _ob_fetch(0x0502)
     escape_first = len(real)                       # first out-of-image row
     for k in range(12):
@@ -98,47 +109,30 @@ def test_open_bus():
     n = len(real) + 20
 
     esc, n_out, fo = fa.open_bus_escape_metrics(real, n)
-    check("escape metrics: 12 feedthrough / 12 out-of-image",
+    check("escape metrics: 12 counted / 12 out-of-image",
           len(esc) == 12 and n_out == 12, f"(feed={len(esc)} out={n_out})")
     check("first out-of-image row located", fo == escape_first, f"({fo})")
 
-    # accept: divergence AFTER the escape point
-    v = dict(covers="functional", ctx=fc.Ctx(tier="B"), real=real,
-             dr=_dr(escape_first + 8, n), sim=None)
-    hit = R.apply(v)
-    check("open_bus accept when div after escape",
-          hit is not None and hit.klass == "open_bus", f"({hit})")
+    # THE RETIREMENT'S OWN FALSIFIER: the class is gone from the engine, the
+    # rules file still names the type, and the loader neither loads nor
+    # silently swallows it.
+    check("OpenBusEscapeRule is RETIRED (absent from the module)",
+          not hasattr(fa, "OpenBusEscapeRule"))
+    check("the retirement is DECLARED, with a reason",
+          "open_bus_escape" in fa.RETIRED_RULE_TYPES
+          and "no open bus" in fa.RETIRED_RULE_TYPES["open_bus_escape"])
+    check("no rule named open_bus_escape is loaded",
+          "open_bus_escape" not in eng.hits, f"(hits={eng.hits})")
+    check("the rules file still NAMES it (nothing banked was edited)",
+          any(r["type"] == "open_bus_escape"
+              for r in json.loads(fa.RULES_PATH.read_text())["rules"]))
 
-    # refuse: divergence BEFORE the escape point (a real in-image bug)
-    v = dict(covers="functional", ctx=fc.Ctx(tier="B"), real=real,
-             dr=_dr(1, n), sim=None)
-    check("open_bus REFUSES div before escape", R.apply(v) is None)
-
-    # refuse: fewer than min_escape_fetches feedthrough fetches
-    short = _ob_fetch(0x0500) + _ob_fetch(0x10000) + _ob_fetch(0x12000)
-    v = dict(covers="functional", ctx=fc.Ctx(tier="B"), real=short,
-             dr=_dr(len(short) + 1, len(short) + 10), sim=None)
-    check("open_bus REFUSES below min_escape_fetches", R.apply(v) is None)
-
-    # refuse: out-of-image but NOT feedthrough (a real out-of-image bug, not
-    # open-bus) -> must not be masked
-    nonfeed = _ob_fetch(0x0500)
-    for k in range(12):
-        nonfeed += _ob_fetch(0x10000 + 0x2000 * k, feed=False)
-    v = dict(covers="functional", ctx=fc.Ctx(tier="B"), real=nonfeed,
-             dr=_dr(len(nonfeed) + 1, len(nonfeed) + 10), sim=None)
-    check("open_bus REFUSES non-feedthrough out-of-image", R.apply(v) is None)
-
-    # refuse: soup tier (A) never triggers - soup stays in-image by construction
-    v = dict(covers="functional", ctx=fc.Ctx(tier="A"), real=real,
-             dr=_dr(escape_first + 8, n), sim=None)
-    check("open_bus REFUSES tier A (soup)", R.apply(v) is None)
-
-    # the engine counts the hit on the rule path
-    eng.consider(dict(covers="functional", ctx=fc.Ctx(tier="B"), real=real,
-                      dr=_dr(escape_first + 8, n), sim=None))
-    check("engine counted the open_bus hit", eng.hits["open_bus_escape"] >= 1,
-          f"(hits={eng.hits})")
+    # and the divergence it used to mask now SURFACES: an escaped raw seed
+    # whose first divergence follows the escape is no longer KNOWN_ACCEPTED.
+    hit = eng.consider(dict(covers="functional", ctx=fc.Ctx(tier="B"),
+                            real=real, dr=_dr(escape_first + 8, n), sim=None))
+    check("an escaped raw divergence is NOT accepted any more",
+          hit is None, f"({hit})")
 
     # FULL CLASSIFY PATH.  ⚠ THIS EXPECTATION CHANGED AT AMENDMENT A-1
     # (`docs/notes/fz2_corpus_prereg_2026-08-08.md` §11).  These fetches are
