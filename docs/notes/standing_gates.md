@@ -404,7 +404,7 @@ and nothing was deleted.
 |---|---|---|
 | **the bars** | `python3 sw/fz2_w1.py bars` | **11 / 11 MET** since A-14, `sw/testdata/fz2/fz2_bars.json`, 2026-08-10T02:50:20Z.  Offline; ~25 s.  It was **10 / 11, NOT MET: C-1** on the 01:34:24Z artifact; §36–§37 is the move and **read the ⚠ under C-1 before quoting it** |
 | **the lint** | `python3 sw/fz2_w1.py lint` | **PASS, 0 hits, 48 stratum rows.**  It cross-checks the campaign document against the code — if a doc edit trips it, **fix the doc** |
-| **bank integrity** | `python3 sw/check_fuzz_bank.py` | ⚠ **RED SINCE 2026-08-11, BY AN INSTRUMENT FIX, AND EXPECTED: `FAIL · 621 banked seeds · stable 531 / improved 0 / worse 90 · gen_drift 0 · regen_err 0 · float-floor 35 · new-sig TIMING 148`**, ~266 s.  **THE TREE DID NOT REGRESS — THE INSTRUMENT STARTED SCORING.**  `replay_classify`'s dead tier branches were closed (the ✅ ADDENDUM below, and `docs/notes/cfb_tier_prereg_2026-08-11.md`); all 90 movers are attributed to two newly-live branches (55 soup `done_mismatch`, 35 raw fixed-window), and the arch column the finding named is live on **123** soup seeds with **0** differing.  **THREE FIGURES ARE ALL TRUE AND THEY ARE NOT THE SAME FIGURE**: **621 · stable 621 · worse 0** is the DEFECTIVE instrument, re-measured on this tree the same day and NOT retracted — it is that instrument's number; **621 · stable 531 · worse 90** is the MAPPED instrument on the SAME bank; and the 90 are mis-scorings of the bank's DERIVED `replay_verdict` column, which `fuzz_bank.py:261` wrote by calling this very function.  **Do not quote a stable count without naming which instrument produced it.**  It goes green again only when `replay_verdict` is re-derived under its own pre-registration — booked, not taken; **the bank was NOT rewritten to make this row green** |
+| **bank integrity** | `python3 sw/check_fuzz_bank.py` | **GREEN AGAIN SINCE 2026-08-11 (`a54cc27454`), BY RE-DERIVATION OF THE DERIVED COLUMN, NOT BY A REPAIR: `PASS · 621 banked seeds · stable 621 / improved 0 / worse 0 · gen_drift 0 · regen_err 0 · float-floor 0 · new-sig TIMING 0`**, ~266 s.  **FOUR FIGURES ARE ALL TRUE AND THEY ARE NOT THE SAME FIGURE, AND THE FIRST TWO ARE NOT RETRACTED**: `stable 621 / worse 0` under the DEFECTIVE instrument (vacuous — banker and checker shared the defect); `stable 531 / worse 90` under the MAPPED instrument against the DEFECTIVE column (honest RED, every mover attributed); and `stable 621 / worse 0` under the MAPPED instrument against the RE-DERIVED column, which is this row.  **Do not quote a stable count without naming which instrument produced it and which column it scored.**  The 90 are NOT erased by the green: they are itemized in `cfb_tier_prereg_2026-08-11.md` §R.2, recorded in each entry's own `rederive` block, and dispositioned as `invalidation_ledger.md` **ERR-1** — a FOURTH register, opened for derived columns, whose **WHICH RIG DEFECT** field reads NONE.  The originals are archived byte-identical at `sw/testdata/cfb-tier-archive/` and the live bank's `chip_rows` hash IDENTICAL to them.  See the ✅ SECOND ADDENDUM below.  ⚠ The SUPERSEDED v1 banks (3,242 seeds) still carry the DEFECTIVE column and cannot be re-derived on this branch (D9).  *The RED registration follows, kept because a ratchet is only readable against its own history — its first two sentences stay TRUE of the run they describe; its LAST sentence is SUPERSEDED and is marked so at the end of this cell.*  **THE TREE DID NOT REGRESS — THE INSTRUMENT STARTED SCORING.**  `replay_classify`'s dead tier branches were closed (the ✅ ADDENDUM below, and `docs/notes/cfb_tier_prereg_2026-08-11.md`); all 90 movers are attributed to two newly-live branches (55 soup `done_mismatch`, 35 raw fixed-window), and the arch column the finding named is live on **123** soup seeds with **0** differing.  **THREE FIGURES ARE ALL TRUE AND THEY ARE NOT THE SAME FIGURE**: **621 · stable 621 · worse 0** is the DEFECTIVE instrument, re-measured on this tree the same day and NOT retracted — it is that instrument's number; **621 · stable 531 · worse 90** is the MAPPED instrument on the SAME bank; and the 90 are mis-scorings of the bank's DERIVED `replay_verdict` column, which `fuzz_bank.py:261` wrote by calling this very function.  **Do not quote a stable count without naming which instrument produced it.**  ~~It goes green again only when `replay_verdict` is re-derived under its own pre-registration — booked, not taken; the bank was NOT rewritten to make this row green~~ — **SUPERSEDED 2026-08-11: the re-derivation WAS taken, under its own pre-registration (`537c6697c5`, committed before the rewrite), and the row is green.  The clause's condition was met, not waived.**  What stays true of that sitting: the bank was not rewritten *in it* |
 | the classifier's own tests | `python3 sw/test_fuzz_classify.py` · `python3 sw/test_fuzz_accept.py` | **PASS / PASS**, 0 failures each |
 | the `ps3_8080` detector's non-vacuity | `python3 sw/fz2_a2_replay.py` | **PASS, 0 failures** — 87 / 116 on the **disjoint** `t30-brkem` bank, where 8080 entry is known to exist |
 | **A-4's non-vacuity** (`stalled`) | `python3 sw/fz2_stall.py falsify` | **PASS, rc 0** — fires on **0 / 659** terminator-REACHED captures in the current bank, **0 / 455** in the INV-2 archive |
@@ -574,6 +574,79 @@ nothing above this addendum is retracted.
   when fed a banked-style entry.  **Proved non-vacuous**: with `ctx_tier`
   monkeypatched back to the identity all 9 FAIL, the call-site pair with exactly
   the defect's signature, `(got 'soup')` / `(got 'raw')`.
+
+**✅ SECOND ADDENDUM 2026-08-11 — THE BOOKED RE-DERIVATION IS TAKEN, AND THE
+GATE IS GREEN AGAIN.  `PASS | 621 | stable 621 improved 0 worse 0 | gen_drift 0
+regen_err 0 | float-floor 0 | new-sig TIMING 0`.**  Append-only — nothing above
+is retracted, and **the 90 are not erased by the green**.
+Pre-registration + full results: `docs/notes/cfb_rederive_prereg_2026-08-11.md`
+(committed BEFORE the rewrite).  Disposition:
+`docs/notes/invalidation_ledger.md` **ERR-1**, in a **FOURTH register opened for
+it** — `ERR-n`, errata against DERIVED columns.
+
+* **THE INSTRUMENT CHANGE, NAMED.**  Nothing was fixed in this sitting.  The
+  classifier was fixed at `09ec85e4bb` (the first addendum); here the bank's
+  **derived** column was **RECOMPUTED** by the corrected classifier —
+  `sw/cfb_rederive.py --apply`, which calls the SAME `replay_classify` the gate
+  calls, so banker and checker cannot drift apart again.  Rewrite
+  `a54cc27454`, tool `32fd811ed7`, archive `77ecf565d9`, prereg `537c6697c5`.
+* **WHY IT IS NOT AN INV, A SUP OR AN EXC** — and why a fourth register rather
+  than a forced fit.  No **rig** defect exists (`gen_drift 0`, `regen_err 0`,
+  and the live `chip_rows` hash IDENTICAL to the pre-rewrite archive), so not an
+  INV; something **was** wrong with the column, so not a SUP; **no seed left any
+  population**, so not an EXC.  `ERR-n`'s distinguishing clause: a **DERIVED**
+  column computed by an instrument since found defective is recomputed in
+  place, the originals archived byte-identical, every movement printed, and the
+  gate returns green **BY ARITHMETIC — with no list edited and no seed
+  excused.**
+* **BOTH REGISTERED CLAUSES MET, SCORED ON A FULL DRY RUN BEFORE `--apply` AND
+  AGAIN ON THE APPLIED RECORD.**  (i) The **90 movers land EXACTLY on §R.2's
+  committed after-column** — mover set equal seed for seed, **0 extra, 0
+  missing**; the 55 soup all `FUNCTIONAL/done_mismatch` out of `TIMING` 33 /
+  `KNOWN_ACCEPTED` 22; the 35 raw all `SUCCESS` → `TIMING` 25 /
+  `KNOWN_ACCEPTED` 10.  **Independently cross-checked against the RED run's own
+  90 `WORSE` lines: 90/90 agree on verdict AND sub.**  (ii) The **531
+  non-movers' verdicts are byte-identical, 0 moved**; their subs byte-identical
+  on **521**, the 10 exceptions being exactly the sub-only class the first
+  addendum's §R.5 measured — **registered IN ADVANCE at the new prereg's §P-4,
+  not discovered after the fact.**
+* **THE UNTOUCHABLE RECORD IS PROVED, NOT ASSERTED.**  The tool may write four
+  keys and hashes every other key before and after, aborting the whole run on
+  one mismatch: **621/621 identical**.  A **second, independent** comparison
+  that does not use the tool's hash — live bank vs
+  `sw/testdata/cfb-tier-archive/`, key by key — is **621/621 identical, 0
+  differing**, and `chip_rows` alone hash to
+  `5b93d459a9d21425…` on **both**.  `git status` over `tests/v30/fuzz_bank/`
+  shows **622 modified files** (621 entries + `sig_ledger.json`) and nothing
+  else: no manifest, no sig index, no result shard.
+* **PRINTED, NEVER SILENT.**  One line per entry, moved or not; one line per
+  ledger key added or removed.  Every entry now carries a **`rederive`**
+  provenance block naming its prior `replay_verdict`/`replay_sig`/`replay_sub`,
+  its prior `banked_ts`, the fix commit and the archive path — **faithful on
+  621/621 against the archive** — so the 90 stay derivable from the artifact
+  itself and not only from a document.
+* **THE LEDGER'S REPLAY SIGNATURES WERE RE-DERIVED TOO** (field #4 of the
+  prereg's enumeration, the reason `new-sig TIMING` reads 0): **399** signatures
+  moved, `sigs` **12,303 → 12,384** (+354 / −273), no count negative — the
+  arithmetic registered at §P-6 before the run.  The discovery sigs were never
+  touched: `fuzz_campaign._ctx_for` always mapped correctly, so the defect never
+  reached them.
+* ⚠ **WHAT IS NOT CLOSED: THE SUPERSEDED v1 BANKS STILL CARRY THE DEFECTIVE
+  COLUMN.**  `mc1` · `mc2` · `t30-raw` · `t30-brkem`, **3,242 seeds**, were
+  banked through the same defective call site and **CANNOT be re-derived on this
+  branch** — D9 makes their images unregenerable, so `replay_classify` STOPs at
+  GEN-DRIFT before it classifies (`3,157 GEN-DRIFT + 85 refused`).  **Their
+  `replay_verdict` is the defective instrument's output and may not be quoted as
+  anything else.**
+* **THE PRECEDENT THIS SETS, AND ITS GUARD.**  A green gate obtained by
+  rewriting the data it scores is exactly the thing this document exists to
+  catch, so `ERR-n` carries **six preconditions** and this entry met all six —
+  derived column, named-and-already-fixed instrument defect, movement fully
+  attributed in a document committed **a day before** the rewrite, archive
+  before touch, every entry printed, untouchable fields proved mechanically.
+  **`cfb_tier_prereg_2026-08-11.md` §R.6 is the worked example of the other
+  choice**: the same 90 seeds were left RED rather than rewritten behind an
+  instrument fix that had no pre-registration of its own.
 
 **⚠ `check_fuzz_bank` IS 621, AND THREE DIFFERENT NUMBERS ARE ALL TRUE.**
 **623** banked *files* on disk (`fz2c` 480 + `fz2e` 143) − **2** EXC-1
@@ -1056,7 +1129,12 @@ sweeps **97 · 93 · 45 · 44 = 279/283**, same four family-D survivors ·
 `check_fuzz_bank` **PASS 621 stable** is the **DEFECTIVE instrument's** figure —
 `replay_classify`'s tier branches were dead when it was taken.  It was true of
 that instrument and is not retracted, but **it is not this tree's standing
-state**: see the gate table row and the ✅ ADDENDUM of 2026-08-11.)
+state**: see the gate table row and the ✅ ADDENDUM of 2026-08-11.
+**Second annotation, same day**: the gate now reads `PASS 621 stable` again —
+but it is a **DIFFERENT** `PASS 621 stable`, taken by the MAPPED instrument
+against a **RE-DERIVED** column (ERR-1, `a54cc27454`).  The two strings are
+identical and the two measurements are not.  **Quote the instrument and the
+column, never the string.**)
 **G6 TWO DRAWS, both PASS and IDENTICAL: Fmax 39.63 MHz, worst setup +6.016 ns,
 TNS 0.000 setup AND hold on every domain, ALMs 12,330 (29 %), 0 errors, 0
 latches, 0 `lpm_divide`; 88-file input manifest `065887d02fde8893…` on both;

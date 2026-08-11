@@ -279,3 +279,133 @@ here and is a **STOP**.
 ---
 
 # RESULTS — appended after the run. Nothing above this line was edited.
+
+Applied by `python3 sw/cfb_rederive.py --apply` (tool `32fd811ed7`), archive
+`77ecf565d9`, rewrite `a54cc27454`. **Every prediction P-1…P-6 MET. No STOP
+fired.**
+
+## R.0 The after figure
+
+```
+check_fuzz_bank: PASS | 621 banked seeds | stable 621 improved 0 worse 0 |
+gen_drift 0 regen_err 0 | float-floor 0 | new-sig TIMING 0
+```
+
+**P-1 MET, clause for clause, including the two clauses that were part of the
+prediction rather than decoration**: `float-floor 0` and `new-sig TIMING 0`.
+Zero `WORSE`, zero `IMPROVED`, zero `GEN-DRIFT`, zero `REGEN/REPLAY ERROR`
+lines printed. `--strict` follows by arithmetic from `new-sig TIMING 0` — the
+`ok` predicate differs from the default leg in that term alone.
+
+Before, on the same tree, same bank, same TB binary
+(`hdl/tb/obj_dir/Vtb_v30_core`):
+
+```
+check_fuzz_bank: FAIL | 621 banked seeds | stable 531 improved 0 worse 90 |
+gen_drift 0 regen_err 0 | float-floor 35 | new-sig TIMING 148
+```
+
+## R.1 The tool's own summary — dry run and apply, IDENTICAL
+
+```
+cfb_rederive: 621 entries | verdict moved 90 | sub moved 100 | sig moved 399 |
+untouchable identical 621/621 | ledger +354 -273 (sigs 12303 -> 12384)
+```
+
+**The full dry run was scored against every prediction BEFORE `--apply` was
+run**, and the applied record reproduces it line for line. `sub moved 100` is
+the 90 verdict movers plus §R.5's 10 sub-only movers, which is the arithmetic
+P-4 registered.
+
+## R.2 P-2 — the 90 movers land EXACTLY on the committed §R.2 after-column
+
+Scored against the seed names committed in `cfb_tier_prereg_2026-08-11.md`
+§R.2 **before this sitting existed**, as a SET:
+
+| clause | measured |
+|---|---|
+| verdict movers == §R.2's 90, seed for seed | **90; 0 extra, 0 missing** |
+| the 55 mechanism-A seeds → `FUNCTIONAL/done_mismatch`, all `soup` | **55/55** |
+| their before-column | **`TIMING` 33 · `KNOWN_ACCEPTED` 22** — §R.2's split exactly |
+| the 35 mechanism-B seeds, all `raw`, all `SUCCESS` before | **35/35** |
+| their after-column | **`TIMING` 25 · `KNOWN_ACCEPTED` 10** — §R.2's split exactly |
+
+**INDEPENDENT CROSS-CHECK.** The baseline `check_fuzz_bank` run printed its own
+90 `WORSE` lines with the before verdict and the after `verdict/sub`. Parsed
+straight out of that log and compared against the re-derived column: **90 of 90
+agree on the verdict AND on the sub.** The gate and the re-derivation tool are
+two readers of the same classifier and they do not disagree on a single seed.
+
+## R.3 P-3 / P-4 — the 531 non-movers
+
+| clause | measured |
+|---|---|
+| non-movers | **531** |
+| `replay_verdict` byte-identical | **531/531 — 0 moved** |
+| `replay_sub` byte-identical | **521/531** |
+| sub-only movers | **10**, exactly §R.5's class: all `soup`, `func:<kind>@<pos>` → `done_mismatch` |
+
+The 10: `fz2c/400068` `fz2c/400078` `fz2c/401020` `fz2c/403008` `fz2c/403044`
+`fz2c/404016` `fz2c/404040` `fz2e/512021` `fz2e/516026` `fz2e/516050`.
+**They were registered in advance at §P-4 of this document, not discovered
+after the fact** — §R.5 of the earlier prereg had already measured the class
+and its count, and the byte-identity clause was written around it before the
+rewrite rather than relaxed after it.
+
+## R.4 P-5 — the untouchable record
+
+* The tool's own guard: **621/621** entries' non-mutable-key hash identical
+  before and after; a single mismatch aborts before anything is written.
+* **A SECOND, INDEPENDENT CHECK that does not use the tool's hash function**:
+  the live bank compared against `sw/testdata/cfb-tier-archive/` key by key,
+  every key except the mutable four — **621/621 IDENTICAL, 0 differing.**
+* `chip_rows` alone, aggregate sha256 over all 621 in sorted path order:
+  **`5b93d459a9d21425fa9bc7386e705b732ddf8d163cce1d5e2be794b9c5a5b395`** on the
+  live bank **and on the archive**. The silicon record did not move.
+* The `rederive` block faithfully names the archived triple on **621/621**.
+* ⚠ **ERRATUM against §1.3 of this document, above the line and not edited
+  there**: §1.3 says the 621 hashes are printed *"as one aggregate
+  `untouchable_sha256`"*. They are not aggregated — the run record carries the
+  **per-entry** hash on every one of the 621 rows, which is strictly more
+  reproducible by a third party than a single digest would have been. The
+  clause's intent (a mechanical, externally-checkable record) is met; its
+  literal form is not. Stated, not restated.
+* `git status` over `tests/v30/fuzz_bank/`: **622 modified files** — 621
+  entries + `sig_ledger.json` — and **nothing else**. No manifest, no sig index,
+  no result shard.
+
+## R.5 P-6 — the ledger arithmetic, as registered
+
+| registered | measured |
+|---|---|
+| 273 keys reach 0 and are removed | **273** |
+| 77 keys keep a residual count (the SUPERSEDED banks' contributions, not re-derived) | **77** (350 distinct old sigs − 273) |
+| no count negative | **0 negative** — no STOP |
+| keys added | **354** |
+| `sigs` total | **12,303 → 12,384** |
+
+Every added and every removed key was **printed on its own line**. The
+newly-added keys carry `first_campaign: "ERR-1-rederive"`, which is true — they
+were first written by this re-derivation, not by a campaign — rather than a
+back-dated campaign attribution that would have read like provenance it does
+not have.
+
+## R.6 What this sitting did NOT do
+
+* **The SUPERSEDED v1 banks are NOT re-derived** (§1.4): `mc1` · `mc2` ·
+  `t30-raw` · `t30-brkem`, **3,242 seeds**, still carry the defective
+  instrument's `replay_verdict`. They **cannot** be re-derived on this branch —
+  plan D9 makes their images unregenerable (`3,157 GEN-DRIFT + 85 refused`), so
+  `replay_classify` STOPs before it classifies. **Bounded, stated, not
+  completed**; their derived column must not be quoted as anything but the
+  defective instrument's output.
+* **Nothing was fixed.** No engine, no testbench, no capture, no image, no
+  population predicate. The 90 remain a finding about the bank's derived column
+  and are recorded in three places that outlive this document: §R.2 of the
+  earlier prereg, each entry's own `rederive` block, and ERR-1's gate-status
+  table. **A green gate does not erase them.**
+* **No list was edited and no seed was excused.** There is no exclusion list for
+  the 90, no allowlist, no special case. The gate is green because the banker's
+  stored value and the checker's computed value are now the same function of
+  the same inputs — which is exactly the property `stable 621` was always
+  supposed to assert and, until this sitting, never did.

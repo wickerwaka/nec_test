@@ -104,8 +104,12 @@ fresh session needs before it quotes anything:
   all --cases 0` **169,000/169,000** · `ulockstep --golden all --cases 50`
   **17,350/17,350** · the four HLT sweeps **97 · 93 · 45 · 44 = 279/283** ·
   `ss_lint` **PASS, `SS_VERSION` 0x8C / 224 addresses / 212 flops / `SS_TAG`
-  0x8CE0** · **`r7_lint` PASS** · `check_fuzz_bank` **⚠ RE-REGISTERED RED 2026-08-11
-  (531/90 attributed — the old PASS was vacuous; see its own bullet)** ·
+  0x8CE0** · **`r7_lint` PASS** · `check_fuzz_bank` **PASS 621 / stable 621 /
+  worse 0 / gen_drift 0 / regen_err 0 / float-floor 0 / new-sig TIMING 0**
+  (⚠ RED at `09ec85e4bb` — 531/90, the old PASS was vacuous — and GREEN again
+  at `a54cc27454` by RE-DERIVING the derived column, not by a repair; **it is a
+  different PASS from the pre-RED one and the 90 are not erased**, see its own
+  bullet) ·
   `fz2_w1 lint` **PASS** · `fz2_w1 bars` **11/11 MET** (was 10/11; **A-14**
   re-registered E-1c's MEANING by USER RULING — read the ⚠ below before quoting
   it).
@@ -404,9 +408,36 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   **EXC-2** (the three in the FLASH #13 corpus, no manifest record — the reason
   is `fz2_corpus_prereg_2026-08-08.md` §34.6). **Every drop is PRINTED, never
   silent**, and that is itself a falsifier.
-- **`sw/check_fuzz_bank.py` is RE-REGISTERED RED since 2026-08-11
-  (`09ec85e4bb`): `FAIL / 621 / stable 531 / worse 90`, EVERY MOVER ATTRIBUTED
-  — and the old PASS was VACUOUS.** The tier-domain fix (banked `"soup"/"raw"`
+- **`sw/check_fuzz_bank.py` is GREEN AGAIN since 2026-08-11 (`a54cc27454`):
+  `PASS / 621 / stable 621 / improved 0 / worse 0 / gen_drift 0 / regen_err 0 /
+  float-floor 0 / new-sig TIMING 0`, ~266 s — BY RE-DERIVING THE BANK'S
+  DERIVED COLUMN, NOT BY A REPAIR.** One-line history: it was `PASS 621`
+  **vacuously** (banker and checker shared one defect) → **RED `FAIL / 621 /
+  stable 531 / worse 90` at `09ec85e4bb`** when the classifier was fixed →
+  **green at `a54cc27454`** when the column that defect wrote was recomputed by
+  the fixed classifier. **The three `stable` counts are three different
+  measurements and two of them share a string — quote the instrument AND the
+  column, never the string.** The re-derivation is pre-registered at
+  `537c6697c5` (`docs/notes/cfb_rederive_prereg_2026-08-11.md`), archived
+  byte-identical BEFORE touch at `77ecf565d9`
+  (`sw/testdata/cfb-tier-archive/`), applied by `sw/cfb_rederive.py --apply`,
+  and dispositioned as `invalidation_ledger.md` **ERR-1 — a FOURTH register
+  opened for DERIVED columns** (not an INV: no rig defect, `gen_drift 0`,
+  `regen_err 0`, `chip_rows` hash IDENTICAL to the archive; not a SUP:
+  something WAS wrong with the column; not an EXC: no seed left any
+  population). **The gate is green BY ARITHMETIC — no list edited, no seed
+  excused** — and **the 90 movers are NOT erased**: they stay itemized in
+  `cfb_tier_prereg_2026-08-11.md` §R.2 and in each entry's own `rederive`
+  block. Both registered clauses MET, scored on a full dry run BEFORE the
+  apply: the 90 land EXACTLY on §R.2's committed after-column (0 extra, 0
+  missing; cross-checked 90/90 against the RED run's own `WORSE` lines) and the
+  531 non-movers' verdicts are byte-identical (subs byte-identical on 521, the
+  10 exceptions registered in advance). Untouchable fields proved identical
+  621/621 by two independent checks. ⚠ **The SUPERSEDED v1 banks (3,242 seeds)
+  STILL carry the defective column and cannot be re-derived on this branch
+  (D9) — their `replay_verdict` may not be quoted as anything else.**
+  *The RED registration follows, kept because a ratchet is only readable
+  against its own history.* The tier-domain fix (banked `"soup"/"raw"`
   was fed into `fc.Ctx`, whose domain is `'A'/'B'`, so every tier branch in the
   replay was DEAD, arch-dump comparison included) revealed that
   `fuzz_bank.py:261` wrote the banked `replay_verdict` by calling the SAME
@@ -417,10 +448,10 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   `gen_drift 0 / regen_err 0` — no rig defect. The live arch column is CLEAN:
   123 soup seeds reach the dump comparison, 0 differ. `new-sig TIMING 148` is
   the registered instrument effect (tier is hashed into the signature).
-  **Re-deriving the banked verdicts on the mapped classifier is BOOKED, not
-  taken** — it rewrites bank entries and needs its own pre-registration
-  (INV-1 precedent); until then RED-by-exactly-these-90 is the expected
-  reading. ⚠ **Three numbers are all true and they are not the same number**:
+  ~~Re-deriving the banked verdicts on the mapped classifier is BOOKED, not
+  taken~~ — **TAKEN 2026-08-11 under its own pre-registration, exactly as this
+  clause required; the condition was MET, not waived.** ⚠ **Three numbers are
+  all true and they are not the same number**:
   **623** banked FILES on disk (`fz2c` 480 + `fz2e` 143), **−2** EXC-1
   exclusions, **= 621** REPLAYED; and **3,865** is the pre-SUP-1 population,
   still one flag away and still FAILING for D9's reason. *(Superseded: the

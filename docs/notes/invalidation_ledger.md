@@ -30,6 +30,17 @@ the DEFAULT population by a `status` key in its own manifest rather than
 discarded from every gate set. Do not read a `SUP-n` entry as evidence of a
 defect, and do not file a defect as a `SUP-n`.
 
+**It carries a THIRD register, § EXCLUDED SEEDS (`EXC-n`), and — opened
+2026-08-11 — a FOURTH, § ERRATA AGAINST DERIVED COLUMNS (`ERR-n`).** The first
+three are all about **CAPTURES**. `ERR-n` is the only one about a **DERIVED
+COLUMN** — something this tree *computed* from a capture and stored beside it,
+which can be wrong while every capture behind it is true. Its **WHICH RIG
+DEFECT** field also reads **NONE**, and it carries a field none of the others
+has: a named **INSTRUMENT** defect with its fix commit. Its disposition is
+neither discard nor retire nor drop — the column is **RECOMPUTED IN PLACE** and
+every movement is reported. Read its six preconditions before filing one; it is
+not a licence to edit data that disagrees with a gate.
+
 ## A caution about the precedent this directive cites
 
 **The w1evt-biased event is an ARCHIVE-BY-RENAME, not an invalidation**, and
@@ -790,6 +801,205 @@ themselves.
 
 **ALSO FALSIFIED IF** the exclusion is ever dropped **without being printed**
 (R3′c).
+
+# ERRATA AGAINST DERIVED COLUMNS — **NOT** INVALIDATIONS, **NOT** SUPERSESSIONS, **NOT** EXCLUSIONS
+
+**Opened 2026-08-11.** A fourth register, opened for the same reason the third
+was: filing this as any of the other three would say something untrue.
+
+The three registers above are all about **CAPTURES** — data the rig produced.
+This one is about a **DERIVED COLUMN**: something the tree *computes* from a
+capture and stores beside it. A derived column can be wrong while every capture
+it was computed from is perfectly true, and when it is, none of the three
+dispositions applies — there is nothing to discard (INV), nothing to retire
+(SUP) and nothing to drop from a rate (EXC). What there is, is **a wrong number
+that must be recomputed with every movement reported.**
+
+| | INVALIDATION (INV-n) | SUPERSESSION (SUP-n) | EXCLUSION (EXC-n) | **ERRATUM (ERR-n)** |
+|---|---|---|---|---|
+| what is wrong with the **capture** | something | nothing | nothing | **nothing** |
+| what is wrong with the **derived column** | — | — | — | **it was computed by an instrument since found defective** |
+| named **rig** defect | required | NONE | NONE | **NONE — and that field must read NONE** |
+| named **instrument** defect | — | — | — | **required, with its fix commit** |
+| granularity | per capture | per campaign | per seed | **per derived column, bank-wide** |
+| the disposition | out of every gate set, permanently | out of the DEFAULT population; back with `--include-superseded` | out of every scored rate's numerator AND denominator; back with `--include-excluded` | **RECOMPUTED IN PLACE by the corrected instrument; nothing leaves any population** |
+| how the gate returns green | re-capture | not applicable | not applicable | **by arithmetic — banker and checker compute the same corrected function — with NO list edited and NO seed excused** |
+| what it says | this measurement was not of what we thought | a better instrument exists | this is a true measurement of something we are not scoring | **the measurement is true; the label we computed beside it was wrong** |
+
+**AN `ERR-n` IS NOT A LICENCE TO EDIT DATA THAT DISAGREES WITH A GATE.** Its
+preconditions are strict, all of them must be met, and each must be stated in
+the entry:
+
+1. the column is **DERIVED** — computed by this tree, never measured by the rig;
+2. the **instrument defect is named and already fixed**, in its own commit;
+3. the movement is **fully attributed BEFORE the rewrite**, seed by seed, in a
+   document committed before it;
+4. the originals are **archived byte-identical before a byte is touched**;
+5. every rewritten entry is **PRINTED** and carries a provenance block naming
+   what it replaced;
+6. the untouchable fields are **proved untouched mechanically**, not asserted.
+
+If any of those is missing, the honest disposition is a RED gate, not an ERR-n.
+`cfb_tier_prereg_2026-08-11.md` §R.6 is the worked example of choosing the RED:
+the same 90 seeds were left failing for a day rather than rewritten behind an
+instrument fix that had no pre-registration of its own.
+
+---
+
+## ERR-1 — THE BANKED `replay_verdict` COLUMN OF THE 621-SEED fuzz-v2 BANK
+
+**Opened AND CLOSED 2026-08-11, branch `fuzz-v2-on-relanding`, by
+re-derivation. No rig defect. Nothing moved, renamed or deleted.**
+
+### WHAT
+
+| | |
+|---|---|
+| the artifact | the **derived replay columns** of the fuzz-v2 bank — `replay_verdict`, `replay_sig`, `replay_sub` on each entry, plus the **replay** contribution to `tests/v30/fuzz_bank/sig_ledger.json` |
+| the population | `fz2c` 480 + `fz2e` 143 = 623 banked files, **− 2 EXC-1 = 621 replayed** (296 `soup` + 325 `raw`) |
+| where it is | `tests/v30/fuzz_bank/{fz2c,fz2e}/seeds/*.json.gz` — **exactly where it has always been** |
+| what changed in it | **three fields per entry** plus a new `rederive` provenance block, and the ledger's replay-sig keys. **No `chip_rows`, `chip_arch`, `image_sha256`, discovery `verdict`/`sub`/`sig`, `manifest.json`, sig index or result shard was touched** — proved mechanically, see THE MECHANICS |
+| the tree it was set on | `921e756534` |
+| the commits | prereg `537c6697c5` · archive `77ecf565d9` · tool `32fd811ed7` · rewrite `a54cc27454` |
+
+### WHY — the column, not the capture
+
+`sw/fuzz_bank.py:261` (`_write_bank`) computes the banked `replay_verdict` by
+calling **`check_fuzz_bank.replay_classify` itself**. Until `09ec85e4bb` that
+call site built `fc.Ctx(tier=entry["tier"])` with the banked config literal
+`"soup"`/`"raw"`, while `Ctx.tier`'s declared domain is `'A'`/`'B'` — so every
+tier branch in the classifier was silently False, **the arch-dump comparison
+among them**. The banked column IS that defect's output.
+
+Because the **same defective function was both the banker and the checker**,
+`check_fuzz_bank` read `stable 621 / worse 0` for as long as the defect stood:
+the round-trip compared the defect against itself. That green was a statement
+about the determinism of an instrument, not about the bank
+(`cfb_tier_prereg_2026-08-11.md` §2).
+
+**Nothing is alleged about any capture.** `chip_rows` are true silicon, taken
+from the socket, and they stay true — measured, not assumed: `gen_drift 0` and
+`regen_err 0` on the full 621 in both the RED run and the green one, every image
+still regenerating to its banked `sha256`, and the live bank's `chip_rows`
+hashing **identical to the archive** after the rewrite. What was wrong was a
+**label this tree computed and stored beside them.**
+
+### WHICH RIG DEFECT
+
+# **NONE.**
+
+No rig defect is alleged, none is diagnosed, and none is fixed by this entry.
+No capture is false, no directive was mis-applied, no board was touched, no
+bitstream is implicated. **The defect is an INSTRUMENT defect and it is named**:
+`check_fuzz_bank.replay_classify`'s tier-domain mismatch, **FIXED at
+`09ec85e4bb`** by `fuzz_campaign.ctx_tier`, the one home of the mapping, which
+**raises** outside its domain. Its own falsifier — 9 board-free checks, proved
+non-vacuous — is `sw/test_fuzz_classify._tier_domain_falsifier()`.
+
+### WHAT REPLACES IT
+
+The same column, recomputed by the corrected instrument:
+**`python3 sw/cfb_rederive.py --apply`**. Not a re-capture, not a re-bank, not a
+re-promotion — the identical `(chip, sim)` row pairs read by a classifier
+finally inside its own domain.
+
+### THE ARCHIVE
+
+`sw/testdata/cfb-tier-archive/{fz2c,fz2e}/seeds/` — **621 byte-identical
+copies** of the entries as they stood at `921e756534`, plus a byte-identical
+`sig_ledger.json`, `SHA256SUMS` (622 files; sha256 of `SHA256SUMS` itself
+`4c2162cd6f2a6785ca722b01211696859a55580d75bfe9a69de635a5e15075ac`) and a
+manifest, committed at `77ecf565d9` **before a byte of the bank was written**.
+
+**Deliberately OUTSIDE `tests/v30/fuzz_bank/`**, for INV-1's own reason:
+`bank_status.seed_paths()` globs `*/seeds/*.json.gz` under that root, so an
+archive placed inside it would have silently grown the replayed corpus. (The
+originals are also in git history at `921e756534`; the copy exists so the
+guarantee does not depend on that.)
+
+### THE MECHANICS — how "untouched" is proved rather than asserted
+
+`sw/cfb_rederive.py` may write **four keys and no others**
+(`replay_verdict`, `replay_sig`, `replay_sub`, `rederive`). For every entry it
+hashes the canonical JSON of **every other key**, before and after, and
+**aborts the whole run on a single mismatch** — `621/621 identical`. A
+GEN-DRIFT is a STOP, not a repair. A negative ledger count is a STOP. `--limit`
+is refused with `--apply`, because a partial rewrite is a truncated bank.
+
+An **independent check that does not use the tool's own hash function**
+compared the live bank against the archive key by key: **621/621 identical, 0
+differing**, and `chip_rows` alone hash to
+`5b93d459a9d21425fa9bc7386e705b732ddf8d163cce1d5e2be794b9c5a5b395` on **both**.
+
+**Printed, never silent**: one line per entry (moved or not), one line per
+ledger key added or removed. Each entry now carries a `rederive` block naming
+its prior `replay_verdict`/`replay_sig`/`replay_sub`, its prior `banked_ts`, the
+fix commit and the archive path — **faithful on 621/621 against the archive** —
+so the movement stays derivable from the artifact, not only from a document.
+
+### GATE STATUS — the movement, reported
+
+| | RED (`921e756534`, mapped classifier vs defective column) | **GREEN (`a54cc27454`, re-derived)** |
+|---|---|---|
+| `check_fuzz_bank` | `FAIL \| 621 \| stable 531 improved 0 worse 90` | **`PASS \| 621 \| stable 621 improved 0 worse 0`** |
+| `gen_drift` / `regen_err` | 0 / 0 | **0 / 0** |
+| `float-floor` | 35 | **0** |
+| `new-sig TIMING` | 148 | **0** |
+
+**THE 90 ARE NOT ERASED BY THE GREEN.** They are, and stay, a finding about the
+bank's derived column, itemized seed by seed in
+`cfb_tier_prereg_2026-08-11.md` §R.2 and recorded in each entry's own
+`rederive` block: **55 `soup`** where `done_mismatch` came alive
+(`fuzz_classify.py:586`; 33 `TIMING`→`FUNCTIONAL`, 22
+`KNOWN_ACCEPTED`→`FUNCTIONAL`) and **35 `raw`** where tier B's fixed 4,000-row
+window came alive (`:562`; `SUCCESS` → 25 `TIMING` + 10 `KNOWN_ACCEPTED`, which
+is `float-floor 35` seed for seed). **Nothing about the RTL, the model, the TB
+binary or the silicon moved in either direction.**
+
+Both registered clauses were scored on a **full dry run before `--apply`** and
+again on the applied record:
+
+* the **90 movers land EXACTLY on §R.2's committed after-column** — mover set
+  equal seed for seed, **0 extra and 0 missing**, both mechanism splits exact —
+  and, cross-checked independently against the RED run's own 90 `WORSE` lines,
+  **90/90 agree on verdict AND sub**;
+* the **531 non-movers' verdicts are byte-identical, 0 moved**, and their subs
+  byte-identical on **521**, the 10 exceptions being exactly the sub-only class
+  §R.5 measured and this sitting's §P-4 registered **in advance**.
+
+The ledger moved **12,303 → 12,384** signatures (**+354, −273**), every key
+printed, no count negative — the arithmetic registered at §P-6 before the run.
+
+### WHAT IS **NOT** CLOSED BY THIS ENTRY
+
+**The SUPERSEDED v1 banks still carry the defective column.** `mc1` · `mc2` ·
+`t30-raw` · `t30-brkem` — **3,242 seeds** — were banked through the same
+defective call site and are **NOT re-derived**, because on this branch they
+**cannot** be: plan D9 makes the `0F` scrub unconditional, so every v1 image
+regenerates to a different `sha256` and `replay_classify` STOPs at GEN-DRIFT
+before it classifies (`3,157 GEN-DRIFT + 85 refused, 0 scored`). Re-deriving
+them needs a checkout of a pre-fuzz-v2 generator. **Their `replay_verdict` is
+the defective instrument's output and must not be quoted as anything else**;
+`--include-superseded` still selects them and still fails, for D9's reason.
+
+### THE FALSIFIER
+
+**FALSIFIED IF** `check_fuzz_bank` and `cfb_rederive` ever disagree on a banked
+seed's `replay_verdict` on an unchanged tree — that is the round-trip this
+entry restored, and it is checked on every gate run by construction, because
+the two call the same `replay_classify`.
+
+**ALSO FALSIFIED IF** any live banked entry's non-mutable fields ever differ
+from `sw/testdata/cfb-tier-archive/`'s copy of it. The archive is the standing
+control on the claim *"only the derived columns moved"*, and the comparison is
+four lines of Python over 621 files.
+
+**ALSO FALSIFIED IF** a future sitting makes this gate green by editing a list,
+excusing a seed, or narrowing the population. This entry's green came from
+arithmetic; anything that comes from a list is a different thing wearing its
+name.
+
+---
 
 ---
 
