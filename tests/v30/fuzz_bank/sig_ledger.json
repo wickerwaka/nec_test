@@ -1967,7 +1967,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 5
+   "count": 4
   },
   "b7a127e7776e54a6": {
    "first_campaign": "t30-raw",
@@ -2487,7 +2487,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "ccc01381655a0c21": {
    "first_campaign": "t30-raw",
@@ -3127,7 +3127,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 3
+   "count": 2
   },
   "c06d42608a3da850": {
    "first_campaign": "t30-raw",
@@ -4735,7 +4735,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 5
+   "count": 4
   },
   "cb82147bfdcab38b": {
    "first_campaign": "t30-raw",
@@ -9007,7 +9007,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 3
+   "count": 2
   },
   "4f5e529a96d56866": {
    "first_campaign": "t30-raw",
@@ -9623,7 +9623,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 3
+   "count": 2
   },
   "4ae1bb61d60adce9": {
    "first_campaign": "t30-raw",
@@ -11895,7 +11895,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 35
+   "count": 34
   },
   "57ee2dde644b6de7": {
    "first_campaign": "mc1",
@@ -12559,7 +12559,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 39
+   "count": 38
   },
   "6ae5b2c7b5061c07": {
    "first_campaign": "mc1",
@@ -12687,7 +12687,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 30
+   "count": 29
   },
   "c15bf92b9373b572": {
    "first_campaign": "mc1",
@@ -12695,7 +12695,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 27
+   "count": 26
   },
   "dc15924d6ce67440": {
    "first_campaign": "mc1",
@@ -12727,7 +12727,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 11
+   "count": 10
   },
   "5b00b671aee37e0c": {
    "first_campaign": "mc1",
@@ -12799,7 +12799,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 24
+   "count": 23
   },
   "c9e33e1c9794a102": {
    "first_campaign": "mc1",
@@ -13087,7 +13087,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 21
+   "count": 20
   },
   "70f29957894547b1": {
    "first_campaign": "mc1",
@@ -13671,7 +13671,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 7
+   "count": 6
   },
   "b11b55542706552a": {
    "first_campaign": "mc1",
@@ -13911,7 +13911,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 7
+   "count": 4
   },
   "43be410b88e2fa01": {
    "first_campaign": "mc1",
@@ -15239,7 +15239,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 5
+   "count": 4
   },
   "a77bcdfb9e662638": {
    "first_campaign": "mc1",
@@ -15287,7 +15287,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 17
+   "count": 16
   },
   "24646f9e177cccf0": {
    "first_campaign": "mc1",
@@ -16079,7 +16079,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 12
+   "count": 11
   },
   "80dcdb0e6d885cc3": {
    "first_campaign": "mc1",
@@ -17407,7 +17407,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 5
+   "count": 4
   },
   "9d9539f9899419e7": {
    "first_campaign": "mc1",
@@ -17447,7 +17447,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 14
+   "count": 13
   },
   "4b76109d7a847862": {
    "first_campaign": "mc1",
@@ -17575,7 +17575,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 8
+   "count": 7
   },
   "be65df38ea176d73": {
    "first_campaign": "mc1",
@@ -19015,7 +19015,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 10
+   "count": 9
   },
   "90e0a3e316d36abe": {
    "first_campaign": "mc1",
@@ -19583,7 +19583,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 11
+   "count": 10
   },
   "d96bfd74cc13054e": {
    "first_campaign": "mc1",
@@ -20903,7 +20903,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 8
+   "count": 7
   },
   "bc346a64dedb80fe": {
    "first_campaign": "mc1",
@@ -21455,7 +21455,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 19
+   "count": 16
   },
   "4c5446de488c2a4c": {
    "first_campaign": "mc1",
@@ -23439,7 +23439,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 4
+   "count": 3
   },
   "451fdb22d54e177d": {
    "first_campaign": "mc1",
@@ -24151,7 +24151,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 9
+   "count": 8
   },
   "9465e85273eb48b2": {
    "first_campaign": "mc1",
@@ -24287,7 +24287,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 2
   },
   "485a53fc080ad6a8": {
    "first_campaign": "mc1",
@@ -24447,7 +24447,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 4
+   "count": 3
   },
   "15f5c13d48416ba1": {
    "first_campaign": "mc1",
@@ -24783,7 +24783,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 5
+   "count": 4
   },
   "6e998fbbf1419a7e": {
    "first_campaign": "mc1",
@@ -25143,7 +25143,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 2
   },
   "0b866255e692504b": {
    "first_campaign": "mc1",
@@ -25471,7 +25471,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 7
+   "count": 6
   },
   "85f32a66809fa177": {
    "first_campaign": "mc1",
@@ -25663,7 +25663,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 26
+   "count": 25
   },
   "8dadcac730e460b3": {
    "first_campaign": "mc1",
@@ -26935,7 +26935,7 @@
    "klass": "cadence",
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 2
   },
   "71c2c23a7633d7ec": {
    "first_campaign": "mc1",
@@ -27239,7 +27239,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 5
+   "count": 4
   },
   "20a0fd9a7f653669": {
    "first_campaign": "mc1",
@@ -28183,7 +28183,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 18
+   "count": 17
   },
   "1b9ea2e8bf7e5231": {
    "first_campaign": "mc1",
@@ -30111,7 +30111,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w3",
-   "count": 7
+   "count": 6
   },
   "e74f659eae827617": {
    "first_campaign": "mc1",
@@ -31679,7 +31679,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 4
+   "count": 3
   },
   "8138cd756d8b9e87": {
    "first_campaign": "mc1",
@@ -31767,7 +31767,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 7
+   "count": 2
   },
   "8e4d23d5a4623adb": {
    "first_campaign": "mc1",
@@ -32295,7 +32295,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 2
   },
   "4af029dec299e2dd": {
    "first_campaign": "mc1",
@@ -34359,7 +34359,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 4
+   "count": 3
   },
   "8ab5943e96018510": {
    "first_campaign": "mc1",
@@ -34447,7 +34447,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 8
+   "count": 7
   },
   "d3ec10400c9e527b": {
    "first_campaign": "mc1",
@@ -35159,7 +35159,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 6
+   "count": 5
   },
   "8d71c4a50be6fff3": {
    "first_campaign": "mc1",
@@ -35303,7 +35303,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 6
+   "count": 5
   },
   "72e7b6a39c30b5a8": {
    "first_campaign": "mc1",
@@ -39727,7 +39727,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 5
+   "count": 4
   },
   "85c5dc39277233d1": {
    "first_campaign": "mc1",
@@ -41375,7 +41375,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 9
+   "count": 8
   },
   "8827a100a29e7e47": {
    "first_campaign": "mc1",
@@ -41407,7 +41407,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 3
+   "count": 2
   },
   "362241d9f6a6c125": {
    "first_campaign": "mc1",
@@ -43655,7 +43655,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 4
+   "count": 3
   },
   "cace5d8a5caa01d9": {
    "first_campaign": "mc1",
@@ -44007,7 +44007,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w2",
-   "count": 5
+   "count": 4
   },
   "3436640e5b884131": {
    "first_campaign": "mc1",
@@ -45143,7 +45143,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w3",
-   "count": 4
+   "count": 3
   },
   "74479029616aa951": {
    "first_campaign": "mc1",
@@ -59871,7 +59871,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 11
+   "count": 10
   },
   "280ecc4c30edbd4e": {
    "first_campaign": "mc1",
@@ -60279,7 +60279,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "52b387a956707f0e": {
    "first_campaign": "t30-raw",
@@ -60399,7 +60399,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "52b39bc280688a61": {
    "first_campaign": "t30-raw",
@@ -60807,7 +60807,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 2
+   "count": 1
   },
   "c8b4ecb8018f7970": {
    "first_campaign": "mc2",
@@ -64215,7 +64215,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 6
+   "count": 4
   },
   "7c6c537d273edcaa": {
    "first_campaign": "mc2",
@@ -66031,7 +66031,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 2
   },
   "a286b07542fa9d05": {
    "first_campaign": "mc2",
@@ -67159,7 +67159,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 2
+   "count": 1
   },
   "d0a80a6106675d1f": {
    "first_campaign": "mc2",
@@ -69183,7 +69183,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 2
+   "count": 1
   },
   "8691398c0c1cd8aa": {
    "first_campaign": "mc2",
@@ -69503,7 +69503,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 2
   },
   "aa38fe776b28f148": {
    "first_campaign": "mc2",
@@ -69647,7 +69647,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 2
+   "count": 1
   },
   "ca4ce721645a1035": {
    "first_campaign": "mc2",
@@ -69999,7 +69999,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "ab4ff789d622f543": {
    "first_campaign": "mc2",
@@ -73511,7 +73511,7 @@
    "klass": "cadence",
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "57e1dac6eecb3a35": {
    "first_campaign": "mc2",
@@ -73591,7 +73591,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 3
+   "count": 2
   },
   "706b72885f222cd9": {
    "first_campaign": "mc2",
@@ -74863,7 +74863,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w3",
-   "count": 2
+   "count": 1
   },
   "61549825851cf8f9": {
    "first_campaign": "mc2",
@@ -74927,7 +74927,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 2
+   "count": 1
   },
   "d3ca38e25e8b3c00": {
    "first_campaign": "mc2",
@@ -75023,7 +75023,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "4d01d8e3f28feef8": {
    "first_campaign": "mc2",
@@ -75215,7 +75215,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "673e0265dda6e9c9": {
    "first_campaign": "mc2",
@@ -75479,7 +75479,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 2
+   "count": 1
   },
   "a6bab2acfcb01db2": {
    "first_campaign": "mc2",
@@ -76951,7 +76951,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "c9ad5b1af6b7ecb1": {
    "first_campaign": "mc2",
@@ -78079,7 +78079,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "7d341a6e03ed7b5e": {
    "first_campaign": "mc2",
@@ -79951,7 +79951,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "w0",
-   "count": 2
+   "count": 1
   },
   "23ce4ac5a2f10c45": {
    "first_campaign": "mc2",
@@ -80127,7 +80127,7 @@
    "klass": null,
    "tier": "raw",
    "waits_class": "w0",
-   "count": 2
+   "count": 1
   },
   "650c8d5487d03050": {
    "first_campaign": "mc2",
@@ -81111,7 +81111,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "b97ec3d8974d4f8c": {
    "first_campaign": "mc2",
@@ -81183,7 +81183,7 @@
    "klass": null,
    "tier": "soup",
    "waits_class": "wrand",
-   "count": 2
+   "count": 1
   },
   "8f34e089ff35f706": {
    "first_campaign": "mc2",
@@ -93890,7 +93890,7 @@
    "klass": null,
    "tier": "unknown",
    "waits_class": "recapture-evt",
-   "count": 2,
+   "count": 1,
    "admitted": "2026-08-04"
   },
   "37b19473ca77c9c2": {
@@ -94115,7 +94115,7 @@
    "klass": null,
    "tier": "unknown",
    "waits_class": "recapture-evt",
-   "count": 2,
+   "count": 1,
    "admitted": "2026-08-04"
   },
   "6d5504f210cf4a3b": {
@@ -94133,7 +94133,7 @@
    "klass": null,
    "tier": "unknown",
    "waits_class": "recapture-evt",
-   "count": 3,
+   "count": 2,
    "admitted": "2026-08-04"
   },
   "6fe6e604dbc60f72": {
@@ -94928,38 +94928,6 @@
    "count": 1,
    "admitted": "2026-08-04"
   },
-  "ee133b150416fb1b": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "0ad306e7c6140beb": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 2
-  },
-  "85c8118b4016e609": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "a8868dab2025a2fe": {
-   "first_campaign": "fz2c",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
   "8f55defc024f100e": {
    "first_campaign": "fz2c",
    "first_verdict": "FUNCTIONAL",
@@ -94967,478 +94935,6 @@
    "tier": "soup",
    "waits_class": "w0",
    "count": 4
-  },
-  "bea74f454ba9917c": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "659671cb67e319f8": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "629c5b07db22a240": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "9e82ddfc7ec9265d": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "8288305fc4b73946": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "37b1ea52728f77de": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "de087e398c77bb2f": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "a458cd8eb0ce4e60": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "afa1151c609d5d10": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "d7d4a2f787f20c69": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "08f5e5345549e46d": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "1653c73159b811db": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "b8179bd5f53734d2": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "07c3d21fcf6af524": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "5f6dc2218a037370": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "0ee37e682fe20745": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "c4ff63823339cc49": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "b5a710e66026a66d": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "213555d538236814": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "4c693bb6f3b63927": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "704458801fcc0cab": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "abf9171d09319787": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "51aea0ef15d6f572": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "30885a862f0dd2bd": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "6a97947278ea528b": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "6251b72aa7bd0540": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "66cc3548e2b09438": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "1de7ab69320cb0d8": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "9459801f1bff2360": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "38705a3074079fe0": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "98a58e2e3f8d1b5e": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "9b31a1bccd42b1b6": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "48db9fb100ea4e64": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "e89cb850d16e4436": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "adcac92d2eb36935": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "f791746e07d9d5f2": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "8df6f90d5f113932": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "911f8f75a79a039a": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "d09c163a901530d7": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "7fba7876e50254b2": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "af1b76205199e882": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "73bf32af45367318": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "ad08d63c8748b59a": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "bc53bda5c32a7b0c": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "67bdfa71149777dc": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "094718f25a0b724f": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "885d81a16b558cd1": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "c4ed465924e8adfd": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "08b39034d06dfc47": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "6421e8a1405d6994": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "3c8dae831e1da30b": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "d7943bfdd2ed2d8d": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "49cd875fe44a42d1": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "81ec1420614e1476": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "31212ab0d5720a01": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "8b0e8f9d35c95467": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "9315dad9600cbad1": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "adfa36b2e8e696ff": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "db60023cd1b9a77b": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
   },
   "cf58afd67b17e604": {
    "first_campaign": "fz2c",
@@ -95464,22 +94960,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "ebe1672a4b7525b3": {
-   "first_campaign": "fz2c",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "810432f4afbb0ba3": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "efc743477b4b59a2": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -95487,118 +94967,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 2
-  },
-  "a50f8019fcc13c1f": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "be0d0f63fd1c5b61": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "f894777e6e083823": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "dc4a557f015100bc": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "0f56ffac317a711e": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "219d1851f19f3503": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "b52f35319a43fe7e": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "b18f1ce9e54eb324": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "b7c7d59acc0e6a61": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "b2547f3d90d765e7": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "b6a6c78f73d1a8d7": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "8421675048c83b46": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "372b95b5ffbfadbf": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "806f51df2f3e60f2": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
   },
   "b2d4588d730cd60c": {
    "first_campaign": "fz2c",
@@ -95608,14 +94976,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "d463943d95587b29": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "0a61fd158833379d": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -95623,78 +94983,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 2
-  },
-  "a2923ae79c989f89": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "f8162a70fd2922e5": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "c0c192ad85e0e988": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "6f70171b0dd9deec": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "59743625e45c77ec": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "063fef4f70e46ba7": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "5e74ea9d72693d3a": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "ee1b4b467203894b": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "8cdc7ebcb03256d5": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
   },
   "4bf06253d10f9dda": {
    "first_campaign": "fz2c",
@@ -95704,118 +94992,6 @@
    "waits_class": "wrand",
    "count": 2
   },
-  "6e609e30f32f5f7f": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "4e7fef25f04dbae5": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "67a500868a0ce152": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "fd49513f52544a4b": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "d96378ab2005c94d": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "17975da4d4e35437": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "e5d58fcf75465113": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "fecab98ef83ba5c9": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "ecd06bccf61c851f": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "9102b83395ee4069": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "7db5826700798536": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "062e9ce63b7a451e": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "5c0d8914b0b5ea71": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "65d05e2684716a92": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "b98fba9c5716be04": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -95824,78 +95000,6 @@
    "waits_class": "wrand",
    "count": 2
   },
-  "e3ba4c136f5c7a37": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "c7cfd1b4ff072a85": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "9d542791f45f6546": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 2
-  },
-  "910d2075abd8aca6": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "443bf16729200bcc": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 3
-  },
-  "28942892585d42a4": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "a5e4e8b79171fbe0": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "281fc404de2c7d72": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "c74e9b904a305619": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "ebfb684ea0429f02": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -95903,62 +95007,6 @@
    "tier": "raw",
    "waits_class": "wrand",
    "count": 2
-  },
-  "f8591494e86f2646": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "e0a0f4f49711655f": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "bd124694ed6fb135": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "3d8541866219fd8d": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "3a7a08255e668634": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "9017af84f11e1f1c": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "6e7995d6974045d4": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
   },
   "7ad1ccba20a90410": {
    "first_campaign": "fz2c",
@@ -95976,38 +95024,6 @@
    "waits_class": "w0",
    "count": 4
   },
-  "6da977deae613d7d": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "1624328f7d6b937f": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "b1af4c20a4df780c": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "444e66fb5832dbe6": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "fb289128972042e7": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -96015,38 +95031,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 2
-  },
-  "58e16a6642b04a90": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "424f09aab9b85d72": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "2aa1aa26c006d808": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "d6c57d9ea00ddd62": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
   },
   "1c9d56be512fcc46": {
    "first_campaign": "fz2c",
@@ -96056,54 +95040,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "4a8eaeaf6b870482": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "19b85917d2e4d53d": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "d465d3f433a31d19": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "521d575e7784f9bb": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "38d80accaff0c0d5": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "be24b87ee149301d": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "38f2c8536b2cc006": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -96111,22 +95047,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 6
-  },
-  "ab7f3ef7e74467c4": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "30aff9962087f4ef": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
   },
   "38a8008129c9c2cf": {
    "first_campaign": "fz2c",
@@ -96136,38 +95056,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "2c2e1d36adaca8d3": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "331a256fbf2c49ad": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "7d2d1994e35d4551": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "17fbc3085ccbe967": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "d7bc1a348ea9866b": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -96175,22 +95063,6 @@
    "tier": "raw",
    "waits_class": "wrand",
    "count": 2
-  },
-  "dbc4986b08574431": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "8ed716b01ffaf00c": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
   },
   "f38e7040f5fdc7b4": {
    "first_campaign": "fz2c",
@@ -96200,70 +95072,6 @@
    "waits_class": "wrand",
    "count": 3
   },
-  "e2f972b7e3acf2d7": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "579500f11fecdcbc": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "757690f8b8ad80e2": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "f81dca33e204ff75": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "47b88081721a3cd8": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "c6943c902a993587": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "8687cf7a8368addd": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "076f04310f94caa4": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "5476d28d53fd5659": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -96271,22 +95079,6 @@
    "tier": "raw",
    "waits_class": "wrand",
    "count": 2
-  },
-  "1cdbb85b2f9d3737": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "0fd7931a2054d4de": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
   },
   "fff4012ba005648b": {
    "first_campaign": "fz2c",
@@ -96296,38 +95088,6 @@
    "waits_class": "wrand",
    "count": 2
   },
-  "ee6dc4c040facc09": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "0910f402af7515af": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "fded8e1871135e2b": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "c21788410473ca71": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "9f517f060cec28d1": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -96335,94 +95095,6 @@
    "tier": "raw",
    "waits_class": "wrand",
    "count": 2
-  },
-  "390dd1741ea3d4bb": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "b0e66282a5dfdd53": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "eff9252cef8a05e0": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "58a0521513bf20b2": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "596b4491a3ecf373": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "f3d014f3a89f7b3c": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "542611a6538913a6": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "f9580ce2ca070bb3": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "7aa33b040c2b2471": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "384101f26fced5a1": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "47794e712ceb2b68": {
-   "first_campaign": "fz2c",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
   },
   "52f33062044e970f": {
    "first_campaign": "fz2c",
@@ -96432,14 +95104,6 @@
    "waits_class": "wrand",
    "count": 2
   },
-  "96c7d10bae23ba08": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "e26126193d8b7609": {
    "first_campaign": "fz2c",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -96447,14 +95111,6 @@
    "tier": "raw",
    "waits_class": "wrand",
    "count": 2
-  },
-  "7f829cd608a4a366": {
-   "first_campaign": "fz2c",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
   },
   "ad2a6a25b2a7a816": {
    "first_campaign": "fz2c",
@@ -96680,14 +95336,6 @@
    "waits_class": "w1",
    "count": 2
   },
-  "e4642404695cdb86": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w1",
-   "count": 1
-  },
   "b5ba2515867afed0": {
    "first_campaign": "fz2e",
    "first_verdict": "FUNCTIONAL",
@@ -96696,22 +95344,6 @@
    "waits_class": "w1",
    "count": 2
   },
-  "61d78476ed09c8a3": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "53e9e0128626eed6": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "6684c6f54dbe432c": {
    "first_campaign": "fz2e",
    "first_verdict": "FUNCTIONAL",
@@ -96719,14 +95351,6 @@
    "tier": "soup",
    "waits_class": "wrand",
    "count": 2
-  },
-  "bac51f61fb832b7c": {
-   "first_campaign": "fz2e",
-   "first_verdict": "TIMING",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
   },
   "6480b9f72966b13a": {
    "first_campaign": "fz2e",
@@ -96760,22 +95384,6 @@
    "waits_class": "w1",
    "count": 2
   },
-  "e4bc6acada629d25": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "ca69ac6c2218169a": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "cadence",
-   "tier": "soup",
-   "waits_class": "w1",
-   "count": 1
-  },
   "0276bd27ac8c5c1f": {
    "first_campaign": "fz2e",
    "first_verdict": "TIMING",
@@ -96783,22 +95391,6 @@
    "tier": "soup",
    "waits_class": "w2",
    "count": 2
-  },
-  "5bbb77971f02f861": {
-   "first_campaign": "fz2e",
-   "first_verdict": "TIMING",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w2",
-   "count": 1
-  },
-  "0f45c88be5c1e397": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w2",
-   "count": 1
   },
   "de867089e1c5ad4b": {
    "first_campaign": "fz2e",
@@ -96808,14 +95400,6 @@
    "waits_class": "w2",
    "count": 2
   },
-  "aa3df37efb0d05a7": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w3",
-   "count": 1
-  },
   "b4f744aab8d2cc11": {
    "first_campaign": "fz2e",
    "first_verdict": "FUNCTIONAL",
@@ -96823,14 +95407,6 @@
    "tier": "soup",
    "waits_class": "w3",
    "count": 4
-  },
-  "9b9f5bc5eaabceb7": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w3",
-   "count": 1
   },
   "b77ee96c26239e62": {
    "first_campaign": "fz2e",
@@ -96848,22 +95424,6 @@
    "waits_class": "wrand",
    "count": 2
   },
-  "99ab3e3ab4dd655f": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "50a55bfead564e28": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "cadence",
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "b122dd4eddc17493": {
    "first_campaign": "fz2e",
    "first_verdict": "FUNCTIONAL",
@@ -96871,14 +95431,6 @@
    "tier": "soup",
    "waits_class": "wrand",
    "count": 2
-  },
-  "99dc013a9575a22b": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
   },
   "c95be69c13f2486e": {
    "first_campaign": "fz2e",
@@ -96888,14 +95440,6 @@
    "waits_class": "wrand",
    "count": 2
   },
-  "170c55fb6f0e6bed": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "76946da3ef5c6cb0": {
    "first_campaign": "fz2e",
    "first_verdict": "FUNCTIONAL",
@@ -96903,22 +95447,6 @@
    "tier": "soup",
    "waits_class": "wrand",
    "count": 2
-  },
-  "a49fe9cd43417ee6": {
-   "first_campaign": "fz2e",
-   "first_verdict": "TIMING",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "b62d2ffc44627ea1": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
   },
   "2ac4cac82d574093": {
    "first_campaign": "fz2e",
@@ -96944,14 +95472,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "762325469c16d777": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "6d643b92de9130d6": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -96959,22 +95479,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 2
-  },
-  "0f06263e48eec3a0": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "e4136aa98152d90f": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
   },
   "ddb1a638dc865765": {
    "first_campaign": "fz2e",
@@ -96992,14 +95496,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "86da37f59e93290f": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "756b346c94ab8e31": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97007,30 +95503,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 2
-  },
-  "9e7c912a0a8f85d8": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "ac178775d2430d30": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "672ed4c59621bc97": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
   },
   "0965c4987f56c2d9": {
    "first_campaign": "fz2e",
@@ -97048,22 +95520,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "6b7fb11bc99d7b00": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "6ba3c480e63abe51": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "14ba01d691578140": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97071,14 +95527,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 2
-  },
-  "8c76c6b3dbc1c415": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
   },
   "be8bc30966633104": {
    "first_campaign": "fz2e",
@@ -97088,22 +95536,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "e36a25239cbb302b": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "60bae04f941ea4c2": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "e9360b5cc18ad0fb": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97111,14 +95543,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 2
-  },
-  "00448b09dda2bd97": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
   },
   "9877b75d2e3ca523": {
    "first_campaign": "fz2e",
@@ -97136,14 +95560,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "85f2ab2fe45d429d": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "77417f2a13123e7d": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97151,14 +95567,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 2
-  },
-  "87e031cc34af89bf": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
   },
   "abb08790c7acbefc": {
    "first_campaign": "fz2e",
@@ -97168,14 +95576,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "51a86d12905c543f": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "0d936b84268322ae": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97184,14 +95584,6 @@
    "waits_class": "w0",
    "count": 2
   },
-  "7221847cbb3b0af8": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
   "cee0cfa6aa597a90": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97199,22 +95591,6 @@
    "tier": "raw",
    "waits_class": "w0",
    "count": 2
-  },
-  "5fccd72e57fdee60": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "2647cb76fdfe7f0c": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w1",
-   "count": 1
   },
   "dd08d95bc7b17ee7": {
    "first_campaign": "fz2e",
@@ -97232,14 +95608,6 @@
    "waits_class": "w1",
    "count": 2
   },
-  "c69b3269a94802f8": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w1",
-   "count": 1
-  },
   "8bff442a440c7c5b": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97255,22 +95623,6 @@
    "tier": "raw",
    "waits_class": "w1",
    "count": 3
-  },
-  "b16eacf434565495": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "4d45c8e24d676ef7": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w1",
-   "count": 1
   },
   "3905b7c68a6eecde": {
    "first_campaign": "fz2e",
@@ -97288,22 +95640,6 @@
    "waits_class": "w1",
    "count": 2
   },
-  "a3358d69ad5e798d": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "efbc386723184348": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w1",
-   "count": 1
-  },
   "bc393ff37d79da03": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97320,14 +95656,6 @@
    "waits_class": "w2",
    "count": 2
   },
-  "dab6f62338a4236e": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
-  },
   "44df24e3a6ebbdbc": {
    "first_campaign": "fz2e",
    "first_verdict": "FUNCTIONAL",
@@ -97335,14 +95663,6 @@
    "tier": "raw",
    "waits_class": "w2",
    "count": 2
-  },
-  "ab772dfb4c562887": {
-   "first_campaign": "fz2e",
-   "first_verdict": "FUNCTIONAL",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
   },
   "9a1d48b36502b9f0": {
    "first_campaign": "fz2e",
@@ -97352,14 +95672,6 @@
    "waits_class": "w2",
    "count": 2
   },
-  "72dd4f07305e11c3": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
-  },
   "90b5f7be67335899": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97367,22 +95679,6 @@
    "tier": "raw",
    "waits_class": "w2",
    "count": 2
-  },
-  "cc760d264fbfa08b": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
-  },
-  "982a71d624973f5a": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
   },
   "9ffff3a880374915": {
    "first_campaign": "fz2e",
@@ -97392,14 +95688,6 @@
    "waits_class": "w2",
    "count": 2
   },
-  "099fce8105ed54b7": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
-  },
   "17151d00d48f217b": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97407,14 +95695,6 @@
    "tier": "raw",
    "waits_class": "w2",
    "count": 2
-  },
-  "f93b56bcfd8cc7a7": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
   },
   "747a9de2fa61f904": {
    "first_campaign": "fz2e",
@@ -97432,14 +95712,6 @@
    "waits_class": "w3",
    "count": 2
   },
-  "0ee1acdca9d26089": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
   "b1c8eaf94f9a8863": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97447,14 +95719,6 @@
    "tier": "raw",
    "waits_class": "w3",
    "count": 8
-  },
-  "635f3aa490d8bed2": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
   },
   "da290b5695446aee": {
    "first_campaign": "fz2e",
@@ -97464,14 +95728,6 @@
    "waits_class": "w3",
    "count": 4
   },
-  "d91c0e9f6aa894cd": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 2
-  },
   "d8b93f9e65efd8a6": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97479,22 +95735,6 @@
    "tier": "raw",
    "waits_class": "w3",
    "count": 2
-  },
-  "244dec052a0cefa6": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
-  "a8d0aec4ec67f0b7": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
   },
   "30c67c215433d426": {
    "first_campaign": "fz2e",
@@ -97512,14 +95752,6 @@
    "waits_class": "w3",
    "count": 2
   },
-  "2a6893bbdd0ec69c": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
   "3c054d7231cf7860": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97527,22 +95759,6 @@
    "tier": "raw",
    "waits_class": "w3",
    "count": 2
-  },
-  "1a1c31c6487944af": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
-  "0d4e1b53e21fef9c": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
   },
   "859e7c2d20edfb6e": {
    "first_campaign": "fz2e",
@@ -97560,14 +95776,6 @@
    "waits_class": "w3",
    "count": 2
   },
-  "ac8ca8cc3e15b3fe": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
   "507219d7953c6c8d": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97575,30 +95783,6 @@
    "tier": "raw",
    "waits_class": "w3",
    "count": 2
-  },
-  "2a94ab27aa2b8aa1": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
-  "5d30fe6836c59296": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "173850a266103595": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
   },
   "29aed899490d6a56": {
    "first_campaign": "fz2e",
@@ -97608,14 +95792,6 @@
    "waits_class": "wrand",
    "count": 2
   },
-  "eb0682a015c2c0f0": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "22ef71640daba62a": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97623,30 +95799,6 @@
    "tier": "raw",
    "waits_class": "wrand",
    "count": 2
-  },
-  "90faa2cd7dd7843a": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "d05ef0472372bcdd": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "4b3d5e224bc237c2": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
   },
   "0942e6cb278ff831": {
    "first_campaign": "fz2e",
@@ -97656,14 +95808,6 @@
    "waits_class": "wrand",
    "count": 2
   },
-  "667b641983a4b7ba": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "open_bus",
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
   "8e47593e15c4d2ba": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97672,14 +95816,6 @@
    "waits_class": "w2",
    "count": 2
   },
-  "5427371e3cf7928c": {
-   "first_campaign": "fz2e",
-   "first_verdict": "KNOWN_ACCEPTED",
-   "klass": "lea-mod3",
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
-  },
   "8bcb861cd168a145": {
    "first_campaign": "fz2e",
    "first_verdict": "KNOWN_ACCEPTED",
@@ -97687,326 +95823,6 @@
    "tier": "raw",
    "waits_class": "wrand",
    "count": 2
-  },
-  "e79ef322a4b44511": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "c3bfdd4e1cdeae1f": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "f49f14370eafadce": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w2",
-   "count": 1
-  },
-  "3f78e5de287d8bab": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w3",
-   "count": 1
-  },
-  "e255de4c57b11149": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w3",
-   "count": 1
-  },
-  "82a3a6fbde334812": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "fd117c711f5d7653": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "4eb456832bc0315c": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "39d1f94a9f1d2083": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "bd08fbff12f068b8": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "476f59f97908dbac": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "cdcd1171a46bfcae": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "265701a0bbcb8032": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "d7b5ee882df734b0": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "w2",
-   "count": 1
-  },
-  "93219fcfac56fe78": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "3a90f11845fae9b9": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "70c039237731a048": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "22e08428fa1cbe07": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "soup",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "6815dbb610f33932": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "2ba5e104e9fe8819": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w1",
-   "count": 1
-  },
-  "cb66b47a053501b1": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
-  },
-  "29a4130a36d14754": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
-  "ac5d6f8086b52147": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
-  "9894c0dd80c2522e": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "4f3a18419f8a15de": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "97bf37730ced6b17": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "cc2ca11479e1aa92": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "ac75b23b9ec090c3": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "379fd254d0d196c2": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "0678ac15696ffc93": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "0cb4546fbda0019f": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w0",
-   "count": 1
-  },
-  "29068413e26db6be": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
-  },
-  "e328a262a6ed1066": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w2",
-   "count": 1
-  },
-  "2bc13bb5eaffc596": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
-  "da3262dfb755cdc2": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "w3",
-   "count": 1
-  },
-  "9a14d5ea4000e6c1": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "fcd07ef9859021cd": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "eb32a9b7f32d42b0": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "a5efe7256f376a55": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
-  },
-  "2d131ab9f45ec491": {
-   "first_campaign": "fz2e",
-   "first_verdict": "SUCCESS",
-   "klass": null,
-   "tier": "raw",
-   "waits_class": "wrand",
-   "count": 1
   },
   "8366f62d606dfdd9": {
    "first_campaign": "fz2e",
@@ -98566,6 +96382,2838 @@
    "klass": "open_bus",
    "tier": "raw",
    "waits_class": "w0",
+   "count": 1
+  },
+  "015fe4dfb1e1f0d7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "016c3dec7799d216": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "01891a8daab7c434": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "01c11eac7c3461f0": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "01c4ceca58602e8c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "02a29beb314b654e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "02a5d2201596f193": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "036d544fb8dba121": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 5
+  },
+  "0373afa94716f7ab": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "03f95c21041799fd": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0432131af40dc623": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "04bc4fd9fd18c0ca": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "050dc22f33ba9175": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "055b63101a0d71a0": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0592b735b64f1aca": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "067f094c58f4885f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "08129df4e5d18ac3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "084e0579d3a34b18": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "09e4c26699cc7ce9": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0a3a7e51e9c818f4": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 2
+  },
+  "0b06ca5596ed7f00": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0bfcd80716c96de4": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0c89dfd15f263bd8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0cad1e8cde39b397": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0d6fbb8673fbf7e1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0e65c07a76172878": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0eacd10f00cf3d17": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0f0a4ca6f81fd64d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0fc794ac9b854fad": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "0ff2d4bdb820c703": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "10f6dfa05c249785": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "12d1d772bb2316ed": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "136378189cc3c2f2": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "1388f737700a3f72": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "13e7148ede51793b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "140037441ea29c0d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "147d3306ad905e75": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "1482c2d9b2c44c4b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "1597507a0bb10573": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "163088ae72b1b6c9": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "164c240ea5769f5b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "184d2e9af826b8b9": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "18bcb4c1d7d9092e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 2
+  },
+  "1972b71f30df4cac": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "1d1c6edf8041a4f6": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "1d48c177a657fc3e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "1de5adbcc82497dc": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "1df41233e9a95513": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "1e2e35a0b07ab47b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "1edf859724a708a0": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "201b1df2382b14e3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "2059daad176c8166": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "21194fac85b8d2ee": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "216f9e8fea840d9c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "21d1c525b8d4fcf8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "222fc34c612e5dce": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "23001c73a2b8097d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "2318897d9e8ac3cc": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "23772a7cc56c2819": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "23eda961e83fb76c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "241fb10148d80915": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "249a5a78c7866544": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "26bc0ee8d0df8e9a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "27a3b409029dc353": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "27b11e11c7e032f7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "2d4e6377ac888b6a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "2dcd8038d148d814": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "2dfada52538aae77": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "2e3278b74356df16": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "2e98f516ddc167fb": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "30163ae638ac39b7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "3041f0060d2a7670": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "31644ffed5f5219f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "334887bde0845791": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "3555bc2dcdc52180": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "3581c74cfef2e0ce": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "35d022f42f7db3aa": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "367a50fba9dc1bc4": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "36e9f1952313fec6": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 2
+  },
+  "38de7a6f7925e80a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "39137a43e51b7b6c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "396679c9f29cafcc": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "39afca1249df012d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "39be22300129f26a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "3b6f076e846538b0": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "3b848f3a13584aff": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "3cde99287a38dd22": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "3d8cd590b5a5c32d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "41a29dfaafeb474b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "41bb43b8cf47b3b0": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "446da2b62ace1390": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "44c101195a510a69": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4591fa749592bbea": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 3
+  },
+  "45d3c010712cb9fa": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "46df738cc8152b2b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "46f9a0dc84303180": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "471e6e3d354d2d42": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "47906eddac2dfac5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "484bef26f9d8fa3d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "48f17c094037ed9e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "498e30ce93963d5d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "49bda8e9055f6b56": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4a4f74a7776130f3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4ac73f82f18e4209": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4b3a16edc69583f8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4c019e99213f55cc": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4c4e11dec5061ab7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4d2ed0291107b40f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4d9159173bee196f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4d99b11a5f7bc860": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4e26bb6ffac66352": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4e4230904f44ec17": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4ea9ca9decc11d8b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "4f974b2d9a7d2a17": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "50f8e5e84d21b5bd": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "512dc0300ccec9c8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "5130c1b07fe480cb": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "52eebffe4f747be8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "53374cdd6011bef7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "537f062af5a9c152": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "53b5a9bfc22da494": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "54ee7a4b38bd1c5a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "562ce0f37128312e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "569e7335ef01642a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "56fe6b2885de8d6b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "5769552d6a12ab44": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "59ad4126def07cc1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "5ad2eac42f6b5d83": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "5c8237e410085bdc": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "5dba97950c0f1c3b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "5ecf42d9784ff4bb": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "5fd44715f70a9c28": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "601ea7e0d324bd38": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "60b381e6f9add46c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "614719bc2c4f2b10": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "61b44a29a306a47f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "620849c7e79499d0": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "636be9e874b909e9": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "63baa2a49a9c5fc3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "6496fcf869103216": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "64c60fee3087a894": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "64e3dee907728e44": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "65428ecdf2e51878": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "65aa259908b4c408": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "66846cc28ebc38a7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "66f8743cf517352a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "67c3a821681849a5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "692c8ff6d2021cba": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "6a09ee7cdd1754f3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "6a4eccf93a2b48c7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "6ad24e99da5e072c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "6b5a366fde15fe1c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "6cef05d81888cb18": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "6da105614dbbd99b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "6eb6a310b99e5ce5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "6f9e2142b35e1054": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7005a80a77a69cda": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "712c135541c558d6": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "71a3e2c172753f3b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7285e58e08f25aee": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "729587454b3fefc6": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "73cca1e28f09026f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7577d99caaa8453a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "75dc108d0fca06be": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 3
+  },
+  "77052046f05276e3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7712eae8a8c5c4b5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "778d1ac02e9e72ba": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "781e8c0f6c5294e7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "78b89bf3ec162c3c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7a10551687402b00": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7a36fe0385b28fd5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7a4bfa5a4c892057": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7aa48795061bfb0f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7b2d3fa16cc11fa1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7b92c1cd292ec8f3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7ba30b2ddfd0fdab": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7ca47e5827b796dd": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "7dea48f3a55e0aa2": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 9
+  },
+  "80ac7d2d91ae22b5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "80dbd75b9019ae43": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8234aa0672aa8b23": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "82af534af0f97011": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "83cf4ee4482c2d5e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "84c304d73e41d4b1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "84e50c33901a7f95": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "856934de833d3373": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "85ed26610ab33c22": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "85f4824e5ae870f1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "86ba9255b3cd3892": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8709f2de978f4020": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "877d64fce02a913b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "88b467b3c7d18b5f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "88d4acfc8d95f5d1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "898f4c0f6d39746b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "89daa98ca69e8c71": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8b09e57617bc39b0": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8b2f2399507b94f2": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8b54194ed403b346": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8c2ba1478c95754a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8c8f60a11917a0dc": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8cfe9d40430e2094": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8d7dc03002d9d023": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8d9925ba71cd78ae": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8dbf9fd3401b70b1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8ee88dad3abba734": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "8f8cad21b5e57b8a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "903cf7f2b4d6d49a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9143a39441df90b9": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9189ed4d55a7254b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "919e67ab0c43863b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "92dc9fbad0e2446a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "92eaab946fc9dc54": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9319048dbea31389": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "93c7a97f4b150734": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "94db6ab3269f2bf1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "951f90cdb1393d0e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "96666a1d06b8472a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "96eb1dece5928b47": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "98008cb9caf4a5f1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "98592512e60d5027": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "993b703ffd4fb15c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "99d03ee73471b4e3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "99eae79f90d4bb3e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9a7baf7c0f2d7e48": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9acbd0fc67acc2c4": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9ad77d2a3b958e19": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9ad94cc1837db1f2": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9b946cb73ba6d214": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9c3abc2dc060c35f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9e1fbd8109459099": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9e34599f503d362c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9f378e9903eb716b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "9fb39c13e2a3cf55": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "a2224dfc7c4ceba2": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "a3497f56fd401965": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 24
+  },
+  "a39929a8d3b3a696": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "a7090b76e39f1ff6": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "a95658f993537889": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "a967d9d2276865cd": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "a9801bcf451ee6f1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "aa1344a4faa1d315": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "aa76db81084f13ba": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ab1d4eb334e4516b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ab6c76d8c1c38c50": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "acb2fc7a0ba5800f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "acecd4c0c641fc86": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "adffa3cefa1df6bb": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ae91e3d45fa98d46": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "aed1f5421033520a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "af56cd96de6fa85c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "af57242e7365b0ce": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b0748d143539988e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b28773ebdece798a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b2b9f05290f16658": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b3ecf6d857ee78fd": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b3f7054449170e77": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b5258f6f0f060648": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b5fb5079bb3af141": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b6b15564bd60c491": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b6f6e20b1c495fc5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b7f07e8ed9ccad63": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b7ff997e6a1f6dba": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b8f2e04d83faf88c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "b97f320c7f2c7008": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "bb3742d0838c9464": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "bdf365fb104d0969": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "be8f039dd7035acf": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "be9461f243bae6e7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c087b8d21a3eaee5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c0b274747aff73dd": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c2154bfb6a48ca0b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c220f289bb002725": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c26f30c0da62742e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c409be83df728d2d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c4313e81fe5266c2": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c474662c546cda0d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c4ef87df72675282": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c51914d237859a0c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c59240c8629e99f5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c5e10dd5f9ae430b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c6724f1bc3e4a6d6": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c6d9f236abf83c3c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c7166816a60cd433": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c7b3324c9cf04ed6": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c800f268f2857ecc": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c826d07690c282e9": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "c8c7a6408e861e11": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "cb1d7f5d2a4488dd": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ce0424253b8893e8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ce4e3c4001905593": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "cee0fa8f673512f5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ceffecceb676a9f1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "cf9677348a2b9917": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d05bbfb4b430ad61": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d0da2097447da6ee": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d237db5078475766": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d2aa9616074ed2a2": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d383eb06948f35d5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d418c0e00abee05e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d499a8a368b2d136": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d4d0d7c936da9c3d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d522e17fb1cf3601": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d6231d29df254d86": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d701508ff8303de3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d71948eb5d226eb2": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d75ecdf7340f33a8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d7f1121ab2a01f17": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 3
+  },
+  "d80d2fc3771eece2": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d84a4fd77e26b384": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "d9b4b8e94961c4ae": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "da3d62866d77b4a8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "da4620df4719eb2f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "da53cceb6651d3dc": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "dab84d236f931c65": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "db38eb9fe845de34": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "dd1a4013be233f3e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "de5f79376eb7dc48": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "df4593922ab7663a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e07a1b98f63036f3": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e0984db6238e7a47": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e0b810d18405ddf0": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e0d5f3150de83ae8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e187b6a481bbe816": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e23b482be4442cf1": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e30455e09be09d8c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e3d87665bfe621f6": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e3fc831a2c24cf1b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e4e77e1af4db9a46": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e593b73b07c0d2ec": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e69ba67a84511c2b": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e6cf5d8b5bf653ca": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e6fdbdf08bd4a995": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "e99c025682c8cf58": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ebeae7a85136cac7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ec0cb223cd27020f": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ec79c5867e0f2102": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ed7c95e5bc49cb9a": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ee45da5bbc28e8c6": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "efc3aaa87011e541": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 2
+  },
+  "f00e77dc0ed6ef93": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f025d7fb423dbd00": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f0c3c0872ca5aed5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f18d315f5bec083d": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f2071bf800b036cd": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f34ffef281bb4c77": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f398a9090e00c14c": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f5e2c24f735c0dc7": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f5e7d94b603664b5": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f637cc098905fb81": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f6521d7cd9ae119e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f71617db5fad0e44": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "f94597667894e0e8": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "fd836ae59b92f19e": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
+   "count": 1
+  },
+  "ff5379b49734a938": {
+   "first_campaign": "ERR-1-rederive",
+   "first_verdict": null,
+   "klass": null,
+   "tier": null,
+   "waits_class": null,
    "count": 1
   }
  },
