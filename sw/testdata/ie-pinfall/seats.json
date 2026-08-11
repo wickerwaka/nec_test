@@ -1,0 +1,726 @@
+{
+ "threshold": {},
+ "seats": [
+  {
+   "capture": "sw/testdata/campaigns/fz2c/captures/soup_404040_ceb839c47c2a.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    347
+   ],
+   "chip_falls": [
+    647
+   ],
+   "chip_n_inta": 4,
+   "chip_n_runs": 2,
+   "chip_run_starts": [
+    358,
+    654
+   ],
+   "chip_acks": [
+    {
+     "ack": 358,
+     "prev_fall": null,
+     "prev_rise": 347,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 654,
+     "prev_fall": 647,
+     "prev_rise": 347,
+     "ack_minus_fall": 7,
+     "pin_at_ack": false
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    347
+   ],
+   "core_falls": [
+    647
+   ],
+   "core_n_inta": 4,
+   "core_n_runs": 2,
+   "core_run_starts": [
+    358,
+    654
+   ],
+   "core_acks": [
+    {
+     "ack": 358,
+     "prev_fall": null,
+     "prev_rise": 347,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 654,
+     "prev_fall": 647,
+     "prev_rise": 347,
+     "ack_minus_fall": 7,
+     "pin_at_ack": false
+    }
+   ],
+   "extra_core_runs": 0,
+   "seed": "fz2c/404040",
+   "why": "\u00a764.1 sharp -- silicon AGREES (takes); run-arm == 2",
+   "in_f17_ledger": false,
+   "family": null
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2c/captures/soup_405002_c5c692c6b642.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    220
+   ],
+   "chip_falls": [
+    520
+   ],
+   "chip_n_inta": 4,
+   "chip_n_runs": 2,
+   "chip_run_starts": [
+    231,
+    379
+   ],
+   "chip_acks": [
+    {
+     "ack": 231,
+     "prev_fall": null,
+     "prev_rise": 220,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 379,
+     "prev_fall": null,
+     "prev_rise": 220,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    220
+   ],
+   "core_falls": [
+    520
+   ],
+   "core_n_inta": 6,
+   "core_n_runs": 3,
+   "core_run_starts": [
+    231,
+    379,
+    528
+   ],
+   "core_acks": [
+    {
+     "ack": 231,
+     "prev_fall": null,
+     "prev_rise": 220,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 379,
+     "prev_fall": null,
+     "prev_rise": 220,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 528,
+     "prev_fall": 520,
+     "prev_rise": 220,
+     "ack_minus_fall": 8,
+     "pin_at_ack": false
+    }
+   ],
+   "extra_core_runs": 1,
+   "seed": "fz2c/405002",
+   "why": "c2a -- silicon disagrees; run-arm == 2",
+   "in_f17_ledger": true,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2c/captures/soup_405013_b259cc142256.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    1026
+   ],
+   "chip_falls": [
+    1326
+   ],
+   "chip_n_inta": 2,
+   "chip_n_runs": 1,
+   "chip_run_starts": [
+    1037
+   ],
+   "chip_acks": [
+    {
+     "ack": 1037,
+     "prev_fall": null,
+     "prev_rise": 1026,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    1026
+   ],
+   "core_falls": [
+    1326
+   ],
+   "core_n_inta": 4,
+   "core_n_runs": 2,
+   "core_run_starts": [
+    1037,
+    1334
+   ],
+   "core_acks": [
+    {
+     "ack": 1037,
+     "prev_fall": null,
+     "prev_rise": 1026,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 1334,
+     "prev_fall": 1326,
+     "prev_rise": 1026,
+     "ack_minus_fall": 8,
+     "pin_at_ack": false
+    }
+   ],
+   "extra_core_runs": 1,
+   "seed": "fz2c/405013",
+   "why": "c2a -- silicon disagrees; run-arm == 2",
+   "in_f17_ledger": true,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2c/captures/soup_405072_16d1f6c8abd4.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    329
+   ],
+   "chip_falls": [
+    629
+   ],
+   "chip_n_inta": 2,
+   "chip_n_runs": 2,
+   "chip_run_starts": [
+    398,
+    411
+   ],
+   "chip_acks": [
+    {
+     "ack": 398,
+     "prev_fall": null,
+     "prev_rise": 329,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 411,
+     "prev_fall": null,
+     "prev_rise": 329,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    329
+   ],
+   "core_falls": [
+    629
+   ],
+   "core_n_inta": 4,
+   "core_n_runs": 4,
+   "core_run_starts": [
+    398,
+    411,
+    637,
+    650
+   ],
+   "core_acks": [
+    {
+     "ack": 398,
+     "prev_fall": null,
+     "prev_rise": 329,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 411,
+     "prev_fall": null,
+     "prev_rise": 329,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 637,
+     "prev_fall": 629,
+     "prev_rise": 329,
+     "ack_minus_fall": 8,
+     "pin_at_ack": false
+    },
+    {
+     "ack": 650,
+     "prev_fall": 629,
+     "prev_rise": 329,
+     "ack_minus_fall": 21,
+     "pin_at_ack": false
+    }
+   ],
+   "extra_core_runs": 2,
+   "seed": "fz2c/405072",
+   "why": "c2a -- silicon disagrees; run-arm == 2",
+   "in_f17_ledger": true,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2e/captures/soup_512056_5f3819017f89.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    1166
+   ],
+   "chip_falls": [
+    1466
+   ],
+   "chip_n_inta": 2,
+   "chip_n_runs": 1,
+   "chip_run_starts": [
+    1179
+   ],
+   "chip_acks": [
+    {
+     "ack": 1179,
+     "prev_fall": null,
+     "prev_rise": 1166,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    1166
+   ],
+   "core_falls": [
+    1466
+   ],
+   "core_n_inta": 4,
+   "core_n_runs": 2,
+   "core_run_starts": [
+    1179,
+    1476
+   ],
+   "core_acks": [
+    {
+     "ack": 1179,
+     "prev_fall": null,
+     "prev_rise": 1166,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 1476,
+     "prev_fall": 1466,
+     "prev_rise": 1166,
+     "ack_minus_fall": 10,
+     "pin_at_ack": false
+    }
+   ],
+   "extra_core_runs": 1,
+   "seed": "fz2e/512056",
+   "why": "c2a -- silicon disagrees; run-arm == 2",
+   "in_f17_ledger": true,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2e/captures/raw_531000_7a53ae19baae.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    1058
+   ],
+   "chip_falls": [
+    1060
+   ],
+   "chip_n_inta": 2,
+   "chip_n_runs": 1,
+   "chip_run_starts": [
+    1067
+   ],
+   "chip_acks": [
+    {
+     "ack": 1067,
+     "prev_fall": 1060,
+     "prev_rise": 1058,
+     "ack_minus_fall": 7,
+     "pin_at_ack": false
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    1058
+   ],
+   "core_falls": [
+    1060
+   ],
+   "core_n_inta": 2,
+   "core_n_runs": 1,
+   "core_run_starts": [
+    1067
+   ],
+   "core_acks": [
+    {
+     "ack": 1067,
+     "prev_fall": 1060,
+     "prev_rise": 1058,
+     "ack_minus_fall": 7,
+     "pin_at_ack": false
+    }
+   ],
+   "extra_core_runs": 0,
+   "seed": "fz2e/531000",
+   "why": "silicon AGREES; run-arm == 3",
+   "in_f17_ledger": false,
+   "family": null
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2e/captures/soup_513019_e07af86c14d1.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    267
+   ],
+   "chip_falls": [
+    567
+   ],
+   "chip_n_inta": 4,
+   "chip_n_runs": 2,
+   "chip_run_starts": [
+    278,
+    437
+   ],
+   "chip_acks": [
+    {
+     "ack": 278,
+     "prev_fall": null,
+     "prev_rise": 267,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 437,
+     "prev_fall": null,
+     "prev_rise": 267,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    267
+   ],
+   "core_falls": [
+    567
+   ],
+   "core_n_inta": 4,
+   "core_n_runs": 2,
+   "core_run_starts": [
+    278,
+    437
+   ],
+   "core_acks": [
+    {
+     "ack": 278,
+     "prev_fall": null,
+     "prev_rise": 267,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 437,
+     "prev_fall": null,
+     "prev_rise": 267,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "extra_core_runs": 0,
+   "seed": "fz2e/513019",
+   "why": "improved by the C2 landing; run-arm == 5",
+   "in_f17_ledger": true,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2c/captures/soup_404071_94dd1ba990cb.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    237
+   ],
+   "chip_falls": [
+    537
+   ],
+   "chip_n_inta": 4,
+   "chip_n_runs": 2,
+   "chip_run_starts": [
+    246,
+    441
+   ],
+   "chip_acks": [
+    {
+     "ack": 246,
+     "prev_fall": null,
+     "prev_rise": 237,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 441,
+     "prev_fall": null,
+     "prev_rise": 237,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    237
+   ],
+   "core_falls": [
+    537
+   ],
+   "core_n_inta": 3,
+   "core_n_runs": 2,
+   "core_run_starts": [
+    253,
+    439
+   ],
+   "core_acks": [
+    {
+     "ack": 253,
+     "prev_fall": null,
+     "prev_rise": 237,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 439,
+     "prev_fall": null,
+     "prev_rise": 237,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "extra_core_runs": 0,
+   "seed": "fz2c/404071",
+   "why": "C2 seat -- silicon SUSPENDS at the vectoring wake",
+   "in_f17_ledger": true,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2e/captures/soup_514044_355c25865d39.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    228
+   ],
+   "chip_falls": [
+    528
+   ],
+   "chip_n_inta": 4,
+   "chip_n_runs": 2,
+   "chip_run_starts": [
+    237,
+    427
+   ],
+   "chip_acks": [
+    {
+     "ack": 237,
+     "prev_fall": null,
+     "prev_rise": 228,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 427,
+     "prev_fall": null,
+     "prev_rise": 228,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    228
+   ],
+   "core_falls": [
+    528
+   ],
+   "core_n_inta": 3,
+   "core_n_runs": 2,
+   "core_run_starts": [
+    246,
+    425
+   ],
+   "core_acks": [
+    {
+     "ack": 246,
+     "prev_fall": null,
+     "prev_rise": 228,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 425,
+     "prev_fall": null,
+     "prev_rise": 228,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "extra_core_runs": 0,
+   "seed": "fz2e/514044",
+   "why": "C2 seat -- silicon SUSPENDS at the vectoring wake",
+   "in_f17_ledger": true,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2e/captures/soup_516001_ba777ec44e72.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    577
+   ],
+   "chip_falls": [
+    877
+   ],
+   "chip_n_inta": 2,
+   "chip_n_runs": 2,
+   "chip_run_starts": [
+    586,
+    604
+   ],
+   "chip_acks": [
+    {
+     "ack": 586,
+     "prev_fall": null,
+     "prev_rise": 577,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 604,
+     "prev_fall": null,
+     "prev_rise": 577,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    577
+   ],
+   "core_falls": [
+    877
+   ],
+   "core_n_inta": 1,
+   "core_n_runs": 1,
+   "core_run_starts": [
+    602
+   ],
+   "core_acks": [
+    {
+     "ack": 602,
+     "prev_fall": null,
+     "prev_rise": 577,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "extra_core_runs": -1,
+   "seed": "fz2e/516001",
+   "why": "C2 seat -- silicon SUSPENDS at the vectoring wake",
+   "in_f17_ledger": true,
+   "family": "C2 INTA-vectored delivery"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2e/captures/soup_516065_38caf49441aa.json.gz",
+   "n_rows": 4063,
+   "chip_n_rise": 1,
+   "chip_rises": [
+    410
+   ],
+   "chip_falls": [
+    710
+   ],
+   "chip_n_inta": 2,
+   "chip_n_runs": 2,
+   "chip_run_starts": [
+    473,
+    493
+   ],
+   "chip_acks": [
+    {
+     "ack": 473,
+     "prev_fall": null,
+     "prev_rise": 410,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 493,
+     "prev_fall": null,
+     "prev_rise": 410,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "core_n_rise": 1,
+   "core_rises": [
+    410
+   ],
+   "core_falls": [
+    710
+   ],
+   "core_n_inta": 2,
+   "core_n_runs": 2,
+   "core_run_starts": [
+    490,
+    512
+   ],
+   "core_acks": [
+    {
+     "ack": 490,
+     "prev_fall": null,
+     "prev_rise": 410,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    },
+    {
+     "ack": 512,
+     "prev_fall": null,
+     "prev_rise": 410,
+     "ack_minus_fall": null,
+     "pin_at_ack": true
+    }
+   ],
+   "extra_core_runs": 0,
+   "seed": "fz2e/516065",
+   "why": "C2 -- 2 INTA both legs, divergence is WHEN not HOW MANY",
+   "in_f17_ledger": true,
+   "family": "C2 INTA-vectored delivery"
+  }
+ ]
+}

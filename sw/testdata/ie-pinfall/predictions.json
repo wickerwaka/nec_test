@@ -1,0 +1,406 @@
+{
+ "tool": "ie_pinfall_cell predict",
+ "ts": "2026-08-11T21:39:13Z",
+ "images": {
+  "eirun": "4fe2c705f1a1828e1a8dc37f37f32302c58202eba6a4168e1d90ee30704c2fcd",
+  "eihlt": "9f03679b9df19bfe7e757745472f9f5c921198e574df66e91d4d937734c5e39f",
+  "ierun": "fdb83a0d5c4cb1cfef45e4d1953279cfed50971c694f5a262f1d1cd6e0f60be5",
+  "iehlt": "2f1a09e8a31f01165c604b874e2042ec0bdc99307f4bcc9fd1c33d4336e82dfe"
+ },
+ "programs": {
+  "eirun": {
+   "what": "DI . NOP x6 . EI . sled",
+   "bytes": "fa909090909090fb90909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090"
+  },
+  "eihlt": {
+   "what": "DI . NOP x6 . EI . HLT . sled",
+   "bytes": "fa909090909090fbf490909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090"
+  },
+  "ierun": {
+   "what": "control, IE never falls: NOP x8 . sled",
+   "bytes": "909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090"
+  },
+  "iehlt": {
+   "what": "control, IE never falls: NOP x8 . HLT . sled",
+   "bytes": "9090909090909090f490909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090909090"
+  }
+ },
+ "hypotheses": {
+  "H1-ucore-3": {
+   "T_star": 3,
+   "says": "silicon's recognition needs the pin HIGH at t_ei+2 -- the ucore's own measured threshold, i.e. the engine is already right and the C2 residue is NOT a threshold question",
+   "implies": "the \u00a764.1 four and fz2c/404040 are not separated by this cell; C-gamma stays blocked and the seats need another mechanism"
+  },
+  "H2-later-4": {
+   "T_star": 4,
+   "says": "silicon needs the pin one clock LATER than the ucore: the engine takes on a pin the die has already let go",
+   "implies": "the four `run - arm == 2` seats (ucore takes, silicon does not) are explained EXACTLY, and fz2c/404040 (both take) must have its fall one clock later than theirs"
+  },
+  "H2-later-5": {
+   "T_star": 5,
+   "says": "as H2-later-4, two clocks later",
+   "implies": "same shape; separates the seats only if their falls straddle t_ei+4"
+  },
+  "H3-latch": {
+   "T_star": -1,
+   "says": "silicon REMEMBERS a request that was present before IE rose and is gone by the time IE is set -- a true IE-rise latch",
+   "implies": "the ucore is right in kind and too SHORT in reach; the four seats are then NOT explained by the threshold at all"
+  },
+  "H4-level-only": {
+   "T_star": 9,
+   "says": "no memory whatever: the pin must still be high when the microcode reaches its INTA, i.e. T* equals the acknowledge latency",
+   "implies": "refuted outright by fz2_c2_results \u00a75.3 -- 31 of 251 chip acknowledge runs BEGIN at or after the pin's own fall -- and it is registered so the cell can say so on its own evidence rather than by citation"
+  }
+ },
+ "wake_hypotheses": {
+  "W1-always-suspend": "0 CODE cycles between the HALT display and the first INTA at EVERY vectoring sweep point (wave-5's C-gamma as written, with irq_int_lvl a sufficient carrier)",
+  "W2-always-prefetch": ">= 1 CODE cycle at EVERY vectoring sweep point (the ucore's current behaviour is the law and the seats are something else)",
+  "W3-phase-split": "the count DEPENDS on the pin phase, with a threshold clock this cell names -- the outcome wave-5's own measured split implies, and the one that re-opens C-gamma keyed on a measured quantity"
+ },
+ "grid": {
+  "rise_off_full": [
+   -16,
+   -12,
+   -8,
+   -6,
+   -4,
+   -2,
+   0,
+   2,
+   4,
+   6,
+   8,
+   10,
+   12,
+   16,
+   20
+  ],
+  "rise_off_ctl": [
+   -16,
+   -8,
+   -4,
+   0,
+   4,
+   8,
+   16
+  ],
+  "fall_off": [
+   -8,
+   -7,
+   -6,
+   -5,
+   -4,
+   -3,
+   -2,
+   -1,
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16
+  ],
+  "hold_inf": 300
+ },
+ "strata": [
+  {
+   "leg": "eirun",
+   "waits": 0,
+   "full": true,
+   "cells": 219
+  },
+  {
+   "leg": "eirun",
+   "waits": 1,
+   "full": true,
+   "cells": 219
+  },
+  {
+   "leg": "eirun",
+   "waits": 2,
+   "full": true,
+   "cells": 219
+  },
+  {
+   "leg": "eirun",
+   "waits": 3,
+   "full": true,
+   "cells": 219
+  },
+  {
+   "leg": "eihlt",
+   "waits": 0,
+   "full": true,
+   "cells": 219
+  },
+  {
+   "leg": "eihlt",
+   "waits": 1,
+   "full": true,
+   "cells": 219
+  },
+  {
+   "leg": "eihlt",
+   "waits": 2,
+   "full": true,
+   "cells": 219
+  },
+  {
+   "leg": "eihlt",
+   "waits": 3,
+   "full": true,
+   "cells": 219
+  },
+  {
+   "leg": "ierun",
+   "waits": 0,
+   "full": false,
+   "cells": 112
+  },
+  {
+   "leg": "ierun",
+   "waits": 3,
+   "full": false,
+   "cells": 112
+  },
+  {
+   "leg": "iehlt",
+   "waits": 0,
+   "full": false,
+   "cells": 112
+  },
+  {
+   "leg": "iehlt",
+   "waits": 3,
+   "full": false,
+   "cells": 112
+  }
+ ],
+ "calib": {
+  "eirun_w0": {
+   "anchor": 33024,
+   "anchor_t1": 145,
+   "t_ei": 170,
+   "t_hlt": null,
+   "n_rows": 667,
+   "image_sha256": "4fe2c705f1a1828e1a8dc37f37f32302c58202eba6a4168e1d90ee30704c2fcd",
+   "ncap": 354
+  },
+  "eirun_w1": {
+   "anchor": 33024,
+   "anchor_t1": 207,
+   "t_ei": 235,
+   "t_hlt": null,
+   "n_rows": 1167,
+   "image_sha256": "4fe2c705f1a1828e1a8dc37f37f32302c58202eba6a4168e1d90ee30704c2fcd",
+   "ncap": 479
+  },
+  "eirun_w2": {
+   "anchor": 33024,
+   "anchor_t1": 240,
+   "t_ei": 272,
+   "t_hlt": null,
+   "n_rows": 1667,
+   "image_sha256": "4fe2c705f1a1828e1a8dc37f37f32302c58202eba6a4168e1d90ee30704c2fcd",
+   "ncap": 576
+  },
+  "eirun_w3": {
+   "anchor": 33024,
+   "anchor_t1": 273,
+   "t_ei": 309,
+   "t_hlt": null,
+   "n_rows": 2167,
+   "image_sha256": "4fe2c705f1a1828e1a8dc37f37f32302c58202eba6a4168e1d90ee30704c2fcd",
+   "ncap": 673
+  },
+  "eihlt_w0": {
+   "anchor": 33024,
+   "anchor_t1": 145,
+   "t_ei": 170,
+   "t_hlt": 172,
+   "n_rows": 667,
+   "image_sha256": "9f03679b9df19bfe7e757745472f9f5c921198e574df66e91d4d937734c5e39f",
+   "ncap": 354
+  },
+  "eihlt_w1": {
+   "anchor": 33024,
+   "anchor_t1": 207,
+   "t_ei": 235,
+   "t_hlt": 238,
+   "n_rows": 1167,
+   "image_sha256": "9f03679b9df19bfe7e757745472f9f5c921198e574df66e91d4d937734c5e39f",
+   "ncap": 479
+  },
+  "eihlt_w2": {
+   "anchor": 33024,
+   "anchor_t1": 240,
+   "t_ei": 272,
+   "t_hlt": 276,
+   "n_rows": 1667,
+   "image_sha256": "9f03679b9df19bfe7e757745472f9f5c921198e574df66e91d4d937734c5e39f",
+   "ncap": 576
+  },
+  "eihlt_w3": {
+   "anchor": 33024,
+   "anchor_t1": 273,
+   "t_ei": 309,
+   "t_hlt": 314,
+   "n_rows": 2167,
+   "image_sha256": "9f03679b9df19bfe7e757745472f9f5c921198e574df66e91d4d937734c5e39f",
+   "ncap": 673
+  },
+  "ierun_w0": {
+   "anchor": 33024,
+   "anchor_t1": 145,
+   "t_ei": 171,
+   "t_hlt": null,
+   "n_rows": 667,
+   "image_sha256": "fdb83a0d5c4cb1cfef45e4d1953279cfed50971c694f5a262f1d1cd6e0f60be5",
+   "ncap": 355
+  },
+  "ierun_w1": {
+   "anchor": 33024,
+   "anchor_t1": 207,
+   "t_ei": 235,
+   "t_hlt": null,
+   "n_rows": 1167,
+   "image_sha256": "fdb83a0d5c4cb1cfef45e4d1953279cfed50971c694f5a262f1d1cd6e0f60be5",
+   "ncap": 479
+  },
+  "ierun_w2": {
+   "anchor": 33024,
+   "anchor_t1": 240,
+   "t_ei": 272,
+   "t_hlt": null,
+   "n_rows": 1667,
+   "image_sha256": "fdb83a0d5c4cb1cfef45e4d1953279cfed50971c694f5a262f1d1cd6e0f60be5",
+   "ncap": 576
+  },
+  "ierun_w3": {
+   "anchor": 33024,
+   "anchor_t1": 273,
+   "t_ei": 309,
+   "t_hlt": null,
+   "n_rows": 2167,
+   "image_sha256": "fdb83a0d5c4cb1cfef45e4d1953279cfed50971c694f5a262f1d1cd6e0f60be5",
+   "ncap": 673
+  },
+  "iehlt_w0": {
+   "anchor": 33024,
+   "anchor_t1": 145,
+   "t_ei": 171,
+   "t_hlt": 174,
+   "n_rows": 667,
+   "image_sha256": "2f1a09e8a31f01165c604b874e2042ec0bdc99307f4bcc9fd1c33d4336e82dfe",
+   "ncap": 355
+  },
+  "iehlt_w1": {
+   "anchor": 33024,
+   "anchor_t1": 207,
+   "t_ei": 235,
+   "t_hlt": 238,
+   "n_rows": 1167,
+   "image_sha256": "2f1a09e8a31f01165c604b874e2042ec0bdc99307f4bcc9fd1c33d4336e82dfe",
+   "ncap": 479
+  },
+  "iehlt_w2": {
+   "anchor": 33024,
+   "anchor_t1": 240,
+   "t_ei": 272,
+   "t_hlt": 276,
+   "n_rows": 1667,
+   "image_sha256": "2f1a09e8a31f01165c604b874e2042ec0bdc99307f4bcc9fd1c33d4336e82dfe",
+   "ncap": 576
+  },
+  "iehlt_w3": {
+   "anchor": 33024,
+   "anchor_t1": 273,
+   "t_ei": 309,
+   "t_hlt": 314,
+   "n_rows": 2167,
+   "image_sha256": "2f1a09e8a31f01165c604b874e2042ec0bdc99307f4bcc9fd1c33d4336e82dfe",
+   "ncap": 673
+  }
+ },
+ "total_cells": 2200,
+ "discrimination": {
+  "separating_fall_offsets": {
+   "-1|3": [
+    -1,
+    0,
+    1,
+    2
+   ],
+   "-1|4": [
+    -1,
+    0,
+    1,
+    2,
+    3
+   ],
+   "-1|5": [
+    -1,
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "-1|9": [
+    -1,
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "3|4": [
+    3
+   ],
+   "3|5": [
+    3,
+    4
+   ],
+   "3|9": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "4|5": [
+    4
+   ],
+   "4|9": [
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "5|9": [
+    5,
+    6,
+    7,
+    8
+   ]
+  },
+  "null_region": "fall_off >= 9 : EVERY hypothesis says TAKEN. fall_off < -1 : EVERY hypothesis says NOT TAKEN.  Points there are coverage, not evidence, and they are reported as such."
+ }
+}
