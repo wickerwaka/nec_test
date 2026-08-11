@@ -474,6 +474,22 @@ Open entries: **INV-1** (CLOSED, SM2), **INV-2** (the T12 fuzz-v2 capture),
 **EXC-2** (the three in the FLASH #13 corpus; **no manifest record**, and §34.6
 says why).
 
+**⚠ BOOKED FINDING 2026-08-11 — `check_fuzz_bank.replay_classify` HAS DEAD
+TIER BRANCHES (found during the `open_bus` retirement, deliberately NOT fixed
+in that sitting because a fix moves verdicts).**  `replay_classify`
+(`check_fuzz_bank.py:81`) builds `fc.Ctx(tier=entry["tier"])` with the banked
+literal `"soup"`/`"raw"`, but `fc.Ctx.tier`'s domain is `'A'`/`'B'`
+(`fuzz_classify.py:511`; `fuzz_campaign.py:660` performs the mapping — this
+call site does not).  Every `ctx.tier == "A"` / `== "B"` branch in the replay
+is therefore DEAD, **including the arch-dump comparison** — the 621-seed gate
+replays rows but is VACUOUS on the arch column.  This is the vacuous-gate
+pattern this document records elsewhere.  Falsifier: map the tier at the call
+site and re-run — any seed whose verdict moves was being mis-scored; the
+before/after partition must be itemized seed by seed and the gate's bar
+re-registered, which is why it is a WORK ITEM and not a quiet fix.
+(It also proves the `open_bus` retirement could not have moved this gate: the
+retired rule's first line was `if ctx.tier != "B": return None`.)
+
 **⚠ `check_fuzz_bank` IS 621, AND THREE DIFFERENT NUMBERS ARE ALL TRUE.**
 **623** banked *files* on disk (`fz2c` 480 + `fz2e` 143) − **2** EXC-1
 exclusions = **621** *replayed*. `6b044475c7` quoted **623** at SUP-1 and that
