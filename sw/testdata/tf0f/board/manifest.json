@@ -4,7 +4,7 @@
  "use_core": false,
  "div": 8,
  "spec": "docs/notes/tf0f_cell_prereg_2026-08-11.md",
- "ts": "2026-08-11T22:48:13Z",
+ "ts": "2026-08-11T22:55:11Z",
  "flash": {
   "entries": 20,
   "tail": {
@@ -85,7 +85,67 @@
   "notf_a0": "0f007e66e8161c67508752aa51d9ae1bbd680d36fefa2e8a6c5f196319183dbb",
   "notf_a1": "7b70afdaf20fe6b3565e1145c5e2f9db866ae78bdb48835b5505cb4ae0d0f215",
   "notf_a2": "d53f74d4861519bf63d216d5f8ea1ef67812e4e59b40c9c0d442657986cefc5f",
-  "notf_a3": "cb04cb85cc70578fa2d9c479a8ba35b8a2226e7946b6fb863b53515e4c71ba45"
+  "notf_a3": "cb04cb85cc70578fa2d9c479a8ba35b8a2226e7946b6fb863b53515e4c71ba45",
+  "v_p2x_a0": "7c1733833b637691c5b855af7a735ec9670f6f4dabf2ff66e391ba84374cbf00",
+  "v_p2x_a1": "16d8cbd6d13eb9dc3819ff120a8a1002a4bb1d9c69bfcf7a69fcc8f2232cc48e",
+  "v_p2x_a2": "51955b73bc2fe18f52d4b14c63dbbb0c1f915d95e6df913bd0358437e0d8c682",
+  "v_p2x_a3": "8d7c936b91732fdfc6c17922e1621269ba895e2370dbf12cc326b419dbd67f84",
+  "v_p4x_a0": "b4cbf0ad6285414fc76c6b6be117c1a673faabc659b42efa34a5a5fceac45c5f",
+  "v_p4x_a1": "5c08a34c32b35eb82649010fa7917e4c8da045ac86ab22487b8cc9d8698a5a33",
+  "v_p4x_a2": "0ff5ba74380b4848961b5efcc7ed785f5d3e3ba58373287ccf1905501312801f",
+  "v_p4x_a3": "cfb773375f4dcc0755f55f564fcfce029605b60d1cf76581cc7f9dce2b87ddd2",
+  "v_pfxi_a0": "47cc194e1d502575f9d485d948a933810a58268f0f86a892fa2bebbb17cf0bd3",
+  "v_pfxi_a1": "619ced370d6c0a7a8d218e8cf9ca73ece1f3633b659a79569eff29cab403c0f6",
+  "v_pfxi_a2": "37ca2b41e7ece4d4084087b9046086878a46f4c230a5ff4dbb8d2023570d1530",
+  "v_pfxi_a3": "77b184258542d35c5c598b258ecf3c296a6985db4879b7500263f02f520dd3be",
+  "v_rep_a0": "841d72640a333dfe5c2fa5318fb97b4642b2df622bdbc621fa1c0446eaa65f61",
+  "v_rep_a1": "544db149987ed270002f35f9a466ba9ffd3d89d0344374f629458d3f79b257b1",
+  "v_rep_a2": "51849eebddac66536860a8eaf4c9acb6da1825ae93c497299ec9dde4d58ee041",
+  "v_rep_a3": "a74e322e44cb428b582e5258894e59fde3a4eca0d23d2ebf1e7696790e4fd866",
+  "v_lock_a0": "3449c7458c0fea3c8535349ce4109cd349ddc2fd356356cae03f103bff1b36e4",
+  "v_lock_a1": "706db5652b6aa92ddf3b2edcb5f71d2024b7bdc3557d11448d63d0356c9f098e",
+  "v_lock_a2": "b751f603bf38c6511767ca8fc2d1433de4b64071d67134af17ea02e28837fea1",
+  "v_lock_a3": "60019397670580684aff27889117a52c68d2688ac15169b266cf6ce510bdafb7",
+  "v_x39_a0": "3dc4ea064c9afdc29cf2fa1a8a16f70cac01939d7658b11bd6523bc02469ad5c",
+  "v_x39_a1": "ebe9feed9c3fd6e99df21d6c31d12627e37ce70c467e4fc3c4130ffce420fb27",
+  "v_x39_a2": "69b665320079735d6d53f36aaba29963028146517c59533beaee6ffaeb8bcd69",
+  "v_x39_a3": "105c14eef297e8a30a7211abbaacb729d69eaf93d75fbaead8474998e8051e38",
+  "v_x1f_a0": "c4cf62801b66a7303189e05abedff96cdca02a793be235532c41c07ee0c43a1d",
+  "v_x1f_a1": "d5b579db2e05f0a0370be19d46f26a38e5d7b81c8a8f4ece9160bdb685eb0291",
+  "v_x1f_a2": "24dd2dad491ea9a549036edfe525f7c0bca6c7cd48c4bd6979927dc0f1c21545",
+  "v_x1f_a3": "2fadfd06c1f9545a562d093a5f63fc63b549e2ccd48000bab9719a6235076f89",
+  "v_x10_a0": "2c369a19fac6221731ad10a1b0418405d3462a1deee50e964d0573e5be5f3f0e",
+  "v_x10_a1": "d238f864551a82f5e2a912a25acf197c2ca8e48f7b972c797138faabc51794d9",
+  "v_x10_a2": "65adc77275a39102a6bfcd36a6d0d566b911af02f3d4be6df5a46c6080e92336",
+  "v_x10_a3": "5c6babbc234d7e823379c4db520681fdb2370e2f9e20242e99c6fe070817f78f",
+  "v_x2a_a0": "5c3fec419e58fca6d1b0ea867d73d760a390162425fb4600a419a2ca126f2072",
+  "v_x2a_a1": "3bb6c24b71f1e4a806830752edf29ebae93a8cbad353dd43d8837974d1c381ff",
+  "v_x2a_a2": "d347bdb9a42116d1bbe7375d8c6e764649de6c6472f507cd2ceaf26b9d7c33fa",
+  "v_x2a_a3": "0333f3cb491215854264c9d37d13b44d56d454e7a90083ae4307d5f679501646",
+  "v_y13_a0": "bae437e3017200ac0f7adef301e3872d0e5e9df6c2a127706789cde53a513dad",
+  "v_y13_a1": "108a3b841644430450c28918e2d65202deac06fbceb924cfdd7e498f2c3ae6e6",
+  "v_y13_a2": "ae62186ba92e8a7f42fab023c68063af5c09bc8817f8d3394b65596f93255c7d",
+  "v_y13_a3": "e213b65a99484a253d8780582732ebf0c5cb6535b7a55657972611ed7da88f16",
+  "v_add_a0": "a3f1aecb29085b9860470f5c5c15e9cb75f5f34a1e6fd0985e7bf4cc8c1b9e99",
+  "v_add_a1": "2bf6c690020d26ccedc81bafc473f5c47f23682e41e8d109551d471cd44b6523",
+  "v_add_a2": "b41a9f5e2754ae8353d68af6975acbe779313eee93b61b29d5a78f46e33e77bb",
+  "v_add_a3": "6e60fd992e3e2fcfa58694d6e013039a74c1962e28f4b95deccec755644ebbb6",
+  "v_movm_a0": "2201b7e89c8de8adf8e9c8295d5c72fb92a0caf172df63ab0a205db0ee0efeac",
+  "v_movm_a1": "60b440bfd187942ea5261eede234877c2934ec4e527c86525ef36e85ed21639e",
+  "v_movm_a2": "3cf99ff8def58690743af806db90954aad7cbec1f64de678af46cc7f9f75ee65",
+  "v_movm_a3": "3823a3cbf3f28640c55ebb718c0294ece32491cf1a83522b4d630d519bce1ba2",
+  "v_push_a0": "6cf959d5e13c8bf33d62e7c269e59db9f4cdd10ed7a7ba8ab7c3d6ff1c212088",
+  "v_push_a1": "12abe56295bda1305543a54b8ec34f3457c87aa31c7ae9b072200536fe4ac9ac",
+  "v_push_a2": "0beb15e156139438002d0686b787f63f441120f634ce730a4d7bbcc48989dbd6",
+  "v_push_a3": "819d76c82b2d524d469ab7377d5a18a615fffd48878dbd5944e4b1d523329044",
+  "v_xchg_a0": "1ee2b747684a4476d8ea6b8d9b96dc1e2da50c1ea25182a37ea4840cf3ad3fc9",
+  "v_xchg_a1": "1b3c6b51e704e59e9b77df7e06bba5945b70965d7867219aaeedd5bc9548cb19",
+  "v_xchg_a2": "e1fd69bfe7cc79bd85aa901a5768c95516cdd20741cb676b101bdc01bbb7fad0",
+  "v_xchg_a3": "a32fb1d7b1daa4f531429ff172a1b450cb6298683981c2e2a311ba9aab1f396a",
+  "v_notf_a0": "d88d43a520d8f15f62ad429914e20e5d7d73dcca230d753f662cda9dec077247",
+  "v_notf_a1": "1e34162431410fa24e80b58e5f51f40e6ccbc977b31ab3121e6497d2b3c61e06",
+  "v_notf_a2": "744fd4382b4434c1f2b45d24596f799bebc077bb704ea1f4f4c963cace939b75",
+  "v_notf_a3": "cea9118ead6b281b926781a32ef6aae662f011e89126719cb576e59f9fcc14dd"
  },
  "div_guards": [
   [
@@ -96,119 +156,105 @@
    }
   ],
   [
-   "nop",
+   "v_p2x",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "clc",
+   "v_p4x",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "incaw",
+   "v_pfxi",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "movi",
+   "v_rep",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "addrr",
+   "v_lock",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "pfx1",
+   "v_x39",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "pfx2",
+   "v_x1f",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "pfx3",
+   "v_x10",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "pfx4",
+   "v_x2a",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "x13",
+   "v_y13",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "x1b",
+   "v_add",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "x18",
+   "v_movm",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "x28",
+   "v_push",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "x33",
+   "v_xchg",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "y1e",
-   {
-    "readback": "div=8 (4 MHz), commanded by this connection",
-    "state": "PINNED"
-   }
-  ],
-  [
-   "z1b",
-   {
-    "readback": "div=8 (4 MHz), commanded by this connection",
-    "state": "PINNED"
-   }
-  ],
-  [
-   "notf",
+   "v_notf",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
@@ -223,13 +269,13 @@
   ]
  ],
  "preflight": {
-  "uptime": "22:48:13  up 30 days  3:14,  0 users,  load average: 0.00, 0.00, 0.00",
+  "uptime": "22:55:12  up 30 days  3:21,  0 users,  load average: 0.00, 0.00, 0.00",
   "board_procs": [],
   "single_writer": "OK",
   "local_serve_procs": []
  },
- "cells": 272,
- "seconds": 9.6,
+ "cells": 512,
+ "seconds": 8.5,
  "transport_errors": 0,
  "unstable": []
 }

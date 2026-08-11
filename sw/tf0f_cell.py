@@ -1129,6 +1129,163 @@ def _seat_features(path):
 
 
 # --------------------------------------------------------------------------- #
+# THE QS-PIN LEG -- the control that localises the divergence
+# --------------------------------------------------------------------------- #
+def _qs_stream(which, probe, waits, align):
+    """The QS op stream from the anchor to the FIRST vector-1 entry, plus the
+    per-block pop shape.  Pins only."""
+    p = OUT / which / f"{stratum_key(probe, waits)}.raw.json.gz"
+    if not p.exists():
+        return None
+    with gzip.open(p, "rt") as fh:
+        sh = json.load(fh)
+    key = cell_key(probe, waits, align)
+    if key not in sh:
+        return None
+    rows = _rows_from_words([int(x, 16) for x in sh[key]])
+    _img, meta = image_of(probe, align)
+    a = next((i for i, r in enumerate(rows)
+              if r["t"] == 1 and r["bs_early"] == 4
+              and r["ad_addr"] == meta["anchor_linear"]), None)
+    if a is None:
+        return None
+    ops, stop = [], None
+    for i in range(a, len(rows)):
+        r = rows[i]
+        if r["qs"]:
+            ops.append(r["qs"])
+        if r["t"] == 1 and r["bs_early"] == BS_MEMR and r["ad_addr"] == IVT1_OFF:
+            stop = i
+            break
+    return {"ops": ops, "entry_row": stop, "n_first": ops.count(1)}
+
+
+def _qs_last_block(which, probe, waits, align):
+    """The number of `QS = 1` announcements the PROBE's own bytes make, read
+    off the pins of the LAST block in the capture.
+
+    The anchor is the last `QS = 2` before that block's vector-1 entry -- the
+    queue flush the PREVIOUS trap's `IRET` caused -- after which every op
+    consumes exactly one byte in program order.  No engine, no decode, and no
+    assumption about what a `0F` or a prefix "should" announce."""
+    p = OUT / which / f"{stratum_key(probe, waits)}.raw.json.gz"
+    if not p.exists():
+        return None
+    with gzip.open(p, "rt") as fh:
+        sh = json.load(fh)
+    key = cell_key(probe, waits, align)
+    if key not in sh:
+        return None
+    rows = _rows_from_words([int(x, 16) for x in sh[key]])
+    ent = [i for i, r in enumerate(rows)
+           if r["t"] == 1 and r["bs_early"] == BS_MEMR and r["ad_addr"] == IVT1_OFF]
+    if len(ent) < 2:
+        return None
+    last = ent[-1]
+    ops = [r["qs"] for i, r in enumerate(rows) if r["qs"] and i < last]
+    k = max((n for n, q in enumerate(ops) if q == 2), default=None)
+    if k is None:
+        return None
+    # after the flush the part resumes in the block's PAD NOPs -- each its own
+    # one-byte instruction, so each announces `1`.  The next block's
+    # `push imm16` is the first op followed by TWO subsequent-byte ops, and
+    # that pattern cannot occur in a NOP run.  `popf` follows it; the probe
+    # follows `popf`.
+    j = next((n for n in range(k + 1, len(ops) - 4)
+              if ops[n] == 1 and ops[n + 1] == 3 and ops[n + 2] == 3), None)
+    L = len(PROBES[probe][0])
+    if j is None or ops[j + 3] != 1 or len(ops) < j + 4 + L:
+        return None                  # the frame check: push imm16 ; popf
+    return ops[j + 4:j + 4 + L].count(1)
+
+
+def cmd_qs(a):
+    """Compare the QS PIN stream chip vs core, and count the `QS = 1`
+    announcements a probe makes.
+
+    WHY THIS EXISTS.  §86 registers the TF sampling boundary as *the `QS = 1`
+    opcode pop*.  That is a claim about a stream this rig RECORDS, so it is
+    directly checkable -- and it is checkable WITHOUT either engine, because the
+    pins are pins.  Two questions, both answered off the rows:
+
+      (a) do the chip and the core emit the SAME QS stream?  If they do, the
+          trap-boundary divergence is NOT a queue or decode-front-end
+          divergence, and the defect is localised to what CONSUMES the stream.
+      (b) does the number of `QS = 1` announcements a probe makes equal the
+          number of TF boundary units it contributes?  If it does not, the
+          registered predicate is not the boundary, whatever else it is.
+
+    Streams are compared only up to the EARLIER leg's first vector-1 entry,
+    because after that the two programs are in different places and a
+    difference is the trap, not the queue."""
+    board = {r["cell"]: r for r in _load("board")}
+    core = {r["cell"]: r for r in _load("core")}
+    out = {"stream_diff": [], "compared": 0, "probe_firsts": {}}
+    print("== (a) the QS PIN stream, chip vs core, to the first vector-1 entry\n")
+    for probe in PROBE_ORDER:
+        if probe in CONTROL_LEGS:
+            continue
+        diff = 0
+        n = 0
+        for w in WAITS:
+            for al in ALIGNS:
+                if cell_key(probe, w, al) not in board:
+                    continue
+                qb = _qs_stream("board", probe, w, al)
+                qc = _qs_stream("core", probe, w, al)
+                if not qb or not qc:
+                    continue
+                k = min(len(qb["ops"]), len(qc["ops"]))
+                n += 1
+                out["compared"] += 1
+                if qb["ops"][:k] != qc["ops"][:k]:
+                    diff += 1
+                    out["stream_diff"].append(cell_key(probe, w, al))
+        print(f"  {probe:7s} {diff} of {n} cells differ"
+              f"{'   <== DIFFERS' if diff else ''}")
+
+    print("\n== (b) `QS = 1` announcements per probe, MEASURED off the pins,\n"
+          "      against the TF boundary units the trap actually used\n")
+    # HOW THE ANNOUNCEMENT COUNT IS READ, and why it is a MEASUREMENT and not
+    # an assumption.  Every trap flushes the queue on its `IRET`, so the LAST
+    # `QS = 2` before an entry is the flush that opened the block the trap ends.
+    # After it the pops are the block's own bytes in order and every `QS` op
+    # consumes exactly one byte: +1..+3 are `push imm16`, +4 is `popf`, and
+    # +5 onward are the probe.  Checked against the CONTROL band, whose probe
+    # is one byte and must announce exactly one.
+    print(f"  {'probe':7s} {'bytes':18s} {'QS=1 pins':>10s} {'chip units':>11s} "
+          f"{'core units':>11s}   verdict")
+    for probe in PROBE_ORDER:
+        if probe in CONTROL_LEGS:
+            continue
+        b, c = board.get(cell_key(probe, 0, 0)), core.get(cell_key(probe, 0, 0))
+        if not b or not c:
+            continue
+        qb = _qs_last_block("board", probe, 0, 0)
+        qc = _qs_last_block("core", probe, 0, 0)
+        if qb is None:
+            continue
+
+        def units(row):
+            return 1 + (len(SETTER) + row["probe_len"] + 1
+                        - row["pushed_off"][0])
+        ub, uc = units(b), units(c)
+        v = []
+        if qb != ub:
+            v.append("PINS != CHIP UNITS")
+        if qb != qc:
+            v.append("PIN COUNTS DIFFER")
+        out["probe_firsts"][probe] = {"pins_chip": qb, "pins_core": qc,
+                                      "chip_units": ub, "core_units": uc,
+                                      "verdict": v}
+        print(f"  {probe:7s} {PROBES[probe][0].hex():18s} {qb:>10d} {ub:>11d} "
+              f"{uc:>11d}   {'; '.join(v)}")
+    (OUT / "qs.json").write_text(json.dumps(out, indent=1))
+    print(f"\n  -> {OUT / 'qs.json'}")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
 def cmd_idle(a):
     import b1_recapture
     r = b1_recapture.board_idle()
@@ -1156,6 +1313,7 @@ def main():
 
     sub.add_parser("score").set_defaults(fn=cmd_score)
     sub.add_parser("seats").set_defaults(fn=cmd_seats)
+    sub.add_parser("qs").set_defaults(fn=cmd_qs)
     sub.add_parser("idle").set_defaults(fn=cmd_idle)
     a = ap.parse_args()
     return a.fn(a)
