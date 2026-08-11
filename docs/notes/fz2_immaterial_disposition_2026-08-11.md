@@ -237,6 +237,12 @@ a disposition.
 
 ## 5. `TIMING_RECONVERGED` — 7 SEEDS, NAMED, UNDISPOSITIONED, AND A QUESTION FOR THE USER
 
+> **RULED 2026-08-11 (user): "Timing reconvergence seeds are material."**
+> The strict reading stands: all 7 stay MATERIAL, the working residue stays
+> **92 = 113 − 21**, and the sub-class remains a named lens
+> (`fz2_immaterial.py reconverged`), not a disposition. The question below is
+> retained as the record of what was asked; it is CLOSED.
+
 The census's surprise #3: **7 of the 33 TIMING seeds finish on exactly the same
 clock.** Their schedule differs *mid-run* and **re-converges**.
 
