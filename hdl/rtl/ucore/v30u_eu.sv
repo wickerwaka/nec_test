@@ -1487,12 +1487,27 @@ wire [15:0] pc_now = wr_pc1 ? s1_now : pc_after_q;
 wire [15:0] cs_now = wr_cs1 ? s1_now : sreg[SR_CS];
 
 wire        ghost_uses_ea = (ea_residue != tmpa);
-wire [13:0] ghost_prev_pla = pla3_native(pe_opc_reg);
-// Immediate IMUL is the one native PLA class (0104, shared by 69/6B) that
-// leaves a second result word on OPR after retiring the low product.  Its two
-// result rails contend for a non-negative immediate; the negative-immediate
-// rail leaves TMPA intact (mc2/1379 versus the mc2/1292 control).
-wire        ghost_uses_mul_hi = (ghost_prev_pla == 14'h0104) && !tmpc[15];
+// -- `ghost_uses_mul_hi` DELETED (F-A, `ghost_preflash20_prereg_2026-08-12.md`
+// §3).  It read `(pla3_native(pe_opc_reg) == 14'h0104) && !tmpc[15]` -- the
+// immediate-IMUL native PLA class (69/6B) -- and substituted `tmpa & opr` for
+// the whole ghost offset.  It was fitted on the v1 `mc2` banks that SUP-1
+// retired, and wave-4 measured it INERT on 654 replayed seeds (V3 scored
+// BYTE-IDENTICALLY to V2), so nothing could tell whether it was right.
+//
+// `ghost_launch_law_results_2026-08-11.md` §3.2 found the population that
+// reaches it, and the relocation landing (`093efbcfc2`) measured WHY it had
+// been invisible: on the directed `imul` leg the CHIP's rail is `TMPA` =
+// 0x1100 and this arm's value `tmpa & opr` is 0x1000, which is ALSO `E3 & SP`
+// -- the two are indistinguishable on every population that came before.
+// Where it fires the chip takes the ordinary stale rail, so the arm is not a
+// second mechanism at all: it is a coincidence that was written down.
+//
+// The class is no longer excluded from `eu_ghost_row` either, so an `imul`
+// predecessor's ghost is decorated by the launch law like every other one.
+// ONE arm removed, no opcode named, no replacement.  MEASURED: the law's own
+// 13-leg population goes 114/208 -> 128/208 with `imul` 2/16 -> 16/16 and
+// every other leg EXACTLY on its number, the directed cell 384 -> 398 (+14,
+// -0), and ZERO of the 264 replayed seeds move.
 // The retained EA rail is a word-address rail.  A scratch/SIGMA residue keeps
 // its low bit; a retained ModR/M address normally does not.  MOV-to-segment
 // retains the EA rail itself, including its measured low bit (t30-raw/13).
@@ -1578,13 +1593,9 @@ wire ghost_next_byte = q_ripe &&
 // behavioural changes measured as one.  Only the ADDRESS THE BUS LAUNCHES
 // moves, and it moves in the BIU, at the clock the die takes it.
 //
-// `ghost_uses_mul_hi` IS NOT TOUCHED.  That arm substitutes a different VALUE
-// (`tmpa & opr`), not a decoration; its deletion is a second mechanism to be
-// measured as one (`ghost_launch_law_results` §5.3).  It is excluded from
-// `eu_ghost_row` below, so where it fires the request is never tagged and the
-// cycle keeps this value and every bit derived from it.
-wire [15:0] ghost_bus_off = ghost_uses_mul_hi ? (tmpa & opr)
-                            : (ghost_off & gpr[R_SP]);
+// `ghost_uses_mul_hi` IS GONE (F-A) -- see its epitaph at the top of this
+// block.  What is left is ONE expression for every ghost, with no class named.
+wire [15:0] ghost_bus_off = ghost_off & gpr[R_SP];
 wire [15:0] acc_off  = ghost_read_stale_alu ? ghost_bus_off
                        : row_is_wb          ? wb_ea : ind_now;
 wire [19:0] acc_phys_base = acc_io ? {4'd0, acc_off}
@@ -1607,11 +1618,55 @@ wire [19:0] acc_phys2= (ghost_read_stale_alu && eu_ghost_idle &&
                       : ghost_read_stale_alu ? (acc_phys_base + 20'd1)
                      : acc_io ? {4'd0, acc_off + 16'd1}
                               : ({acc_segv, 4'd0} + {4'd0, acc_off + 16'd1});
-wire       acc_split = !acc_byte &&
-                       (ghost_read_stale_alu
-                        ? ((ghost_uses_ea || ghost_uses_mul_hi)
-                           ? acc_phys_base[0] : ghost_stack_phys[0])
-                                             : acc_phys[0]);
+// F-B (`ghost_preflash20_prereg_2026-08-12.md` §2) -- THE GHOST'S SPLIT IS
+// TAKEN FROM THE `dGR == 0` DRIVER, AND THE TWO-CASE RULE IS DELETED.
+//
+// This used to read
+//     ghost_read_stale_alu
+//       ? ((ghost_uses_ea || ghost_uses_mul_hi) ? acc_phys_base[0]
+//                                               : ghost_stack_phys[0])
+// -- i.e. on the `ghost_uses_ea` rails the pair reservation was taken from the
+// POSTED offset's low bit, and on the others from the real stack address.
+//
+// `dGR` is the clocks from this row going current to the BIU LAUNCHING the
+// cycle.  **At the post the row IS current and the launch has not happened, so
+// `dGR == 0` here by definition**, and the law's `dGR == 0` row is `SS:SP` --
+// the posting micro-row's own stack drive.  The pair is reserved at the post,
+// so it is reserved from the `dGR == 0` driver, which `ghost_stack_phys`
+// already is (`{acc_segv,4'd0} + ind_now`, and `ind_now` is measured equal to
+// `gpr[R_SP]` on every ghost event in the diagnosed population).  One
+// expression for every rail; the second case is deleted, not replaced.
+//
+// WHAT MADE THIS VISIBLE.  The launch relocation moved the ADDRESS to the
+// launch and left the SHAPE at the post, and its own §2.1 claimed the posted
+// expression did not move.  It did, wherever wave-4's deleted V2 arm used to
+// fire: on `fz2e/528010` the posted value went from `SP` = 0x9537 (ODD) to the
+// AND = 0x9504 (EVEN), the ghost read stopped splitting, and ONE SIX-CLOCK BUS
+// CYCLE disappeared from a seed the campaign had dispositioned as IMMATERIAL
+// (`bad_rows` 4 -> 2,067).  The chip's own T1 there is 0x8B92D, likewise ODD:
+// silicon splits and the ucore had stopped.  The V2 arm was accidentally right
+// about the SHAPE while being wrong about the ADDRESS, and restoring it would
+// be re-installing a fitted arm to recover a coincidence.
+//
+// THE ADDRESS IS NOT TOUCHED.  Only which driver decides whether there are one
+// or two bus cycles moves, and it moves to the driver the law already names.
+// The un-relocated SPLIT PARTNER stays booked residue (relocation prereg
+// §7(b)); `fz2c/406063` row 249 is its first measurement.
+//
+// AMENDMENT A-1.  The first form of this edit guarded on `!acc_byte` for both
+// arms and SPLIT A BYTE GHOST: `fz2e/520066` has `eu_word == 0` (the ghost's
+// own width arm, `ghost_next_byte || (eu_ghost_full && modrm_reg == 0 &&
+// m_idx == 0)`) with an ODD `ghost_stack_phys`, and it went 8 -> 589 rows.
+// `eu_word` IS `!acc_byte` on every non-ghost path -- that is its own default
+// arm -- and it is NOT on the ghost's.  The lane mux and the split decision
+// were reading two different widths.  So the ghost arm reads the width the
+// ghost's own lane mux reads, and the statement is one sentence for both:
+// AN ACCESS SPLITS IFF IT TRANSFERS A WORD ACROSS AN ODD BOUNDARY.
+// The non-ghost arm is byte-for-byte what it was, so `row_wr_add` and
+// `pr_active` are untouched.
+wire       acc_split = ghost_read_stale_alu
+                       ? (eu_word && ghost_stack_phys[0])
+                       : (!acc_byte && acc_phys[0]);
 // §73 / R7' -- THE WRITE-ACCOUNTING SPLIT, AND WHY IT IS EXACT.
 // `acc_split` above is the BUS value: it drives `eu_split` and `eu_pair2`,
 // which land in the BIU's request registers.  It is ALSO read by
@@ -2105,7 +2160,7 @@ assign eu_addr = vector_early ? vector_phys_early
 // the ghost's own, which is what tags the BIU's request slot; the pre-decode
 // read and the vector's early post use the same wires for their own addresses
 // and must not be tagged.
-assign eu_ghost_row  = ghost_read_stale_alu && !ghost_uses_mul_hi;
+assign eu_ghost_row  = ghost_read_stale_alu;
 assign eu_ghost_acc  = eu_ghost_row && !vector_early && !pr_active;
 assign eu_ghost_sp   = ghost_phys_sp;
 assign eu_ghost_bare = ghost_phys_bare;

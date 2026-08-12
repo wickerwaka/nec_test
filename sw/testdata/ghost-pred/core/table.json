@@ -8325,7 +8325,7 @@
   "waits": 0,
   "align": 0,
   "ncap": 1400,
-  "sha256": "7a284fb900deeccd6d7fc2325359ae1988c0a4aea387483705727b5cd06b55c0",
+  "sha256": "d5180a78c76dd57217ea9cfce72dbf3bebd066b7fd537da03502c40b3bd481e3",
   "n_words": 1400,
   "image_sha256": "e61b0131d652ffd1fbc79b00cf091b5cab8c5497da711c1a7795964d360839bd",
   "klass": "D3",
@@ -8338,28 +8338,28 @@
   "memr": [
    [
     211,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     327,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     443,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     559,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     675,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -8371,83 +8371,83 @@
    {
     "block": 0,
     "row": 211,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 327,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 443,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 559,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 675,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w0_a1",
@@ -8585,7 +8585,7 @@
   "waits": 0,
   "align": 2,
   "ncap": 1400,
-  "sha256": "48a3eb614f3338bc70be8a0bea790accd75d2a9c7d440f3f80d1f17b383b05fb",
+  "sha256": "10e02bf9ce9384e3d45f143edb1b25377af76fe1df62615ce6633fdf7d850635",
   "n_words": 1400,
   "image_sha256": "f2955de229b8f1a74e0d7e4299e281108cfe97e96b142c72ddcc86b56f2bec42",
   "klass": "D3",
@@ -8598,28 +8598,28 @@
   "memr": [
    [
     215,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     331,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     447,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     563,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     679,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -8631,83 +8631,83 @@
    {
     "block": 0,
     "row": 215,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 331,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 447,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 563,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 679,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w0_a3",
@@ -8845,7 +8845,7 @@
   "waits": 1,
   "align": 0,
   "ncap": 2100,
-  "sha256": "fbf99c205ddb875c18f400f734c8dbf6dd4fbdf5cf87f395ee8de452751f296c",
+  "sha256": "f30cc236890b272b6d9596ab7709efa97d1be565b94aa509982a0b5fb1208e4d",
   "n_words": 2100,
   "image_sha256": "e61b0131d652ffd1fbc79b00cf091b5cab8c5497da711c1a7795964d360839bd",
   "klass": "D3",
@@ -8858,28 +8858,28 @@
   "memr": [
    [
     285,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     411,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     537,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     663,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     789,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -8891,83 +8891,83 @@
    {
     "block": 0,
     "row": 285,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 411,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 537,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 663,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 789,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w1_a1",
@@ -8975,7 +8975,7 @@
   "waits": 1,
   "align": 1,
   "ncap": 2100,
-  "sha256": "dc7d6c0b429956c88af98c23cae2157c35a65808d7fe2e04b25c2ec87d7442c4",
+  "sha256": "7bf78ec6796ccc7ec02937943116dab1a584e1146574edb983dcef4c0c4886b7",
   "n_words": 2100,
   "image_sha256": "d8b4de23ebad95fe7536c28823784f71c0695f569a7faf08a95b0e8493156d98",
   "klass": "D3",
@@ -8988,28 +8988,28 @@
   "memr": [
    [
     289,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     419,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     549,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     679,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     809,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -9021,83 +9021,83 @@
    {
     "block": 0,
     "row": 289,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 419,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 549,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 679,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 809,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w1_a2",
@@ -9105,7 +9105,7 @@
   "waits": 1,
   "align": 2,
   "ncap": 2100,
-  "sha256": "1e396937ceb02f864a2bb6430427e6d7d2680a3c304b799bf19299b1563c9ec5",
+  "sha256": "0b4ac91cc0a8fb1313467f475467a62f6389b3b4e711cadd286bfc44c54b0e7f",
   "n_words": 2100,
   "image_sha256": "f2955de229b8f1a74e0d7e4299e281108cfe97e96b142c72ddcc86b56f2bec42",
   "klass": "D3",
@@ -9118,28 +9118,28 @@
   "memr": [
    [
     291,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     417,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     543,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     669,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     795,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -9151,83 +9151,83 @@
    {
     "block": 0,
     "row": 291,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 417,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 543,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 669,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 795,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w1_a3",
@@ -9235,7 +9235,7 @@
   "waits": 1,
   "align": 3,
   "ncap": 2100,
-  "sha256": "2ae0651f2b124c40d63b55bf09f85a1dd4b32304ab46ad0c7d8712c1ecb4a2eb",
+  "sha256": "efb7d3c310c03b1e87771d36041b14748be238f7e4bd5150c2222e51bb7a09f2",
   "n_words": 2100,
   "image_sha256": "8059696b356e551967aed524bd8af4da342503838c4a75336f25f188d1588a31",
   "klass": "D3",
@@ -9248,28 +9248,28 @@
   "memr": [
    [
     295,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     425,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     555,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     685,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     815,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -9281,83 +9281,83 @@
    {
     "block": 0,
     "row": 295,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 425,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 555,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 685,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 815,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w2_a0",
@@ -9365,7 +9365,7 @@
   "waits": 2,
   "align": 0,
   "ncap": 2800,
-  "sha256": "996ab3a84b3501cddb74c5e30e51a7a3b0c16d84ca83c8062a6153d354bfb84e",
+  "sha256": "a3ccc27e0d948c9116c4aab20ab16b280ed29e90c69e907ad4a241fa88a7a63a",
   "n_words": 2800,
   "image_sha256": "e61b0131d652ffd1fbc79b00cf091b5cab8c5497da711c1a7795964d360839bd",
   "klass": "D3",
@@ -9378,28 +9378,28 @@
   "memr": [
    [
     324,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     464,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     604,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     744,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     884,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -9411,83 +9411,83 @@
    {
     "block": 0,
     "row": 324,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 464,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 604,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 744,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 884,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w2_a1",
@@ -9495,7 +9495,7 @@
   "waits": 2,
   "align": 1,
   "ncap": 2800,
-  "sha256": "5c1b4ab2d0373e1cb9591bd5cc219a9ed35e7ff5db412f4917a64cdf0930f530",
+  "sha256": "dc8a9e16b96b8e2af43b2fcefec89a3ecc3f67aa257e11790e538d834c1c1531",
   "n_words": 2800,
   "image_sha256": "d8b4de23ebad95fe7536c28823784f71c0695f569a7faf08a95b0e8493156d98",
   "klass": "D3",
@@ -9508,28 +9508,28 @@
   "memr": [
    [
     329,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     474,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     619,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     764,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     909,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -9541,83 +9541,83 @@
    {
     "block": 0,
     "row": 329,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 474,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 619,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 764,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 909,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w2_a2",
@@ -9625,7 +9625,7 @@
   "waits": 2,
   "align": 2,
   "ncap": 2800,
-  "sha256": "c69b65cff1dac8c0b6f154daceb315c0c2843509955410a9a0a9ab12204121a8",
+  "sha256": "534d6e410ba0b8a0eb3b8d5224f9f0959b17a205103b9191f364980b9592778f",
   "n_words": 2800,
   "image_sha256": "f2955de229b8f1a74e0d7e4299e281108cfe97e96b142c72ddcc86b56f2bec42",
   "klass": "D3",
@@ -9638,28 +9638,28 @@
   "memr": [
    [
     331,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     471,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     611,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     751,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     891,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -9671,83 +9671,83 @@
    {
     "block": 0,
     "row": 331,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 471,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 611,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 751,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 891,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w2_a3",
@@ -9755,7 +9755,7 @@
   "waits": 2,
   "align": 3,
   "ncap": 2800,
-  "sha256": "19677dd6e825d89788d7a34a3068a0923bec0e51060c7361d415924aefd1efd2",
+  "sha256": "7c49792a486541fdef047acfec7016e869d3d869e5ba42bac2f80f328ca9ce38",
   "n_words": 2800,
   "image_sha256": "8059696b356e551967aed524bd8af4da342503838c4a75336f25f188d1588a31",
   "klass": "D3",
@@ -9768,28 +9768,28 @@
   "memr": [
    [
     336,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     481,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     626,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     771,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     916,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -9801,83 +9801,83 @@
    {
     "block": 0,
     "row": 336,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 481,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 626,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 771,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 916,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w3_a0",
@@ -9885,7 +9885,7 @@
   "waits": 3,
   "align": 0,
   "ncap": 3500,
-  "sha256": "113bbc764eac000c6a4fce2e99b632d68ccd9a9db8cdbb714c2a2df8d0760c42",
+  "sha256": "5ac5aa938df856d3bc86170d7f2dc0b907ccb4be4825529deceaebc08fc1f7b7",
   "n_words": 3500,
   "image_sha256": "e61b0131d652ffd1fbc79b00cf091b5cab8c5497da711c1a7795964d360839bd",
   "klass": "D3",
@@ -9898,28 +9898,28 @@
   "memr": [
    [
     363,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     517,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     671,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     825,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     979,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -9931,83 +9931,83 @@
    {
     "block": 0,
     "row": 363,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 517,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 671,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 825,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 979,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w3_a1",
@@ -10015,7 +10015,7 @@
   "waits": 3,
   "align": 1,
   "ncap": 3500,
-  "sha256": "0c6931bbec53bb12afb7aae8e93e02fba4e913cc28af8ba6b5fc7cf08b616ee7",
+  "sha256": "b365cbd7e4aad277658653ac3c7360996b08a7cbcfa3677d54f98d3425f3dbc2",
   "n_words": 3500,
   "image_sha256": "d8b4de23ebad95fe7536c28823784f71c0695f569a7faf08a95b0e8493156d98",
   "klass": "D3",
@@ -10028,28 +10028,28 @@
   "memr": [
    [
     369,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     529,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     689,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     849,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     1009,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -10061,83 +10061,83 @@
    {
     "block": 0,
     "row": 369,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 529,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 689,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 849,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 1009,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w3_a2",
@@ -10145,7 +10145,7 @@
   "waits": 3,
   "align": 2,
   "ncap": 3500,
-  "sha256": "7793ead013c51ab726a8b32579361c0a95878ee4713229db751ed75f93203f52",
+  "sha256": "fa6a337d316fbb36b1c81f7d4bbc264404f48788219b6e5cfa3fea802426e262",
   "n_words": 3500,
   "image_sha256": "f2955de229b8f1a74e0d7e4299e281108cfe97e96b142c72ddcc86b56f2bec42",
   "klass": "D3",
@@ -10158,28 +10158,28 @@
   "memr": [
    [
     371,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     525,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     679,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     833,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     987,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -10191,83 +10191,83 @@
    {
     "block": 0,
     "row": 371,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 525,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 679,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 833,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 987,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "imul_w3_a3",
@@ -10275,7 +10275,7 @@
   "waits": 3,
   "align": 3,
   "ncap": 3500,
-  "sha256": "e00ba38c1d66a6a7b02f89f6275109d60a13ae3a64d173fbc4c919683a787703",
+  "sha256": "1fff0a2b7c22ee6f2f4e2a76184761a20fae1c4e3958ff99e15ee5cf52ad4d4c",
   "n_words": 3500,
   "image_sha256": "8059696b356e551967aed524bd8af4da342503838c4a75336f25f188d1588a31",
   "klass": "D3",
@@ -10288,28 +10288,28 @@
   "memr": [
    [
     377,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     537,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     697,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     857,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ],
    [
     1017,
-    "21000",
-    "db50"
+    "21100",
+    "da50"
    ]
   ],
   "n_memr": 5,
@@ -10321,83 +10321,83 @@
    {
     "block": 0,
     "row": 377,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 1,
     "row": 537,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 2,
     "row": 697,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 3,
     "row": 857,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    },
    {
     "block": 4,
     "row": 1017,
-    "addr": 135168,
+    "addr": 135424,
     "seg": "SS",
-    "off": 4096,
-    "label": "E3&SP",
-    "data": 56144,
-    "txn_addr": "21000"
+    "off": 4352,
+    "label": "E3",
+    "data": 55888,
+    "txn_addr": "21100"
    }
   ],
   "ghost_addr": [
-   135168,
-   135168,
-   135168,
-   135168,
-   135168
+   135424,
+   135424,
+   135424,
+   135424,
+   135424
   ],
   "ghost_label": [
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP",
-   "E3&SP"
+   "E3",
+   "E3",
+   "E3",
+   "E3",
+   "E3"
   ],
   "ghost_seg": [
    "SS"
   ],
   "ghost_off": [
-   4096,
-   4096,
-   4096,
-   4096,
-   4096
+   4352,
+   4352,
+   4352,
+   4352,
+   4352
   ],
   "uniform": true,
-  "mode_addr": 135168,
+  "mode_addr": 135424,
   "mode_seg": "SS",
-  "mode_off": 4096,
-  "mode_label": "E3&SP"
+  "mode_off": 4352,
+  "mode_label": "E3"
  },
  {
   "cell": "pop0_w0_a0",
