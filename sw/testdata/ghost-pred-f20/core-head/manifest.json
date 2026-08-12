@@ -1,0 +1,14 @@
+{
+ "tool": "ghost_pred_cell core",
+ "leg": "tb_sys ret",
+ "receipt": {
+  "base": "a59266319ee168f21f7c75b8e7bcef45e0f2ade9e39a9f2d49269bfc4c3d6f3d",
+  "ret": "b80e16916e34e6a831ea8ce63d92cccfd6ffb676dff49bab10123300343f35ce"
+ },
+ "cells": 528,
+ "seconds": 132.4,
+ "block": 32,
+ "R": 5,
+ "git": "044086af1d",
+ "ts": "2026-08-12T11:11:16Z"
+}
