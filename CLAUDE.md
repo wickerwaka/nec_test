@@ -757,18 +757,35 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   (40), `tf0f score` **chip == core 0/512 on all six columns**, ie-pinfall
   `n_inta` **30** / `ack_off` **40** / `ack_off_hlt` **40** reproducing
   ack-wake's prediction exactly, six invariant columns **0/1,920**.
-  ⚠ **AN E-6 HARD STOP FIRED AND WAS OBEYED — `quartus_gate.py` CANNOT MAKE A
-  RETENTION BUILD.**  Its `build()` runs `quartus_sh --flow compile` with **no
-  `--verilog_macro`** and **never reads `X1_AD_RETENTION` from the
-  environment**: `X1_AD_RETENTION=1 python3 sw/quartus_gate.py` is
-  **accepted-and-ignored** and silently yields a CONTROL build whose `.rbf` is
+  ⚠ **AN E-6 HARD STOP FIRED AND WAS OBEYED — `quartus_gate.py` COULD NOT MAKE
+  A RETENTION BUILD.**  Its `build()` ran `quartus_sh --flow compile` with **no
+  `--verilog_macro`** and **never read `X1_AD_RETENTION` from the
+  environment**: `X1_AD_RETENTION=1 python3 sw/quartus_gate.py` was
+  **accepted-and-ignored** and silently yielded a CONTROL build whose `.rbf` is
   byte-identical to the control's.  The receipt's DERIVED label caught it
   (`aa3ca3e028dff7d2…` — label says RETENTION, configuration says
-  `CONTROL/DEFAULT`) and **nothing was flashed on it**.  **The recipe is the
-  four-step manual compile in `fuzzv2_retention_prereg_2026-08-08.md` §6.1**:
-  `quartus_map --verilog_macro="X1_AD_RETENTION=1"` → `quartus_fit` →
-  `quartus_asm` → `quartus_sta` → `quartus_gate.py --parse-only
-  --no-qsf-check`.  The bad receipt is RETAINED and named.
+  `CONTROL/DEFAULT`) and **nothing was flashed on it**.  The bad receipt is
+  RETAINED and named.
+  ✅ **CLOSED 2026-08-11 — `sw/quartus_gate.py --retention` EXISTS AND THE
+  ENV-VAR FORM IS REFUSED** (prereg `a05af666aa`,
+  `fz2_f18_housekeeping_results_2026-08-11.md`).  The flag runs the recorded
+  four-stage recipe (`quartus_map --verilog_macro=X1_AD_RETENTION=1` →
+  `quartus_fit` → `quartus_asm` → `quartus_sta`, then the existing parse);
+  `--dry-run` prints the stages without building; and
+  `X1_AD_RETENTION=1 python3 sw/quartus_gate.py` **now exits 2 naming this
+  finding** — accepted-and-ignored became refused-with-reason.  `configuration`
+  is still **DERIVED from the reports and never from the flag** (what the flag
+  asked for lands in `build.configuration_requested`), which is what keeps the
+  FLASH #18 check alive.  Falsifier **`python3 sw/test_quartus_gate.py`
+  (75/75, no Quartus needed)**, non-vacuous on six nulls including
+  *"--retention accepted and ignored"*.
+  ⚠ **THE MACRO IS PASSED UNQUOTED** — the documents' `--verilog_macro="…"` is
+  SHELL syntax and `subprocess` has no shell; all twelve archived retention
+  receipts record the compiler receiving `--verilog_macro=X1_AD_RETENTION=1`.
+  ⚠ **THE FLAG IS TESTED, NOT YET EXERCISED**: no bitstream has been built with
+  it.  *Falsifier for the next retention build*: its receipt must self-label
+  `RETENTION (X1_AD_RETENTION=1)` with an `.rbf` differing from the control's
+  (E-6 and E-9, unchanged).
   ⚠ **THE RETENTION-VS-CONTROL SIGN INVERTED BACK: −1.31 MHz**, after five
   consecutive draws above (#13 +0.46, #14 +1.50, #15 +2.24, #16 +0.12,
   #17 +0.71).  The flashed build clears this sitting's own 38.0 STOP by only
@@ -781,12 +798,30 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   F17 ledger: **119,258 − 119,192 = 66 = Σ`flick`**, on exactly the 25
   discrepant seeds — `fz2e/510043`, F17's one "off by more" at +21, has `flick`
   21.  **F17 §5.3's "18/43 EXACT" would read 43/43 on `bad_rows`.**
-  ⚠ **`fz2_immaterial falsify` reports G6/G7 FAIL** against
+  ⚠ **`fz2_immaterial falsify` reported G6/G7 FAIL** against
   `fz2_materiality_census_2026-08-11.md` (an F17-era snapshot, 113/21/92, vs
-  the F18 derivation **110 / 24 / 86**); **G1-G5 and G8 PASS**.  The three new
-  IMMATERIAL members are phantom-T1's three seats, `TRANSIENT` at a single
-  `bs=1` column — a third instrument agreeing the residue is one status cell.
+  the F18 derivation **110 / 24 / 86**); **G1-G5 and G8 PASSED**.
   Re-derivation BOOKED, deliberately not done in the sitting that measured it.
+  ✅ **CLOSED 2026-08-11 — `fz2_immaterial falsify` is PASS, G1-G8** (prereg
+  `a05af666aa`, `fz2_f18_housekeeping_results_2026-08-11.md`).  Both documents
+  now carry the FLASH #18 derivation as **PART I, the live era**, with the
+  FLASH #17 tables retained verbatim as **PART II, history and not a claim**.
+  **THE LIVE PARTITION IS `FUNCTIONAL 45 · TIMING 30 · TRANSIENT 5 ·
+  COSMETIC 19 · UNSCOREABLE 11 = 110`, `IMMATERIAL` **24**, and the quoting
+  form is *"86 material-or-unproven of 110 diverging of 3,839"* — never
+  `86 / 3,839` alone, and **the residue did not shrink by being re-read**.
+  The 24 are the F17 twenty-one with **ZERO leavers** plus **phantom-T1's three
+  seats**, each admitted on **all six clauses measured** (S-STARTS `0 / 0`,
+  `done_delta` 0, `bad_rows` 1) — a third instrument agreeing the residue is
+  one status cell.  **`TIMING_RECONVERGED` is 8, not 7** — `fz2e/530020`
+  joined, not a seat and **not attributed**; the 2026-08-11 user ruling
+  (*"timing reconvergence seeds are material"*) is a rule about a PREDICATE and
+  **carries to the new member without being re-asked**.  ⚠ **G6/G7 NOW PARSE
+  ONLY BETWEEN ANCHORS** in each document (`CENSUS-PARTITION-*`,
+  `IMMATERIAL-MEMBERS-*`) — unanchored, one regex took the LAST match and two
+  took the FIRST, so no placement of a history section satisfied both.  A
+  MISSING anchor is a FAIL; demonstrated on P6-P9, including the control that a
+  PART II edit does **not** move the gate.
   ⚠ **`verdict`/`sub` LABELS MAY NOT BE DIFFED ACROSS F17 → F18**: the
   `open_bus` accept rule was retired at `80075d049a`, which is **not** an
   ancestor of the F17 flash commit.  No scored quantity depends on `verdict`.

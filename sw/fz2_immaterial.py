@@ -44,8 +44,8 @@ clause can only make the class SMALLER, which is the direction that matters:
       honest.  BOTH legs produced a 15-word `MAGIC`-anchored terminator dump.
       The whole class rests on a DUMP-IDENTITY proof of non-propagation; with
       no dump there is no proof, and a seed with no proof must not be
-      dispositioned by silence.  This clause alone holds all 11 UNSCOREABLE
-      seeds out, and they STAY OPEN.
+      dispositioned by silence.  This clause alone holds EVERY UNSCOREABLE
+      seed out, and they STAY OPEN.
   (3) D-IDENT.  The two dumps are bit-identical, word for word, over
       `AW BW CW DW BP IX IY SP PC PS PSW DS0 DS1 SS MAGIC`.
   (4) S-STARTS.  Every bus cycle that starts inside the compare window starts
@@ -74,11 +74,11 @@ clause can only make the class SMALLER, which is the direction that matters:
 
 WHAT IS *NOT* DISPOSITIONED, STATED SO IT IS NOT ASSUMED
 --------------------------------------------------------
-  * THE 11 UNSCOREABLE SEEDS STAY OPEN.  Neither leg dumped, so there is no
+  * THE UNSCOREABLE SEEDS STAY OPEN.  Neither leg dumped, so there is no
     proof either way.  Dispositioning them would be ACCEPTANCE BY IGNORANCE.
     The census prints the class each WOULD take; that is a counterfactual and
     no seed is promoted by it.
-  * THE 7 `TIMING_RECONVERGED` SEEDS STAY OPEN.  They finish on exactly the
+  * THE `TIMING_RECONVERGED` SEEDS STAY OPEN.  They finish on exactly the
     same clock but their schedule DID shift mid-run, so clause (4) fails and
     they do not take the disposition under the strict criterion.  They are
     named as a sub-class with the question written out, and the question is
@@ -101,10 +101,14 @@ failure:
                      derived from the banked rows on this invocation.
   G6  THE CENSUS     The partition derived here must equal the one REGISTERED
                      in `docs/notes/fz2_materiality_census_2026-08-11.md`,
-                     PARSED from that document.  This is the clause that fires
-                     loudly if any seed's classification changes.
-  G7  THE DOCUMENT   The 21 seeds NAMED in the disposition document must be
-                     EXACTLY the ones derived here, set for set.  The document
+                     PARSED from that document BETWEEN ITS ANCHORS.  This is
+                     the clause that fires loudly if any seed's classification
+                     changes -- and, since the anchors, the clause that fires
+                     if the live partition block goes missing entirely.
+  G7  THE DOCUMENT   The seeds NAMED in the disposition document's anchored
+                     member table must be EXACTLY the ones derived here, set
+                     for set, and its `WORKING-RESIDUE` headline -- read from
+                     the SAME anchored region -- must match.  The document
                      names them for the reader; the class is COMPUTED, and G7
                      is the check that the two never drift apart.
   G8  NO FORK        The clause-by-clause predicate above must agree with
@@ -129,8 +133,8 @@ G8 is the check that this file did not fork the census.
 
 USAGE
     python3 sw/fz2_immaterial.py falsify        # the eight bars; 0 / 1 / 2
-    python3 sw/fz2_immaterial.py census         # the 21, with their evidence
-    python3 sw/fz2_immaterial.py reconverged    # the 7, and the open question
+    python3 sw/fz2_immaterial.py census         # the members, with evidence
+    python3 sw/fz2_immaterial.py reconverged    # the sub-class NOT taken
     python3 sw/fz2_immaterial.py --ledger X falsify      # a perturbed input
 """
 import argparse
@@ -153,6 +157,17 @@ IMMATERIAL = "IMMATERIAL"
 # the DISPOSITION document (which this file's members are named in).  Both are
 # PARSED, so a doc edit that disagrees with the code is a FAILURE and not a
 # comment -- `sw/fz2_w1.py lint`'s idiom, applied to this layer.
+#
+# ⚠ BOTH ARE READ **ONLY BETWEEN THEIR ANCHORS**, and that is not decoration.
+# A campaign document supersedes rather than overwrites: the FLASH #17 tables
+# stay in both files as history under a dated banner.  Unanchored, this file's
+# three census regexes disagreed about which era they would read -- `_ROW`
+# takes the LAST match in the file and `_IMM`/`_RECONV` take the FIRST -- so
+# NO placement of a history section could satisfy both and the documents could
+# not carry their own history without lying to their own falsifier.  Anchoring
+# is the rule `dispo_doc()` already had, for the same reason it had it: a table
+# outside the anchors is HISTORY, not a claim, and must not be parsed as one.
+# It can only make the gate stricter -- a MISSING anchor is a FAIL.
 CENSUS_DOC = os.path.join(ROOT, "docs", "notes",
                           "fz2_materiality_census_2026-08-11.md")
 DISPO_DOC = os.path.join(ROOT, "docs", "notes",
@@ -245,22 +260,33 @@ _CENSUS_IMM = re.compile(
 _CENSUS_RECONV = re.compile(
     r"^\s*done-marker clock IDENTICAL \(local re-schedule only\)\s*:\s*(\d+)",
     re.M)
+_CENSUS_BEGIN = "<!-- CENSUS-PARTITION-BEGIN -->"
+_CENSUS_END = "<!-- CENSUS-PARTITION-END -->"
 
 
 def census_doc():
-    """The partition as the CENSUS document registers it.  -> dict or None."""
+    """The partition as the CENSUS document registers it.  -> dict or None.
+
+    Read ONLY between `<!-- CENSUS-PARTITION-BEGIN/END -->`.  A superseded
+    partition below the anchors is history and is not a claim; absent anchors
+    are a FAILURE (`anchors` False), never a silent whole-file fallback --
+    falling back would read a superseded table as the live registration, which
+    is the exact drift G6 exists to catch."""
     if not os.path.exists(CENSUS_DOC):
         return None
     text = open(CENSUS_DOC).read()
-    d = {"classes": {}}
-    for line in text.splitlines():
+    if _CENSUS_BEGIN not in text or _CENSUS_END not in text:
+        return {"classes": {}, "anchors": False}
+    body = text.split(_CENSUS_BEGIN, 1)[1].split(_CENSUS_END, 1)[0]
+    d = {"classes": {}, "anchors": True}
+    for line in body.splitlines():
         mm = _CENSUS_ROW.match(line.strip())
         if mm:
             d["classes"][mm.group(1)] = int(mm.group(2))
-    mm = _CENSUS_IMM.search(text)
+    mm = _CENSUS_IMM.search(body)
     if mm:
         d["immaterial"], d["total"] = int(mm.group(1)), int(mm.group(2))
-    mm = _CENSUS_RECONV.search(text)
+    mm = _CENSUS_RECONV.search(body)
     if mm:
         d["reconverged"] = int(mm.group(1))
     return d
@@ -290,7 +316,12 @@ def dispo_doc():
         mm = _DISPO_SEED.match(line.strip())
         if mm:
             seeds.add(mm.group(1))
-    mm = _DISPO_HEADLINE.search(text)
+    # The headline is read from the ANCHORED body too, so the whole G7 input is
+    # one region.  It used to be searched over the whole file, which took the
+    # FIRST match anywhere -- and a superseded era's headline sitting above the
+    # live one would have been read as the live claim.  §0's prose statement of
+    # the same number is deliberately outside the anchors and is not parsed.
+    mm = _DISPO_HEADLINE.search(body)
     return {"seeds": seeds, "anchors": True,
             "headline": (int(mm.group(1)), int(mm.group(2)), int(mm.group(3)))
             if mm else None}
@@ -376,6 +407,10 @@ def cmd_falsify(a):
     cd = census_doc()
     if cd is None:
         print(f"   G6 {'THE CENSUS':<15}: {CENSUS_DOC} MISSING  [FAIL]")
+        rc = 1
+    elif not cd.get("anchors"):
+        print(f"   G6 {'THE CENSUS':<15}: partition anchors "
+              f"({_CENSUS_BEGIN} … {_CENSUS_END}) absent  [FAIL]")
         rc = 1
     else:
         diffs = []

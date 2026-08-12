@@ -1,30 +1,258 @@
-# fz2 MATERIALITY CENSUS — WHAT THE FLASH #17 RESIDUE ACTUALLY COSTS
+# fz2 MATERIALITY CENSUS — WHAT THE RESIDUE ACTUALLY COSTS
 
     tool        sw/fz2_materiality.py           (reviewer-re-runnable, offline)
-    input       sw/testdata/fz2/fz2_failure_ledger_f17_2026-08-11.json
-                + the 113 banked FABRIC captures it names, sha256-verified
-    branch      fuzz-v2-on-relanding @ 1ad5074ebe
-    era         sof 26c19f613e2caae8…  (FLASH #17)
+    LIVE ERA    FLASH #18 -- see PART I
+    input       sw/testdata/fz2/fz2_failure_ledger_f18_2026-08-11.json
+                (= `sw/fz2_ledger.py:CURRENT`)
+                + the 110 banked FABRIC captures it names, sha256-verified
+    branch      fuzz-v2-on-relanding @ 770c0d1b85
+    era         sof b2a1fe5f83167fbf…  (FLASH #18)
     date        2026-08-11
     board       NOT TOUCHED.  No capture, no flash, no RTL edit, no re-score.
+
+    HISTORY     FLASH #17 (113 / 21 / 92) is retained VERBATIM as PART II.
+                Its `input` was fz2_failure_ledger_f17_2026-08-11.json,
+                branch @ 1ad5074ebe, era sof 26c19f613e2caae8….
 
     reproduce   python3 sw/fz2_materiality.py
                 python3 sw/fz2_materiality.py --seed fz2e/517046   (one seed)
 
-⚠ **THIS IS A FLASH #17-ERA SNAPSHOT AND ITS NUMBERS ARE SUPERSEDED BY FLASH
-#18.**  On the F18 ledger the derivation is **110 failures / 24 IMMATERIAL /
-residue 86** (45 FUNCTIONAL + 30 TIMING + 11 UNSCOREABLE), against this
-document's 113 / 21 / 92.  `fz2_immaterial falsify` therefore reports **G6 and
-G7 FAIL** against this file — every clause that tests the *derivation itself*
-(G1–G5, G8) still PASSES.  **The three seeds that entered the class are
-phantom-T1's three seats** (`fz2c/404071`, `fz2e/514044`, `fz2e/516001`), now
-`TRANSIENT` at a single `bs=1` column.  `fz2_flash18_results_2026-08-11.md`
-§4.7a.
+⚠ **THE PARTITION IS PARSED FROM THIS FILE, AND ONLY FROM BETWEEN THE ANCHORS
+IN §I.0.**  `sw/fz2_immaterial.py falsify`'s **G6** reads the
+`CENSUS-PARTITION-BEGIN` / `-END` HTML-comment pair and nothing else, so
+**PART II's tables are history and are not claims**.  If the anchors go
+missing, G6 FAILS — it never falls back to reading the whole file, because
+falling back is exactly how a superseded table would be read as the live
+registration.
 
-**THE RE-DERIVATION IS BOOKED AND WAS DELIBERATELY NOT DONE IN THE SITTING THAT
-MEASURED THE FAILURE** — editing a document to clear its own falsifier in the
-same sitting is the move this campaign's rules distrust.  This banner is a
-LABEL, not a fix: it does not and cannot make G6/G7 pass.
+⚠ **THE ANCHOR LITERALS ARE DELIBERATELY NOT SPELT OUT IN PROSE ANYWHERE IN
+THIS FILE.**  `census_doc()` splits on the FIRST occurrence of each, so a
+mention of the exact comment in running text would truncate the parsed region
+and G6 would score an empty partition.  Read them off §I.0.
+
+---
+---
+
+# PART I — FLASH #18.  **THE LIVE CENSUS.**
+
+    re-derived 2026-08-11 under `docs/notes/fz2_f18_housekeeping_prereg_2026-08-11.md`,
+    which was committed at `a05af666aa` BEFORE this run.
+    results     docs/notes/fz2_f18_housekeeping_results_2026-08-11.md
+
+**WHY THIS PART EXISTS.**  FLASH #18 landed `KM` and `phantom-T1`
+(`fz2_flash18_results_2026-08-11.md`).  Three seeds LEFT the ledger and none
+entered, so the population this census partitions moved **113 → 110** — and
+`fz2_immaterial falsify` reported **G6 and G7 FAIL** against PART II for
+exactly that reason.  The F18 sitting **booked the re-derivation rather than
+doing it in the sitting that measured the failure**, because editing a document
+to clear its own falsifier in the same sitting is the move this campaign's
+rules distrust.  This is that re-derivation.
+
+## I.0 THE PARTITION — THE REGISTERED CELLS
+
+    C-ROW   diff_rows reproduces the ledger   110 / 110   PASS
+    C-ARCH  arch_dump reproduces the ledger   110 / 110   PASS
+    exit 0
+
+<!-- CENSUS-PARTITION-BEGIN -->
+
+| class | seeds | % of 110 | % of 3,839 |
+|---|---:|---:|---:|
+| **FUNCTIONAL** — the architectural result differs | **45** | 40.91 % | 1.17 % |
+| **TIMING** — dumps identical, the bus schedule differs | **30** | 27.27 % | 0.78 % |
+| **TRANSIENT** — dumps identical, schedule identical, a cycle-defining pin moved | **5** | 4.55 % | 0.13 % |
+| **COSMETIC** — dumps identical, schedule identical, value-only diffs | **19** | 17.27 % | 0.49 % |
+| **UNSCOREABLE** — neither leg dumped; no proof either way | **11** | 10.00 % | 0.29 % |
+
+    MATERIAL    (functional + timing)   75 / 110 = 68.18 %   =  1.95 % of 3,839
+    IMMATERIAL  (transient + cosmetic)  24 / 110 = 21.82 %   =  0.63 % of 3,839
+    UNPROVEN    (no dump either leg)    11 / 110 =  9.99 %   =  0.29 % of 3,839
+
+    TIMING (30), split by whether the program's total length moved:
+        a bus cycle starts on a clock the other leg has none : 30
+        done-marker clock differs, cycle starts all match    :  0
+        unmatched cycle STARTS per seed: min 1  median 97  max 433
+        done-marker clock IDENTICAL (local re-schedule only) :  8
+        done-marker clock MOVED (total run length changed)   : 22
+        no done marker on one or both legs                   :  0
+        |done-clock delta| over the 22 that moved: min 1  median 3  max 715 clocks
+
+<!-- CENSUS-PARTITION-END -->
+
+⚠ The `9.99 %` on the UNPROVEN line is the tool's `10.00 %` restated to one
+more place only where rounding makes `21.82 + 68.18 + 10.00` read as exactly
+100; the parsed cells are the **counts**, and no percentage is parsed.
+
+**The headline the user asked for, on FLASH #18: of the 110 residual seeds, 24
+have no measured consequence at all, 11 cannot be asked, and 75 do.**  Read
+against the corpus, **3,753 of 3,839 seeds (97.76 %) either match the chip
+outright or differ in a way with no measured functional or timing
+consequence**; 75 (1.95 %) carry one; 11 (0.29 %) cannot be adjudicated.
+
+⚠ **The residue did not shrink *by this document*.**  It shrank because three
+seeds left the ledger in fabric; this is still a lens, not a re-score.  Every
+seed below is still a ledger failure, `bars` is untouched, and no gate moved.
+
+## I.1 WHAT MOVED, F17 → F18, CELL BY CELL
+
+| cell | F17 | **F18** | Δ | why |
+|---|---:|---:|---:|---|
+| FUNCTIONAL | 48 | **45** | −3 | **KM's three seats LEFT the ledger** — `fz2c/404041`, `fz2e/501066`, `fz2e/513019`, all three two-sided FUNCTIONAL at F17 (PART II §4.1), `bad_rows` 2,437 / 572 / 2,843 → **0** |
+| TIMING | 33 | **30** | −3 | **phantom-T1's three seats moved TIMING → TRANSIENT** |
+| TRANSIENT | 2 | **5** | +3 | the same three, at `bs=1` |
+| COSMETIC | 19 | **19** | 0 | unmoved, seed for seed |
+| UNSCOREABLE | 11 | **11** | 0 | unmoved, seed for seed |
+| **total** | **113** | **110** | −3 | LEFT 3 / ENTERED 0 |
+| **IMMATERIAL** | **21** | **24** | +3 | zero leavers |
+| `TIMING_RECONVERGED` | 7 | **8** | +1 | **`fz2e/530020` joined**, §I.4 |
+
+**Six of G6's eight cells moved, which is exactly the `6 / 8` the FLASH #18
+sitting measured** (`fz2_flash18_results_2026-08-11.md` §4.7a) — COSMETIC and
+UNSCOREABLE are the two that agreed.
+
+## I.2 THE THREE NEW TRANSIENT SEEDS — phantom-T1's SEATS
+
+| seed | family | `bad_rows` F17 → F18 | first_bad | window | cyc chip/core | done chip/core | columns |
+|---|---|---:|---:|---:|---|---|---|
+| `fz2c/404071` | C2 INTA-vectored delivery | 905 → **1** | **243** | 1,204 | 174 / 174 | 1196 / 1196 | `bs`=1 |
+| `fz2e/514044` | C2 INTA-vectored delivery | 1,261 → **1** | **234** | 1,587 | 233 / 233 | 1579 / 1579 | `bs`=1 |
+| `fz2e/516001` | C2 INTA-vectored delivery | 1,154 → **1** | **583** | 2,611 | 204 / 204 | 2603 / 2603 | `bs`=1 |
+
+The `first_bad` values **243 / 234 / 583** are the FLASH #18 pre-registration's
+own POINT predictions (results §4.2), reproduced here by an independent
+instrument that never reads them.
+
+**They are the third instrument to say the residue is one status cell**, beside
+the fabric ledger and the HLT sweeps' `busstat: exp 'CODE' got 'PASV'`.
+⚠ **They are DISPOSITIONED, NOT CLOSED**: `bad_rows == 0` was registered as a
+FINDING and did not occur, and the remaining cell is the `system_large`
+status-pin observation model the ack-wake landing booked and did not take
+(results §9 OPEN item 6).
+
+## I.3 CLASS × FAMILY, ON THE F18 LEDGER
+
+| family | FUNC | TIME | TRAN | COSM | UNSC | tot |
+|---|---:|---:|---:|---:|---:|---:|
+| A1 qs-pop one clock late | 0 | 5 | 0 | 0 | 0 | 5 |
+| A2 qs-pop other offset | 0 | 1 | 0 | 2 | 1 | 4 |
+| A3 cycle-time slip (non-qs) | 4 | 6 | 1 | 4 | 0 | 15 |
+| B1 HALT-cycle address | 0 | 1 | 0 | 0 | 0 | 1 |
+| B2 HALT entry (one leg only) | 0 | 2 | 0 | 0 | 0 | 2 |
+| C1 vector-1 trap MISSED by core | 0 | 0 | 0 | 0 | 1 | 1 |
+| **C2 INTA-vectored delivery** | **6** | **0** | **3** | 0 | 0 | **9** |
+| C3 NMI(vec2) entry | 1 | 0 | 0 | 0 | 0 | 1 |
+| C4 other-vector delivery | 1 | 0 | 0 | 0 | 0 | 1 |
+| D1 chip fetched, core did not | 7 | 3 | 0 | 0 | 0 | 10 |
+| **D2 core fetched, chip did not** | **2** | **6** | 0 | 0 | 0 | **8** |
+| D3 both fetched, different address | 4 | 1 | 0 | 0 | 0 | 5 |
+| E1 same-status data cycle, different address | 19 | 4 | 1 | 10 | 5 | 39 |
+| E2 different-status data cycle | 0 | 1 | 0 | 0 | 1 | 2 |
+| NEW/UNCLASSIFIED | 1 | 0 | 0 | 3 | 3 | 7 |
+| **TOTAL** | **45** | **30** | **5** | **19** | **11** | **110** |
+
+**C2 is the row the two landings rewrote.**  At F17 it was 7 FUNCTIONAL /
+3 TIMING / 0 immaterial and PART II §3.2 called it *"the densest material
+family in the table"*.  It is now **6 / 0 / 3 immaterial of 9**: KM took one
+FUNCTIONAL seat out of the ledger entirely and phantom-T1 moved all three
+TIMING seats to TRANSIENT.  ⚠ **The remaining six are still there, and five of
+the six are `soup`-tier and not escaped** — PART II §5's *"highest-confidence
+functional residue"* reading is unchanged in kind and one seed shorter.
+
+**D2 fell 10 → 8** (KM's `fz2c/404041` and `fz2e/501066`).
+**Every other family row is byte-identical to PART II's**, which is the
+containment check: neither landing touched a family it did not name.
+
+## I.4 `TIMING_RECONVERGED` ON FLASH #18 — 8 SEEDS, AND THE USER RULING CARRIES
+
+> **THE RULING STANDS, RE-STATED ON THIS ERA (user, 2026-08-11): "Timing
+> reconvergence seeds are material."**  All **8** stay MATERIAL, all 8 are
+> inside the 30 TIMING and inside the 86 working residue, and the sub-class
+> remains a named lens (`fz2_immaterial.py reconverged`), not a disposition.
+> **The ruling was given on a 7-seed membership and is re-derived here on an
+> 8-seed one; it is a rule about a PREDICATE, not about a seed list, so it
+> carries without re-asking.**
+
+The F17 seven are **all still members, unmoved**, and one seed joined:
+
+| seed | tier | esc | bad | starts chip-only / core-only | done (both) | family | F17? |
+|---|---|---:|---:|---|---:|---|---|
+| `fz2c/406073` | raw | 142 | 5 | 0 / 1 | 3599 | B2 HALT entry (one leg only) | yes |
+| `fz2c/407064` | raw | 63 | 998 | 131 / 130 | 3583 | B1 HALT-cycle address | yes |
+| `fz2e/511014` | soup | — | 744 | 97 / 95 | 3596 | D1 chip fetched, core did not | yes |
+| `fz2e/512062` | soup | — | 504 | 60 / 61 | 3569 | D2 core fetched, chip did not | yes |
+| `fz2e/518006` | raw | 87 | 479 | 6 / 7 | 3599 | E1 same-status data cycle | yes |
+| `fz2e/518044` | raw | 69 | 5 | 0 / 1 | 3599 | B2 HALT entry (one leg only) | yes |
+| `fz2e/520000` | raw | — | 836 | 13 / 12 | 3596 | E1 same-status data cycle | yes |
+| **`fz2e/530020`** | raw | 15 | 326 | **3 / 3** | **1090** | D1 chip fetched, core did not | **NEW** |
+
+⚠ **`fz2e/530020` IS NOT A SEAT AND WAS NOT PREDICTED BY MECHANISM.**  It is a
+still-TIMING seed whose `done_delta` became 0; it stayed in the ledger, in
+TIMING, and in the residue throughout, and only its position **inside** TIMING
+moved.  This is the ordinary downstream row-count movement FLASH #18 reported
+and did not explain — the corpus lost **345 rows more** than the six seats
+alone account for (results §4.3 P-3a).  **Reported, not attributed.**
+*Falsifier, registered here*: a double capture on one bitstream in which
+`fz2e/530020`'s `done_chip`/`done_core` are stable — if they flicker, this
+membership is capture noise and the count is not a ratchet.
+
+## I.5 WHAT PART II'S NON-PARTITION SECTIONS STILL SAY, AND WHERE THEY DO NOT
+
+Re-measured on the F18 ledger and **UNCHANGED from PART II**: the dump-proof
+audit's shape (**23 of 110 without a two-sided dump — 12 one-sided → FUNCTIONAL,
+11 neither → UNSCOREABLE**, 8 re-aligning and 3 diverging to the window end,
+and **0 class-3/4 seeds classified without a dump proof**); the eleven
+UNSCOREABLE seeds **seed for seed**, with their counterfactual now reading
+`would be` TIMING 4 · TRANSIENT 1 · COSMETIC 6; the escaped overlap at **63 of
+110**; and both sanity-anchor sets (F17's six new-at-F17 failures and the
+ledger's own seven `new_failure` seeds) landing on identical classes.
+
+⚠ **ONE PART II TABLE IS NOT COMPARABLE ACROSS THE ERAS AND MUST NOT BE
+DIFFED — §8, class × BANKED VERDICT.**  On F18 it reads `FUNCTIONAL` 78 ·
+`KNOWN_ACCEPTED` 23 · `TIMING` 9 against PART II's 16 · 94 · 3.  **That is not
+a measurement of either landing.**  `80075d049a` retired the `open_bus` accept
+rule and is **not** an ancestor of the FLASH #17 flash commit, so seeds
+previously labelled `KNOWN_ACCEPTED / open_bus` are now labelled `FUNCTIONAL`
+with **byte-identical rows and dumps** (`fz2_flash18_results_2026-08-11.md`
+§3.2).  **No class in this census depends on `verdict`** — every one is
+assigned from dump identity and row alignment — so the partition is unaffected
+and the §8 table alone is unreadable across the pair.  It is reproduced here
+for the F18 era **as a within-era table only**:
+
+| banked verdict | FUNC | TIME | TRAN | COSM | UNSC | tot |
+|---|---:|---:|---:|---:|---:|---:|
+| `FUNCTIONAL` | 42 | 12 | 1 | 15 | 8 | 78 |
+| `KNOWN_ACCEPTED` | 2 | 11 | 4 | 4 | 2 | 23 |
+| `TIMING` | 1 | 7 | 0 | 0 | 1 | 9 |
+
+## I.6 WHAT PART I LEAVES OPEN
+
+1. **The 11 UNSCOREABLE seeds** — unmoved, still all `raw` and all escaped, and
+   the instrument fix is still *a terminator that survives an escaped program*.
+2. **`fz2e/530020`'s reconvergence is unattributed** (§I.4), with its falsifier
+   registered above.
+3. **phantom-T1's one remaining `bs` cell** — the `system_large` status-pin
+   observation model, to be measured as its own mechanism with its own G6.
+4. **The honesty clause's blind spot is unchanged**: the dump-identity proof
+   covers 15 registers at the end of the run and nothing else.
+5. **The residue is still mostly material — 75 of 110 (68.18 %).**  The share
+   fell from 71.68 % only because three FUNCTIONAL seeds left and three TIMING
+   seeds were dispositioned; **no seed became less material by being
+   re-read.**
+
+---
+---
+
+# PART II — FLASH #17.  ⚠ **SUPERSEDED 2026-08-11 BY PART I.  HISTORY, NOT A CLAIM.**
+
+**Everything below this line is the FLASH #17-era census, retained byte-for-byte
+as it was registered.**  Its population is 113 seeds against era sof
+`26c19f613e2caae8…` and ledger `fz2_failure_ledger_f17_2026-08-11.json`; the
+live population is 110 against `b2a1fe5f8316…`.  **None of its tables is inside
+the G6 anchors, and none of its numbers may be quoted against this tree** — a
+census figure is only readable against its own ledger, exactly as a fabric
+figure is only readable against its own bitstream.  It is kept because a
+ratchet is only readable against its own history, and because PART I's §I.1
+delta table is meaningless without it.
 
 ---
 
