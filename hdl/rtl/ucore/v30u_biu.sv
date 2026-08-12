@@ -620,12 +620,42 @@ wire inta_follow_preview = eu_post && (eu_bs == BS_INTA) &&
                            r_rd_was_split;
 wire inta_preview = inta_tail_replace || inta_follow_preview;
 wire vector_follow_preview = eu_vector_post && r_rd_was_split;
-// The withdrawn wake fetch loaded the status latch before HALT's final phase.
-// Keep CODE visible on that T4 even though the request has been rewound; the
-// following clock is the measured PASV arbitration gap.
-wire halt_withdraw_preview = eu_halt_irq && r_run && r_cur_halt &&
-                             (r_ts == TS_T4) && !r_cmt_valid &&
-                             (r_cdage == 3'd2);
+// A WITHDRAWN ANNOUNCEMENT IS RELEASED ON ITS OWN CLOCK, AND `bs` HAS ONLY
+// ONE SAMPLE PER CLOCK TO SAY SO WITH.
+//
+// This arm used to force `BS_CODE` onto the HALT pseudo-cycle's T4 -- "keep
+// CODE visible on that T4 even though the request has been rewound".  On the
+// ADDRESS-PHASE sample that is right, and MEASURED: silicon reads
+// `bs_early = CODE` there in every one of the corpus's withdrawn-announcement
+// wakes.  On the END-OF-CLOCK sample it is WRONG, and measured just as
+// directly -- the same rows read `bs_late = PASV`, against `bs_late = CODE`
+// on every GENUINE announcement including the T4 replacement (`fz2c/403020`
+// row 170).  A withdrawn announcement is a status latch being RELEASED; a
+// genuine one is a status latch being HELD into its T1.
+//
+// The end-of-clock sample is the one that MOVES THE MACHINE.  `nec_bus` -- the
+// harness, and the fabric hardware -- advances its T-state tracker out of T4
+// on `bs_q`, the end-of-clock sample (`nec_bus.sv` 322, 364-370), and it
+// advances the wait-LFSR ONCE PER BUS CYCLE AT T1 ENTRY.  Holding CODE to the
+// end of that clock therefore manufactures a PHANTOM T1 on the following
+// clock and STEALS A WAIT DRAW, and every later access in the run draws the
+// shifted count.  MEASURED on `fz2c/404071` / `fz2e/514044` / `fz2e/516001`:
+// the core's own arbitration is silicon's clock for clock through the whole
+// wake and both acknowledges -- a registered-state probe disagreed with the
+// replayed rows on 6 of 4,063 rows and they were exactly the six the phantom
+// cycle mislabels -- and the entire ~1,100-row divergence is downstream of
+// this one bit.
+//
+// So the arm comes OUT and the mux's own release logic answers: the commit
+// was rewound so `display` is false, `st_rel` is set on the HALT's T4, and
+// `bs` is `BS_PASV`.  THE ADDRESS-PHASE CODE IS NOT RECOVERED -- the ucore has
+// one status value per CPU clock where silicon has two, and that residue is
+// ONE CELL per wake, pre-registered and reported as such
+// (`docs/notes/ackwake_prereg_2026-08-11.md` §2.1 A-4).
+//
+// Falsifier: a capture in which a WITHDRAWN announcement carries its status on
+// the END-OF-CLOCK sample, or a GENUINE one is PASV there on the clock before
+// its T1.  Neither exists in the 654 retained fz2 captures.
 // A direct REP redirect is the one fetch whose T1 opened without a registered
 // announcement.  Its announcement age therefore remains zero for the whole
 // cycle; an ordinary fetch necessarily starts with cdage >= 1.  The other
@@ -869,8 +899,7 @@ wire halt_addr = r_run && r_cur_halt && (r_ts == TS_T1);
 
 wire [19:0] flush_fast_addr = {flush_cs, 4'd0} + {4'd0, flush_ip};
 
-assign bs = halt_withdraw_preview ? BS_CODE
-          : inta_preview ? BS_INTA
+assign bs = inta_preview ? BS_INTA
           : vector_follow_preview ? BS_MEMR
           : flush_fast     ? BS_CODE
           : display        ? r_cmt_bs
