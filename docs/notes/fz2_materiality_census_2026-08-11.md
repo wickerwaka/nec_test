@@ -11,6 +11,21 @@
     reproduce   python3 sw/fz2_materiality.py
                 python3 sw/fz2_materiality.py --seed fz2e/517046   (one seed)
 
+⚠ **THIS IS A FLASH #17-ERA SNAPSHOT AND ITS NUMBERS ARE SUPERSEDED BY FLASH
+#18.**  On the F18 ledger the derivation is **110 failures / 24 IMMATERIAL /
+residue 86** (45 FUNCTIONAL + 30 TIMING + 11 UNSCOREABLE), against this
+document's 113 / 21 / 92.  `fz2_immaterial falsify` therefore reports **G6 and
+G7 FAIL** against this file — every clause that tests the *derivation itself*
+(G1–G5, G8) still PASSES.  **The three seeds that entered the class are
+phantom-T1's three seats** (`fz2c/404071`, `fz2e/514044`, `fz2e/516001`), now
+`TRANSIENT` at a single `bs=1` column.  `fz2_flash18_results_2026-08-11.md`
+§4.7a.
+
+**THE RE-DERIVATION IS BOOKED AND WAS DELIBERATELY NOT DONE IN THE SITTING THAT
+MEASURED THE FAILURE** — editing a document to clear its own falsifier in the
+same sitting is the move this campaign's rules distrust.  This banner is a
+LABEL, not a fix: it does not and cannot make G6/G7 pass.
+
 ---
 
 ## 0. THE QUESTION, AND THE ANSWER IN ONE TABLE

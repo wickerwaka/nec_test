@@ -730,7 +730,79 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   pre-registered falsifier** — `mc2/2788`, where a second read is outstanding
   while an earlier one already sits in the completed-read store, so the row is
   NOT blocked and runs on the same clock.
-- **THE BOARD CARRIES FLASH #14 SINCE 2026-08-10** (`15029cdfb3`;
+- **THE BOARD CARRIES FLASH #18 SINCE 2026-08-11** (pre-registration
+  `7c4a639ca4` + scorer/amendment-A-1 `30b46f07d3`, both committed **before
+  board contact**; results `docs/notes/fz2_flash18_results_2026-08-11.md`) —
+  `nec_test_ucore.sof` **`b2a1fe5f83167fbf…`**, `.rbf` **`ecda4b90c646ba49…`**,
+  built from `30b46f07d3` **WITH `X1_AD_RETENTION=1`**, through
+  `sw/safe_flash.sh` with its VERIFY leg (ok try 1); `flash_log.jsonl`
+  **20 → 21 entries**.  **IT IS THE FIRST BITSTREAM TO CARRY `KM` AND
+  `phantom-T1`, AND BOTH ARE CONFIRMED SEAT FOR SEAT.**  KM's three seats
+  **CLOSED 3/3** (`fz2c/404041` 2,437 → 0, `fz2e/501066` 572 → 0,
+  `fz2e/513019` 2,843 → 0); phantom-T1's three **COLLAPSED 3/3 to
+  `bad_rows == 1`, `flick 0`, `first_bad` exactly 243 / 234 / 583** — the POINT
+  prediction, **and `bad_rows == 0` was registered as a FINDING, not a
+  success**, because the ucore has ONE status value per CPU clock where silicon
+  has TWO.  Corpus **113 → 110 failures of 3,839** = the registered primary
+  point TO THE SEED; **ZERO unregistered ledger membership flips** against a
+  10-seed budget (F17 used 7); `fz2c/404040` absent; **14/14** named non-movers
+  unmoved; **0** unregistered first-divergence moves in either direction.
+  **G6: CONTROL 40.13 MHz / +6.333 ns / 12,246 ALMs (29 %), receipt
+  `6d07f59376f86196…`; RETENTION 38.82 MHz / +5.492 ns / 12,276 ALMs, receipt
+  `277d5ccf0f8b9398…`**, TNS 0.000 setup AND hold every domain, 0 errors /
+  0 latches / 0 `lpm_divide`.  **The fabric era guard PASSES without the
+  bypass** (87/88, the `.qsf` the one §70.7 exemption) and the closing control
+  is **260/260 = 100.0 %**, `first_bad` identical on 110/110.  Directed-cell
+  spot-checks: **0 chip-column movers** on `tf0f` (48 cells) and `ie-pinfall`
+  (40), `tf0f score` **chip == core 0/512 on all six columns**, ie-pinfall
+  `n_inta` **30** / `ack_off` **40** / `ack_off_hlt` **40** reproducing
+  ack-wake's prediction exactly, six invariant columns **0/1,920**.
+  ⚠ **AN E-6 HARD STOP FIRED AND WAS OBEYED — `quartus_gate.py` CANNOT MAKE A
+  RETENTION BUILD.**  Its `build()` runs `quartus_sh --flow compile` with **no
+  `--verilog_macro`** and **never reads `X1_AD_RETENTION` from the
+  environment**: `X1_AD_RETENTION=1 python3 sw/quartus_gate.py` is
+  **accepted-and-ignored** and silently yields a CONTROL build whose `.rbf` is
+  byte-identical to the control's.  The receipt's DERIVED label caught it
+  (`aa3ca3e028dff7d2…` — label says RETENTION, configuration says
+  `CONTROL/DEFAULT`) and **nothing was flashed on it**.  **The recipe is the
+  four-step manual compile in `fuzzv2_retention_prereg_2026-08-08.md` §6.1**:
+  `quartus_map --verilog_macro="X1_AD_RETENTION=1"` → `quartus_fit` →
+  `quartus_asm` → `quartus_sta` → `quartus_gate.py --parse-only
+  --no-qsf-check`.  The bad receipt is RETAINED and named.
+  ⚠ **THE RETENTION-VS-CONTROL SIGN INVERTED BACK: −1.31 MHz**, after five
+  consecutive draws above (#13 +0.46, #14 +1.50, #15 +2.24, #16 +0.12,
+  #17 +0.71).  The flashed build clears this sitting's own 38.0 STOP by only
+  **+0.82 MHz**.  Reported, not explained; `standing_gates.md` §A governs.
+  ⚠ **ERRATUM AGAINST FLASH #17 §5.3 — its "unexplained one-sided +1..+5
+  residue" IS `flick`.**  `sw/fz2_ledger.py:219` writes each entry's
+  `diverging_rows = bad_rows + flick` while `:209` accumulates the corpus total
+  as `bad_rows` alone, and `fz2_replay`'s `fabric_bad` is `bad_rows`; the F17
+  prereg predicted in one unit and its results scored in the other.  Σ over the
+  F17 ledger: **119,258 − 119,192 = 66 = Σ`flick`**, on exactly the 25
+  discrepant seeds — `fz2e/510043`, F17's one "off by more" at +21, has `flick`
+  21.  **F17 §5.3's "18/43 EXACT" would read 43/43 on `bad_rows`.**
+  ⚠ **`fz2_immaterial falsify` reports G6/G7 FAIL** against
+  `fz2_materiality_census_2026-08-11.md` (an F17-era snapshot, 113/21/92, vs
+  the F18 derivation **110 / 24 / 86**); **G1-G5 and G8 PASS**.  The three new
+  IMMATERIAL members are phantom-T1's three seats, `TRANSIENT` at a single
+  `bs=1` column — a third instrument agreeing the residue is one status cell.
+  Re-derivation BOOKED, deliberately not done in the sitting that measured it.
+  ⚠ **`verdict`/`sub` LABELS MAY NOT BE DIFFED ACROSS F17 → F18**: the
+  `open_bus` accept rule was retired at `80075d049a`, which is **not** an
+  ancestor of the F17 flash commit.  No scored quantity depends on `verdict`.
+  ⚠ **`fz2_ledger`'s printed diff is NOT the previous era** — its default is the
+  committed `fz2_failure_ledger_2026-08-09.json` (198 failures, F13 era), so it
+  prints `LEFT 95 / ENTERED 7` where the F17 → F18 movement is **LEFT 3 /
+  ENTERED 0**.
+  **A FABRIC FIGURE TAKEN ON ANY EARLIER FLASH MAY NOT BE QUOTED AGAINST THIS
+  TREE.**
+  *Superseded, kept because a fabric figure is only readable against its own
+  bitstream.*  ⚠ **NOTE THE GAP: this file never carried FLASH #15, #16 or #17
+  lines** — they are in `fz2_f15_results_2026-08-10.md`,
+  `fz2_f16_results_2026-08-10.md` and `fz2_flash17_results_2026-08-11.md`.  The
+  entry below jumps from #18 to #14; that is a documentation gap, not a missing
+  flash.
+- **THE BOARD CARRIED FLASH #14 FROM 2026-08-10** (`15029cdfb3`;
   pre-registration `1e2a6e7a96` + erratum `b89f9aa2ea` + addendum `12650eb073`,
   all three committed **before board contact**) — `nec_test_ucore.sof`
   **`060215e43c5de9b3…`**, `.rbf` **`7d4e887639d021ba…`**, built from
