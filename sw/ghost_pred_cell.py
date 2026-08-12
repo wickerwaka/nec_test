@@ -336,11 +336,60 @@ LEGS = {
                "Reproduces FLASH #13's 130/130 control on a directed program"),
 }
 
+# --------------------------------------------------------------------------- #
+# THE SLED FAMILY -- A DECLARED **POST-HOC** SUB-SWEEP, ADDED AFTER THE
+# REGISTERED GRID WAS SCORED AND LABELLED AS SUCH.
+#
+# The registered grid found the AND switching on the (`waits`, `align`) axes
+# with the RAIL and the PREDECESSOR held fixed, which no registered hypothesis
+# predicts.  These legs separate the two readings of that: `align` moves the
+# WHOLE body's byte phase, while `sl<N>` inserts N NOPs BETWEEN the predecessor
+# and the probe -- moving the probe's own byte phase and the queue's state
+# without moving anything else.  Nothing here is scored against a registered
+# bar; it is characterisation and it is reported as characterisation.
+# --------------------------------------------------------------------------- #
+for _n in range(8):
+    LEGS[f"sl{_n}"] = (movi(R_AW, 0x8000) + movi(R_BW, 0x0800)
+                       + bytes([0x01, 0xD8]) + bytes([0x90]) * _n,
+                       PROBE, [], "S",
+                       f"alu88 with {_n} NOPs between the ADD and the probe "
+                       f"-- POST-HOC, the queue-phase axis")
+
+# --------------------------------------------------------------------------- #
+# THE VALIDATION FAMILY -- SIX LEGS THAT DID NOT SELECT THE KEY.
+#
+# The standing rule (CLAUDE.md): *"A refuted key's REPLACEMENT must be validated
+# on data that was not used to select it."*  The `dQS` key was selected on the
+# NINE discriminating legs of the registered grid; every leg here is a DIFFERENT
+# opcode, of a different length, reaching the same rail value by a different
+# route, and none of its blocks existed when the key was chosen.  The frozen map
+# is `docs/notes/ghost_pred_cell_key_2026-08-11.md`, committed before these were
+# captured.
+# --------------------------------------------------------------------------- #
+_V = {
+    "v_sub":  (movi(R_AW, 0x8808) + movi(R_BW, 0x0008) + bytes([0x29, 0xD8]),
+               "SUB AW,BW = 0x8800 -- a different ALU opcode, same rail"),
+    "v_or":   (movi(R_AW, 0x8000) + movi(R_BW, 0x0800) + bytes([0x09, 0xD8]),
+               "OR AW,BW = 0x8800"),
+    "v_inc":  (movi(R_AW, 0x87FF) + bytes([0x40]),
+               "INC AW = 0x8800 -- a ONE-BYTE predecessor, block 2 bytes shorter"),
+    "v_shl":  (movi(R_AW, 0x4400) + bytes([0xD1, 0xE0]),
+               "SHL AW,1 = 0x8800 -- a shift, not an adder"),
+    "v_neg":  (movi(R_AW, 0x7800) + bytes([0xF7, 0xD8]),
+               "NEG AW = 0x8800 -- the F7 group, register form"),
+    "v_lea":  (bytes([0x8D, 0x06, 0x00, 0x88]),
+               "LEA AW,[0x8800] -- a ModR/M form with NO memory access"),
+}
+for _k, (_pre, _n) in _V.items():
+    LEGS[_k] = (_pre, PROBE, [], "V", _n)
+
 LEG_ORDER = list(LEGS)
 D1 = [k for k, v in LEGS.items() if v[3] == "D1"]
 D2 = [k for k, v in LEGS.items() if v[3] == "D2"]
 D3 = [k for k, v in LEGS.items() if v[3] == "D3"]
 NULLS = [k for k, v in LEGS.items() if v[3] == "N"]
+SLED = [k for k, v in LEGS.items() if v[3] == "S"]
+VALID = [k for k, v in LEGS.items() if v[3] == "V"]
 
 # THE LAST BUS ADDRESS BEFORE THE PROBE, known by construction from the block.
 # `None` means the block contains no bus data cycle of its own, so the last one
@@ -1084,6 +1133,34 @@ def cmd_run(a):
               f"-- RIG-INTEGRITY FINDING ***")
         return 3
     return 0
+
+
+# --------------------------------------------------------------------------- #
+# THE KEY -- FROZEN ON THE REGISTERED GRID, APPLIED UNCHANGED TO THE VALIDATION
+# FAMILY.  `docs/notes/ghost_pred_cell_key_2026-08-11.md` is the registration
+# and it was committed BEFORE the validation legs were captured.
+#
+# `dQS` is the number of clocks from the last `QS == 1` (opcode pop) row to the
+# ghost read's own T1 row.  `QS = 1` is the SAME boundary `ucore_provenance.md`
+# 86 registers for the BRK/TF arm; it is not a quantity invented here.
+# --------------------------------------------------------------------------- #
+KEY = {1: "AND", 2: "BARE", 3: "BARE", 5: "SP", 6: "AND", 7: "BARE", 8: "BARE"}
+KEY_DEFAULT = "BARE"          # dQS >= 7; dQS == 4 was NOT OBSERVED -> no rule
+
+
+def key_of(dqs):
+    if dqs is None:
+        return None
+    if dqs == 4:
+        return None                       # never observed; the key is silent
+    return KEY.get(dqs, KEY_DEFAULT if dqs >= 7 else None)
+
+
+def dqs_of(rows, ghost_row, back=40):
+    """clocks from the last `QS == 1` opcode pop to the ghost T1."""
+    pops = [i for i in range(max(0, ghost_row - back), ghost_row)
+            if rows[i]["qs"] == 1]
+    return (ghost_row - pops[-1]) if pops else None
 
 
 def cmd_idle(a):
