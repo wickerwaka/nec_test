@@ -119,6 +119,101 @@ accepted or any bitstream is flashed.** The FAST LADDER does not wait on it —
 Verilator, the goldens and the fuzz bank run as they do today; the RTL
 PROMOTION does. That is the line where the ~9-minute cost is paid once.
 
+> ### ⚠ THE BAND MOVED 2026-08-11 — **E-1, THE OBSERVATION-PATH MULTICYCLE.
+> ### READ THIS BEFORE QUOTING ANY Fmax ON THIS BRANCH.**
+>
+> **CURRENT BAND at `7ad102098f`: CONTROL 44.72 MHz / +8.887 ns / 12,224 ALMs
+> (29 %) and RETENTION 45.71 MHz / +8.081 ns / 12,200 ALMs, TNS 0.000 setup AND
+> hold on every domain, two draws each and the two draws IDENTICAL in both
+> configurations (byte-identical `.rbf`).** Receipts `a799a8d56d88d9e4…`
+> (CONTROL) and `53b5b9a277003c2a…` / `36dfd01f383a422a…` (RETENTION).
+>
+> **THIS SUPERSEDES THE ~39–40 BAND EVERYWHERE IN THIS FILE**, including the
+> FLASH #18 line's CONTROL 40.13 / RETENTION 38.82. Those figures remain true of
+> the trees they were taken on and are **the baseline this is measured against**;
+> they are not this tree's.
+>
+> **WHAT CHANGED IS ONE `set_multicycle_path` PAIR IN `nec_test.sdc`. NO RTL.**
+> `-setup 2 / -hold 1` from the `v30u_*` registers to the harness's
+> **free-running input-registration flops** (`nec_bus`'s `ad_in_q`, `bs_q`,
+> `qs_q`, `rd_n_q`, `ube_n_q`, `buslock_n_q` = 28, plus `core_ad_hold[*]` = 20
+> more under `X1_AD_RETENTION`).
+>
+> **WHY**: `timing_recovery_census_2026-08-11.md`. Before E-1, **all 60 worst
+> setup paths — and all 4,000 the analyser will return — launched from
+> `v30u_eu|upc_opc[*]` and latched on `nec_bus|ad_in_q[*]`**, single-cycle,
+> while the core's own worst path (`v30u_* → v30u_*`) carried **+39.594 ns** of
+> slack against a 31.250 ns period. **The ucore was never the timing problem.**
+> The census also attributes the campaign's ~8 MHz sag: L1 (−3.96) and the 8F
+> ghost READ (−2.23) are −6.19 of it, and the diff shows both added terms to
+> `assign ad_o` — a new 20-bit adder and a live EU-combinational address on the
+> pin mux, plus new `ad_oe_*` terms and a rewritten `ann_kill` that is on the
+> measured worst path. **G6's bar is ≥ 32 MHz and every one of those builds
+> cleared it.**
+>
+> **THE NEW BINDING PATHS ARE THE DESIGN'S REAL FLOOR, ~45 MHz**:
+> `system_large|c_int_q → v30u_eu|row_posted` (+8.887, CONTROL) and
+> `nec_bus|div_cnt[3] → v30u_biu|t1_half2` (+8.081, RETENTION). Both are
+> single-cycle boundary crossings whose launch registers are **not** CE-gated,
+> so neither can be relaxed the way E-1 relaxed the observation path.
+> **Beyond ~45 MHz needs RTL, not constraints.**
+>
+> ⚠ **THE RETENTION PENALTY IS GONE AND THAT IS A RESULT, NOT LUCK.** It was
+> −1.31 MHz at FLASH #18 and is **+0.99** here. The census attributed it to ONE
+> LUT (`core_ad_eff`) on the binding cone; a diffuse cost would have survived
+> that cone leaving the critical path. It did not survive. **Every historical
+> control→retention delta in this file is therefore a measurement OF THAT ONE
+> LUT plus placement noise, and none of them is this tree's.**
+>
+> ⚠⚠ **E-1 IS A CLAIM ABOUT THE REAL CIRCUIT AND NO OFFLINE GATE CAN FALSIFY
+> IT.** Verilator does not model a timing exception, `check_core` does not, and
+> **G6 merely believes it**. The full zero-delta ladder is green
+> (`check_core all` 169,000/169,000 · `8F.0` 500/500 · HLT 279/283 · `ulockstep`
+> 17,350/17,350 · `r7_lint` PASS · `ss_lint` 226/214 · `ghost_launch_law score`
+> 200/200) and **that green says nothing about whether E-1 is true**.
+> **E-1 IS NOT PROMOTED TO A FLASH.** The registered fabric bar for the first
+> bitstream carrying it: `check_ab_hw` first light **MATCH 800 ×3**,
+> `x1_fabric baseline` reproducing its offline column with **0 PASS/FAIL
+> disagreements**, closing `use_core=0` chip proof **MATCH 800** — with any
+> deviation attributed **to E-1 first**, because E-1 is the only thing that
+> changed how the capture path is timed. **It must not be bundled with the ghost
+> relocation**; the first fabric failure of a bundle is unattributable.
+>
+> ⚠ **THE DECLARED OPERATING TRIPLE is `cfg_use_core=1, cfg_small_mode=0,
+> cfg_clk_div >= 6`**, written into `nec_test.sdc` with its derivation. The
+> exception's RTL-side falsifier is there too: *a read of any register in
+> `$obs_regs` that is not gated by `tick_rise`/`tick_fall` on a path reachable
+> with `use_core=1, small=0`.*
+>
+> ⚠ **OWED, NOT PASSED**: `fz2_replay` and `fz2_immaterial falsify` could not run
+> — `git ls-files sw/testdata/campaigns/fz2c/captures/` is **0**, the capture
+> corpus is untracked and an isolated worktree has never had it. They cannot
+> move (E-1 changes no byte they read) but *"it cannot move"* is exactly the
+> claim a vacuous gate makes. **Run them in the main checkout before promotion.**
+> The archived FSM revision is likewise **reasoned, not measured**: the new
+> exception carries the same empty-`$v30u_regs` guard the 4/3 one uses.
+>
+> ### ⚠ AND A METHOD FINDING — §74.4's "NOT REPRODUCIBLE RUN TO RUN" IS NOT
+> ### SUPPORTED BY THE 87-RECEIPT HISTORY
+>
+> Grouped by `(inputs.sha256, DERIVED configuration)`: **28 of 30 multi-draw
+> groups are EXACTLY identical**. The two that are not are a three-day-separated
+> pair differing by **0.35 MHz** and one group taken with a **different build
+> flow**. This wave added six more draws in three groups, **all identical within
+> their group, `.rbf` included**. The 19.42/45.91 pair predates the receipt layer
+> and carries no input hash: it is **unchecked, not refuted**, and §74.4 still
+> governs *"one green build is not closure"*. What is now licensed, narrowly:
+> **a per-edit delta of ≥ 0.4 MHz between two DIFFERENT input hashes is readable
+> as an effect of the edit.** Two draws per configuration remains the method.
+> **The multi-seed worst-of-N gate is still not built — but the receipt history
+> IS the distribution**, keyed by input hash, and the grouping is a two-minute
+> query.
+>
+> Instruments: **`sw/sta_census.tcl`** (top-N paths with launch/latch/levels, a
+> four-way class census, entity histograms) and **`sw/sta_probe.tcl`** (worst
+> path node-by-node, plus the ceiling behind the binding class). Both name the
+> corner explicitly — Slow 1100mV 100C, the corner G6's own Fmax comes from.
+
 **THE RECEIPT** (`--receipt`, default `hdl/output_files_ucore/quartus_gate.json`)
 carries the input manifest hash over **88 files**, the tool version, the exact
 command, the parsed figures and the verdict, to
