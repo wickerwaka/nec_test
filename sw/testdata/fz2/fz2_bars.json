@@ -1,6 +1,6 @@
 {
  "stage": "fz2 bars",
- "ts": "2026-08-12T02:43:05Z",
+ "ts": "2026-08-12T08:20:40Z",
  "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
  "bars": {
   "C-1": {
@@ -63,28 +63,28 @@
       "undispositioned_3class": 15
      },
      "enriched/raw": {
-      "n": 1440,
-      "reached": 1213,
-      "pct": 84.24,
-      "excluded_ps3_8080": 0,
+      "n": 1438,
+      "reached": 1212,
+      "pct": 84.28,
+      "excluded_ps3_8080": 2,
       "n_incl_excluded": 1440,
-      "dispositioned": 227,
-      "dispositioned_5class": 209,
-      "dispositioned_4class": 153,
+      "dispositioned": 226,
+      "dispositioned_5class": 208,
+      "dispositioned_4class": 152,
       "dispositioned_3class": 20,
-      "stalled": 133,
+      "stalled": 132,
       "long_insn": 56,
       "row_matched": 18,
       "undispositioned": 0,
       "undispositioned_5class": 18,
       "undispositioned_4class": 74,
-      "undispositioned_3class": 207
+      "undispositioned_3class": 206
      }
     },
     "undispositioned": 0,
     "mech_census": {
-     "REACHED": 3502,
-     "STALLED": 209,
+     "REACHED": 3503,
+     "STALLED": 208,
      "OTHER": 5,
      "LONG_INSN": 80,
      "NEAR": 10,
@@ -98,14 +98,14 @@
      "stalled_vs_mech": 0,
      "absent": 0
     },
-    "undispositioned_3class": 303,
+    "undispositioned_3class": 302,
     "undispositioned_4class": 100,
     "undispositioned_5class": 25,
-    "stalled_total": 203,
+    "stalled_total": 202,
     "long_insn_total": 75,
     "row_matched_total": 25,
     "classified_from": {
-     "line": 303
+     "line": 302
     },
     "classified_from_long_insn": {
      "line": 100
@@ -113,7 +113,7 @@
     "classified_from_row_matched": {
      "line": 25
     },
-    "excluded_ps3_8080_total": 1
+    "excluded_ps3_8080_total": 3
    },
    "verdict": "MET (rate clauses VALIDATED on fz2v/960 -- soup 98.12 %, raw 80.83 %; \u00a716.2 / A-9)",
    "finding": null
@@ -122,24 +122,24 @@
    "statement": "the arch column is non-vacuous -- demonstrated, not assumed",
    "registered": "MAGIC == 0x5EED on every dump; each of the other 14 STORE_ORDER words takes >= 2 distinct values across the corpus",
    "measured": {
-    "dumps": 3512,
+    "dumps": 3513,
     "magic_constant": true,
     "distinct": {
-     "AW": 2855,
+     "AW": 2851,
      "MAGIC": 1,
-     "PC": 3093,
-     "PS": 3111,
+     "PC": 3088,
+     "PS": 3107,
      "PSW": 199,
-     "SS": 3339,
-     "SP": 3155,
-     "DS0": 3388,
-     "DS1": 3368,
-     "BW": 3224,
-     "CW": 2205,
-     "DW": 2614,
-     "BP": 3175,
-     "IX": 3285,
-     "IY": 3280
+     "SS": 3334,
+     "SP": 3151,
+     "DS0": 3383,
+     "DS1": 3363,
+     "BW": 3220,
+     "CW": 2203,
+     "DW": 2613,
+     "BP": 3170,
+     "IX": 3280,
+     "IY": 3276
     },
     "flat_words": []
    },
@@ -152,13 +152,13 @@
    "measured": {
     "bad_0f_pairs": 0,
     "seeds": 3840,
-    "ps3_8080": 1,
+    "ps3_8080": 3,
     "ps3_scoreable": true,
     "generation_ok": true,
     "R1_detected": {
-     "retained_scored": 649,
-     "no_rows_not_recomputable": 3191,
-     "rows_recompute_fires": 1,
+     "retained_scored": 654,
+     "no_rows_not_recomputable": 3186,
+     "rows_recompute_fires": 3,
      "disagreements": 0,
      "detail": [],
      "ok": true
@@ -169,7 +169,7 @@
      "ok": true
     },
     "R3_discarded": {
-     "in_scored_strata": 1,
+     "in_scored_strata": 3,
      "seeds": [
       {
        "seed": "fz2e/509069",
@@ -179,12 +179,30 @@
        "bad_rows": 1126,
        "mech": "REACHED",
        "arch_ok": true
+      },
+      {
+       "seed": "fz2e/524027",
+       "tier": "raw",
+       "stratum": 36,
+       "verdict": "FUNCTIONAL",
+       "bad_rows": 2453,
+       "mech": "REACHED",
+       "arch_ok": true
+      },
+      {
+       "seed": "fz2e/535070",
+       "tier": "raw",
+       "stratum": 47,
+       "verdict": "FUNCTIONAL",
+       "bad_rows": 2827,
+       "mech": "REACHED",
+       "arch_ok": true
       }
      ],
      "a_out_of_rates": {
       "disagreements": 0,
       "detail": [],
-      "c1_excluded_total": 1,
+      "c1_excluded_total": 3,
       "PARTLY_TAUTOLOGICAL": true,
       "ok": true
      },
@@ -198,7 +216,7 @@
       "ok": true
      },
      "c_printed": {
-      "c1_excluded_total": 1,
+      "c1_excluded_total": 3,
       "ok": true
      },
      "ok": true
@@ -239,13 +257,13 @@
      "2": 1241,
      "300": 679
     },
-    "hold_rows_exact": 4638,
-    "hold_rows_off": 0,
+    "hold_rows_exact": 4637,
+    "hold_rows_off": 1,
     "control_leg": {
      "stage": "fz2 C-6 control legs",
      "host": "root@mister-nec",
      "prereg": "\u00a76 C-6 (a)(b)(c); the legs are \u00a724",
-     "gen_git": "30b46f07d3",
+     "gen_git": "fc0ae65d56",
      "tree_dirty": [
       {
        "status": " D",
@@ -255,7 +273,7 @@
       {
        "status": " M",
        "path": "sw/testdata/campaigns/fz2c/manifest.json",
-       "sha256": "9a1bae9ae67350a271225e729ed1b522166814ffd1cf01f17b90f9cd0aa1ea20"
+       "sha256": "f7428e7332bd7a7eb055ee91ed8f84fa14f5275ced7c70c66e339c6c6577821c"
       },
       {
        "status": " D",
@@ -270,7 +288,7 @@
       {
        "status": " M",
        "path": "sw/testdata/campaigns/fz2e/manifest.json",
-       "sha256": "2c25a22a26ec81c5dd4b243c2ef66d7bca015442a075f6ef177fb7e9601dbecb"
+       "sha256": "e9befa914d606ecba3c5304f429658162edfbc34feaaf9a746aab0516a3134db"
       },
       {
        "status": " D",
@@ -280,7 +298,7 @@
       {
        "status": " M",
        "path": "sw/testdata/flash_log.jsonl",
-       "sha256": "89a9306013a8346cbc6d9d8bc44d8e81bd3af4c530baeede02105c60ee5c34e0"
+       "sha256": "dce8d00888826002011c86278182100abeb6c74a64374d8fd0a36b9795e5a440"
       },
       {
        "status": " D",
@@ -305,80 +323,80 @@
       {
        "status": " M",
        "path": "sw/testdata/receipts/quartus_bitstream.jsonl",
-       "sha256": "0899dff4b719334eb042095c740f4456c3ff7649195a1d11eed3ede67fab669a"
+       "sha256": "5f7dd8c43b8bcaef0dc83c79c082a07b9e289f70648aef135a3d8d1daf8ef344"
       }
      ],
-     "started": "2026-08-12T02:18:43Z",
+     "started": "2026-08-12T07:44:06Z",
      "div_guards": [
       {
        "tag": "control-start",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:44Z"
+       "ts": "2026-08-12T07:44:07Z"
       },
       {
        "tag": "control-P1",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:44Z"
+       "ts": "2026-08-12T07:44:07Z"
       },
       {
        "tag": "control-P2",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:44Z"
+       "ts": "2026-08-12T07:44:07Z"
       },
       {
        "tag": "control-P3",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:44Z"
+       "ts": "2026-08-12T07:44:07Z"
       },
       {
        "tag": "control-P4",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:44Z"
+       "ts": "2026-08-12T07:44:07Z"
       },
       {
        "tag": "control-P5",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:44Z"
+       "ts": "2026-08-12T07:44:07Z"
       },
       {
        "tag": "control-V1",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:44Z"
+       "ts": "2026-08-12T07:44:07Z"
       },
       {
        "tag": "control-V2",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:45Z"
+       "ts": "2026-08-12T07:44:07Z"
       },
       {
        "tag": "control-N1",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:45Z"
+       "ts": "2026-08-12T07:44:08Z"
       },
       {
        "tag": "control-end",
        "readback": "div=8 (4 MHz), commanded by this connection",
        "state": "PINNED",
        "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-       "ts": "2026-08-12T02:18:45Z"
+       "ts": "2026-08-12T07:44:08Z"
       }
      ],
      "legs": [
@@ -462,7 +480,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
        "n_rows": 4063,
-       "sha256": "00bc2bbd5747fb2ea185b9d9cbfc368ce5b45a333456a4e65369846406c21280"
+       "sha256": "2fa725979f51911592aaa6358c9c44bd4dc7c6af50ae59a5af58953c4ea347d1"
       },
       {
        "leg": "P2",
@@ -522,7 +540,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
        "n_rows": 4063,
-       "sha256": "bee3ec4627cadfa6aadbb86b0922193ac6b3c3d8ff6990cfe3e78a4b60300ea6"
+       "sha256": "ef4d8f9426461af3052c15127858a826a012fc448ba64a8af3792c9688964de2"
       },
       {
        "leg": "P3",
@@ -582,7 +600,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
        "n_rows": 4063,
-       "sha256": "be80338b68cc2d8607dbc8aae1fe5c45f914a1850409e08c9a6d9c797ce76ee1"
+       "sha256": "19df0f66fd56de74c146bbd4d12f51e3639efe81eef983367a50ff073bc7284c"
       },
       {
        "leg": "P4",
@@ -642,7 +660,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
        "n_rows": 4063,
-       "sha256": "2d13b1cca851d54660302bca11bbaedc76345c3cc5491daf7ebbe8623e272b9a"
+       "sha256": "c3d11d893c41db0e5fe94767e4f0f65c5cc0b426b61161767575e32ba0188b04"
       },
       {
        "leg": "P5",
@@ -702,7 +720,7 @@
        "fired": 1,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
        "n_rows": 4063,
-       "sha256": "f9e0851a119a2eaa813aaf640d39f1491ead2e14b6e5c6be1dd4418d40e68856"
+       "sha256": "59260f9047fbdaf49c5348625287e67dab87c0555f505427a95ff1c508949f5e"
       },
       {
        "leg": "V1",
@@ -766,7 +784,7 @@
        "fired": 4,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
        "n_rows": 4063,
-       "sha256": "a6c4d0ceeff641b4c39a2b17024653bfba2a88af9012b842a09be6adc8a78b1a"
+       "sha256": "b33f55cd9155ea50cbd9f262285a7174bc6fb628b83c2a8fc437c7a93c829155"
       },
       {
        "leg": "V2",
@@ -830,7 +848,7 @@
        "fired": 4,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
        "n_rows": 4063,
-       "sha256": "fd2d2a0c0f5aeb3f5932574b46832076547cd10af09f5aba357d66bcaf43a141"
+       "sha256": "e393f415cc992a9e078fe8eb42475ed81d0cf98515c0abf2bd3b13effe6d750e"
       },
       {
        "leg": "N1",
@@ -882,49 +900,49 @@
        "fired": 4,
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
        "n_rows": 4063,
-       "sha256": "6c0e309eef44d3d50c00c391fdc8b1525f2d667ef6c086a87167a1c3e7cc41bb"
+       "sha256": "1ec51f9f837f396ca1b4669f7689d200e0d03af2538234e5db1bfefa9f604d45"
       }
      ],
      "retained": {
       "P1": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
        "n_rows": 4063,
-       "sha256": "00bc2bbd5747fb2ea185b9d9cbfc368ce5b45a333456a4e65369846406c21280"
+       "sha256": "2fa725979f51911592aaa6358c9c44bd4dc7c6af50ae59a5af58953c4ea347d1"
       },
       "P2": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
        "n_rows": 4063,
-       "sha256": "bee3ec4627cadfa6aadbb86b0922193ac6b3c3d8ff6990cfe3e78a4b60300ea6"
+       "sha256": "ef4d8f9426461af3052c15127858a826a012fc448ba64a8af3792c9688964de2"
       },
       "P3": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
        "n_rows": 4063,
-       "sha256": "be80338b68cc2d8607dbc8aae1fe5c45f914a1850409e08c9a6d9c797ce76ee1"
+       "sha256": "19df0f66fd56de74c146bbd4d12f51e3639efe81eef983367a50ff073bc7284c"
       },
       "P4": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
        "n_rows": 4063,
-       "sha256": "2d13b1cca851d54660302bca11bbaedc76345c3cc5491daf7ebbe8623e272b9a"
+       "sha256": "c3d11d893c41db0e5fe94767e4f0f65c5cc0b426b61161767575e32ba0188b04"
       },
       "P5": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
        "n_rows": 4063,
-       "sha256": "f9e0851a119a2eaa813aaf640d39f1491ead2e14b6e5c6be1dd4418d40e68856"
+       "sha256": "59260f9047fbdaf49c5348625287e67dab87c0555f505427a95ff1c508949f5e"
       },
       "V1": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
        "n_rows": 4063,
-       "sha256": "a6c4d0ceeff641b4c39a2b17024653bfba2a88af9012b842a09be6adc8a78b1a"
+       "sha256": "b33f55cd9155ea50cbd9f262285a7174bc6fb628b83c2a8fc437c7a93c829155"
       },
       "V2": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
        "n_rows": 4063,
-       "sha256": "fd2d2a0c0f5aeb3f5932574b46832076547cd10af09f5aba357d66bcaf43a141"
+       "sha256": "e393f415cc992a9e078fe8eb42475ed81d0cf98515c0abf2bd3b13effe6d750e"
       },
       "N1": {
        "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
        "n_rows": 4063,
-       "sha256": "6c0e309eef44d3d50c00c391fdc8b1525f2d667ef6c086a87167a1c3e7cc41bb"
+       "sha256": "1ec51f9f837f396ca1b4669f7689d200e0d03af2538234e5db1bfefa9f604d45"
       }
      },
      "stimulus": {
@@ -958,7 +976,7 @@
      "failing_legs": [],
      "div_guards_unpinned": [],
      "verdict": "MET",
-     "finished": "2026-08-12T02:18:45Z"
+     "finished": "2026-08-12T07:44:08Z"
     },
     "pin_level_clause": "A-8: per directive, on the pin that directive names",
     "c6b": {
@@ -988,23 +1006,33 @@
       "fz2c/403059"
      ],
      "directives": 4638,
-     "directive_ok": 4638,
-     "directive_bad": 0,
+     "directive_ok": 4637,
+     "directive_bad": 1,
      "runs_per_directive": {
       "term:1": 3279,
-      "stim:1": 1359
+      "stim:1": 1358,
+      "stim:0": 1
      },
      "holds_evaluated": {
       "20": 3279,
       "300": 679,
       "2": 680
      },
-     "bad_detail": [],
-     "strict_single_run_bad": 0
+     "bad_detail": [
+      {
+       "seed": "fz2e/509050",
+       "sched": "stim",
+       "pin": "pin_int",
+       "hold": 300,
+       "runs": [],
+       "term_fired": 0
+      }
+     ],
+     "strict_single_run_bad": 1
     },
     "scoreable": true
    },
-   "verdict": "MET",
+   "verdict": "MISSED",
    "finding": null
   },
   "C-7": {
@@ -1357,11 +1385,12 @@
      "stratum": "enr/soup/noevt/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 80,
-     "arch_exact": 80,
+     "rows_exact": 79,
+     "arch_exact": 79,
      "unscoreable": 0,
      "verdicts": {
-      "SUCCESS": 80
+      "SUCCESS": 79,
+      "FUNCTIONAL": 1
      }
     },
     {
@@ -1369,13 +1398,13 @@
      "stratum": "enr/soup/stim/fix0",
      "n": 80,
      "captured": 80,
-     "rows_exact": 78,
-     "arch_exact": 79,
+     "rows_exact": 77,
+     "arch_exact": 78,
      "unscoreable": 0,
      "verdicts": {
-      "SUCCESS": 78,
+      "SUCCESS": 77,
       "TIMING": 1,
-      "FUNCTIONAL": 1
+      "FUNCTIONAL": 2
      }
     },
     {
@@ -1437,13 +1466,13 @@
      "stratum": "enr/soup/stim/wrand3",
      "n": 80,
      "captured": 80,
-     "rows_exact": 78,
-     "arch_exact": 78,
+     "rows_exact": 77,
+     "arch_exact": 77,
      "unscoreable": 2,
      "verdicts": {
-      "SUCCESS": 78,
-      "KNOWN_ACCEPTED": 1,
-      "FUNCTIONAL": 1
+      "SUCCESS": 77,
+      "FUNCTIONAL": 2,
+      "KNOWN_ACCEPTED": 1
      }
     },
     {
@@ -1572,12 +1601,12 @@
      "stratum": "enr/raw/noevt/wrand7",
      "n": 80,
      "captured": 80,
-     "rows_exact": 76,
-     "arch_exact": 61,
+     "rows_exact": 75,
+     "arch_exact": 60,
      "unscoreable": 18,
      "verdicts": {
-      "SUCCESS": 76,
-      "FUNCTIONAL": 4
+      "SUCCESS": 75,
+      "FUNCTIONAL": 5
      }
     },
     {
@@ -1598,12 +1627,13 @@
      "stratum": "enr/raw/noevt/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 79,
+     "rows_exact": 78,
      "arch_exact": 68,
      "unscoreable": 11,
      "verdicts": {
-      "SUCCESS": 79,
-      "FUNCTIONAL": 1
+      "SUCCESS": 78,
+      "FUNCTIONAL": 1,
+      "KNOWN_ACCEPTED": 1
      }
     },
     {
@@ -1721,17 +1751,17 @@
      "stratum": "enr/raw/stim/wvec-uni",
      "n": 80,
      "captured": 80,
-     "rows_exact": 77,
-     "arch_exact": 68,
+     "rows_exact": 76,
+     "arch_exact": 67,
      "unscoreable": 11,
      "verdicts": {
-      "SUCCESS": 77,
-      "FUNCTIONAL": 3
+      "SUCCESS": 76,
+      "FUNCTIONAL": 4
      }
     }
    ],
-   "rows_exact_mean_pct": 97.01,
-   "arch_exact_mean_pct": 90.49,
+   "rows_exact_mean_pct": 96.81,
+   "arch_exact_mean_pct": 90.31,
    "unscoreable_total": 249
   }
  }

@@ -1,0 +1,129 @@
+{
+ "seats": [
+  {
+   "capture": "sw/testdata/campaigns/fz2c/captures/soup_404041_6de28303d43b.json.gz",
+   "chip_n_entries": 10,
+   "chip_code_before": 85,
+   "chip_entries_code": [
+    85,
+    108,
+    130,
+    152,
+    173,
+    194,
+    215,
+    237
+   ],
+   "chip_pushed": [
+    "0x8af8",
+    "0x8a21",
+    "0x8afd",
+    "0x8aff",
+    "0x8b02",
+    "0x8b03",
+    "0x8b04",
+    "0x8b06"
+   ],
+   "core_n_entries": 10,
+   "core_code_before": 87,
+   "core_entries_code": [
+    87,
+    108,
+    129,
+    151,
+    172,
+    192,
+    213,
+    235
+   ],
+   "core_pushed": [
+    "0x8a21",
+    "0x8afd",
+    "0x8aff",
+    "0x8b02",
+    "0x8b03",
+    "0x8b04",
+    "0x8b06",
+    "0x623f"
+   ],
+   "code_delta": 2,
+   "seed": "fz2c/404041",
+   "why": "D2 -- push 0x100/popf then `0F 1E 57 a0 a2` (mod=1); CODE-before-first-entry chip 85 / core 87 (CORE +2)",
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2e/captures/soup_501066_00f90b60d267.json.gz",
+   "chip_n_entries": 1,
+   "chip_code_before": 61,
+   "chip_entries_code": [
+    61
+   ],
+   "chip_pushed": [
+    "0xede8"
+   ],
+   "core_n_entries": 1,
+   "core_code_before": 62,
+   "core_entries_code": [
+    62
+   ],
+   "core_pushed": [
+    "0xedeb"
+   ],
+   "code_delta": 1,
+   "seed": "fz2e/501066",
+   "why": "D2 -- push 0x100/popf then `0F 1B e8 4f` (mod=3); CODE-before-first-entry chip 61 / core 62 (CORE +1)",
+   "family": "D2 core fetched, chip did not"
+  },
+  {
+   "capture": "sw/testdata/campaigns/fz2e/captures/soup_513019_e07af86c14d1.json.gz",
+   "chip_n_entries": 17,
+   "chip_code_before": 82,
+   "chip_entries_code": [
+    82,
+    103,
+    123,
+    142,
+    162,
+    182,
+    205,
+    226
+   ],
+   "chip_pushed": [
+    "0x9b93",
+    "0x9b96",
+    "0x9b99",
+    "0x9b9a",
+    "0x9b9c",
+    "0x9b9d",
+    "0x9ba2",
+    "0x9ba9"
+   ],
+   "core_n_entries": 17,
+   "core_code_before": 84,
+   "core_entries_code": [
+    84,
+    104,
+    124,
+    144,
+    163,
+    184,
+    204,
+    224
+   ],
+   "core_pushed": [
+    "0x9b96",
+    "0x9b99",
+    "0x9b9a",
+    "0x9b9c",
+    "0x9b9d",
+    "0x9ba2",
+    "0x9ba9",
+    "0x583e"
+   ],
+   "code_delta": 2,
+   "seed": "fz2e/513019",
+   "why": "C2 -- the third clean mover; chip 82 / core 84 (CORE +2)",
+   "family": "C2 INTA-vectored delivery"
+  }
+ ]
+}

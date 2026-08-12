@@ -2,7 +2,7 @@
  "stage": "fz2 C-6 control legs",
  "host": "root@mister-nec",
  "prereg": "\u00a76 C-6 (a)(b)(c); the legs are \u00a724",
- "gen_git": "30b46f07d3",
+ "gen_git": "fc0ae65d56",
  "tree_dirty": [
   {
    "status": " D",
@@ -12,7 +12,7 @@
   {
    "status": " M",
    "path": "sw/testdata/campaigns/fz2c/manifest.json",
-   "sha256": "9a1bae9ae67350a271225e729ed1b522166814ffd1cf01f17b90f9cd0aa1ea20"
+   "sha256": "f7428e7332bd7a7eb055ee91ed8f84fa14f5275ced7c70c66e339c6c6577821c"
   },
   {
    "status": " D",
@@ -27,7 +27,7 @@
   {
    "status": " M",
    "path": "sw/testdata/campaigns/fz2e/manifest.json",
-   "sha256": "2c25a22a26ec81c5dd4b243c2ef66d7bca015442a075f6ef177fb7e9601dbecb"
+   "sha256": "e9befa914d606ecba3c5304f429658162edfbc34feaaf9a746aab0516a3134db"
   },
   {
    "status": " D",
@@ -37,7 +37,7 @@
   {
    "status": " M",
    "path": "sw/testdata/flash_log.jsonl",
-   "sha256": "89a9306013a8346cbc6d9d8bc44d8e81bd3af4c530baeede02105c60ee5c34e0"
+   "sha256": "dce8d00888826002011c86278182100abeb6c74a64374d8fd0a36b9795e5a440"
   },
   {
    "status": " D",
@@ -62,80 +62,80 @@
   {
    "status": " M",
    "path": "sw/testdata/receipts/quartus_bitstream.jsonl",
-   "sha256": "0899dff4b719334eb042095c740f4456c3ff7649195a1d11eed3ede67fab669a"
+   "sha256": "5f7dd8c43b8bcaef0dc83c79c082a07b9e289f70648aef135a3d8d1daf8ef344"
   }
  ],
- "started": "2026-08-12T02:18:43Z",
+ "started": "2026-08-12T07:44:06Z",
  "div_guards": [
   {
    "tag": "control-start",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:44Z"
+   "ts": "2026-08-12T07:44:07Z"
   },
   {
    "tag": "control-P1",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:44Z"
+   "ts": "2026-08-12T07:44:07Z"
   },
   {
    "tag": "control-P2",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:44Z"
+   "ts": "2026-08-12T07:44:07Z"
   },
   {
    "tag": "control-P3",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:44Z"
+   "ts": "2026-08-12T07:44:07Z"
   },
   {
    "tag": "control-P4",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:44Z"
+   "ts": "2026-08-12T07:44:07Z"
   },
   {
    "tag": "control-P5",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:44Z"
+   "ts": "2026-08-12T07:44:07Z"
   },
   {
    "tag": "control-V1",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:44Z"
+   "ts": "2026-08-12T07:44:07Z"
   },
   {
    "tag": "control-V2",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:45Z"
+   "ts": "2026-08-12T07:44:07Z"
   },
   {
    "tag": "control-N1",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:45Z"
+   "ts": "2026-08-12T07:44:08Z"
   },
   {
    "tag": "control-end",
    "readback": "div=8 (4 MHz), commanded by this connection",
    "state": "PINNED",
    "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
-   "ts": "2026-08-12T02:18:45Z"
+   "ts": "2026-08-12T07:44:08Z"
   }
  ],
  "legs": [
@@ -219,7 +219,7 @@
    "fired": 1,
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
    "n_rows": 4063,
-   "sha256": "00bc2bbd5747fb2ea185b9d9cbfc368ce5b45a333456a4e65369846406c21280"
+   "sha256": "2fa725979f51911592aaa6358c9c44bd4dc7c6af50ae59a5af58953c4ea347d1"
   },
   {
    "leg": "P2",
@@ -279,7 +279,7 @@
    "fired": 1,
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
    "n_rows": 4063,
-   "sha256": "bee3ec4627cadfa6aadbb86b0922193ac6b3c3d8ff6990cfe3e78a4b60300ea6"
+   "sha256": "ef4d8f9426461af3052c15127858a826a012fc448ba64a8af3792c9688964de2"
   },
   {
    "leg": "P3",
@@ -339,7 +339,7 @@
    "fired": 1,
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
    "n_rows": 4063,
-   "sha256": "be80338b68cc2d8607dbc8aae1fe5c45f914a1850409e08c9a6d9c797ce76ee1"
+   "sha256": "19df0f66fd56de74c146bbd4d12f51e3639efe81eef983367a50ff073bc7284c"
   },
   {
    "leg": "P4",
@@ -399,7 +399,7 @@
    "fired": 1,
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
    "n_rows": 4063,
-   "sha256": "2d13b1cca851d54660302bca11bbaedc76345c3cc5491daf7ebbe8623e272b9a"
+   "sha256": "c3d11d893c41db0e5fe94767e4f0f65c5cc0b426b61161767575e32ba0188b04"
   },
   {
    "leg": "P5",
@@ -459,7 +459,7 @@
    "fired": 1,
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
    "n_rows": 4063,
-   "sha256": "f9e0851a119a2eaa813aaf640d39f1491ead2e14b6e5c6be1dd4418d40e68856"
+   "sha256": "59260f9047fbdaf49c5348625287e67dab87c0555f505427a95ff1c508949f5e"
   },
   {
    "leg": "V1",
@@ -523,7 +523,7 @@
    "fired": 4,
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
    "n_rows": 4063,
-   "sha256": "a6c4d0ceeff641b4c39a2b17024653bfba2a88af9012b842a09be6adc8a78b1a"
+   "sha256": "b33f55cd9155ea50cbd9f262285a7174bc6fb628b83c2a8fc437c7a93c829155"
   },
   {
    "leg": "V2",
@@ -587,7 +587,7 @@
    "fired": 4,
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
    "n_rows": 4063,
-   "sha256": "fd2d2a0c0f5aeb3f5932574b46832076547cd10af09f5aba357d66bcaf43a141"
+   "sha256": "e393f415cc992a9e078fe8eb42475ed81d0cf98515c0abf2bd3b13effe6d750e"
   },
   {
    "leg": "N1",
@@ -639,49 +639,49 @@
    "fired": 4,
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
    "n_rows": 4063,
-   "sha256": "6c0e309eef44d3d50c00c391fdc8b1525f2d667ef6c086a87167a1c3e7cc41bb"
+   "sha256": "1ec51f9f837f396ca1b4669f7689d200e0d03af2538234e5db1bfefa9f604d45"
   }
  ],
  "retained": {
   "P1": {
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P1.json.gz",
    "n_rows": 4063,
-   "sha256": "00bc2bbd5747fb2ea185b9d9cbfc368ce5b45a333456a4e65369846406c21280"
+   "sha256": "2fa725979f51911592aaa6358c9c44bd4dc7c6af50ae59a5af58953c4ea347d1"
   },
   "P2": {
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P2.json.gz",
    "n_rows": 4063,
-   "sha256": "bee3ec4627cadfa6aadbb86b0922193ac6b3c3d8ff6990cfe3e78a4b60300ea6"
+   "sha256": "ef4d8f9426461af3052c15127858a826a012fc448ba64a8af3792c9688964de2"
   },
   "P3": {
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P3.json.gz",
    "n_rows": 4063,
-   "sha256": "be80338b68cc2d8607dbc8aae1fe5c45f914a1850409e08c9a6d9c797ce76ee1"
+   "sha256": "19df0f66fd56de74c146bbd4d12f51e3639efe81eef983367a50ff073bc7284c"
   },
   "P4": {
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P4.json.gz",
    "n_rows": 4063,
-   "sha256": "2d13b1cca851d54660302bca11bbaedc76345c3cc5491daf7ebbe8623e272b9a"
+   "sha256": "c3d11d893c41db0e5fe94767e4f0f65c5cc0b426b61161767575e32ba0188b04"
   },
   "P5": {
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/P5.json.gz",
    "n_rows": 4063,
-   "sha256": "f9e0851a119a2eaa813aaf640d39f1491ead2e14b6e5c6be1dd4418d40e68856"
+   "sha256": "59260f9047fbdaf49c5348625287e67dab87c0555f505427a95ff1c508949f5e"
   },
   "V1": {
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V1.json.gz",
    "n_rows": 4063,
-   "sha256": "a6c4d0ceeff641b4c39a2b17024653bfba2a88af9012b842a09be6adc8a78b1a"
+   "sha256": "b33f55cd9155ea50cbd9f262285a7174bc6fb628b83c2a8fc437c7a93c829155"
   },
   "V2": {
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/V2.json.gz",
    "n_rows": 4063,
-   "sha256": "fd2d2a0c0f5aeb3f5932574b46832076547cd10af09f5aba357d66bcaf43a141"
+   "sha256": "e393f415cc992a9e078fe8eb42475ed81d0cf98515c0abf2bd3b13effe6d750e"
   },
   "N1": {
    "rows_file": "sw/testdata/campaigns/fz2ctl/captures/N1.json.gz",
    "n_rows": 4063,
-   "sha256": "6c0e309eef44d3d50c00c391fdc8b1525f2d667ef6c086a87167a1c3e7cc41bb"
+   "sha256": "1ec51f9f837f396ca1b4669f7689d200e0d03af2538234e5db1bfefa9f604d45"
   }
  },
  "stimulus": {
@@ -715,5 +715,5 @@
  "failing_legs": [],
  "div_guards_unpinned": [],
  "verdict": "MET",
- "finished": "2026-08-12T02:18:45Z"
+ "finished": "2026-08-12T07:44:08Z"
 }

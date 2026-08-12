@@ -1,0 +1,13 @@
+{
+ "tool": "tf0f_cell core",
+ "leg": "tb_sys ret",
+ "receipt": {
+  "base": "11482af7aaa08bad6042ce9c8e32e53b35579ffcf580555aa18e8cc7b3c75370",
+  "ret": "251ded16c34b4212aff2c5fe703c5dc7fbf081be3517fc33cc200ee7462d89c9"
+ },
+ "cells": 512,
+ "seconds": 64.1,
+ "block": 16,
+ "R": 6,
+ "ts": "2026-08-11T22:55:06Z"
+}
