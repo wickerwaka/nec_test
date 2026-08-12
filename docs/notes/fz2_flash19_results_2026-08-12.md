@@ -470,6 +470,26 @@ re-roll (3, registered 1), C-12's G6/G7 doc staleness, C-13's `bars` 10/11, and
    never terminated because `pgrep -f` matched the waiting shell itself. No
    measurement was affected; it cost wall-clock time and is recorded so the next
    sitting does not repeat it.
+3. **`board_idle()` was called, then the board was used again** (§4.6's repeat
+   capture came after the first idle). It was re-run at the close, so the
+   sitting's *last* board action is an idle — but the ordering was not planned
+   and is recorded.
+
+### 7.2 THE CLOSING BOARD STATE, READ AND EXPLAINED RATHER THAN QUOTED AS "CLEAN"
+
+    pwr_good False   cpu_running False   ctrl 0x5   cfg 0xff0008   use_core False
+
+⚠ **`pwr_good False` is the RESTING state, not a fault**, and the claim is not
+taken on trust. `STATUS[0]`/`[1]` are live bits: after a run completes the
+socketed chip is left held, so they read low. **The proof that the board is
+healthy in exactly this state is that `check_ab_hw chip 800` was run FROM it and
+returned MATCH over 800 rows** — twice, once before and once after an
+intervening `board_idle()`. `use_core` is **False** and the divider readback was
+**PINNED** on the final probe.
+
+**This is recorded because "board_idle: OK" alone would have been a weaker
+statement than the evidence supports, and because a future sitting that reads
+`pwr_good False` at connect should know it is normal at rest.**
 
 ---
 
