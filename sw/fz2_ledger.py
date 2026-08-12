@@ -87,7 +87,7 @@ CIDS = ("fz2c", "fz2e")
 # file it read beside its numbers.
 # --------------------------------------------------------------------------- #
 CURRENT = os.path.join(ROOT,
-                       "sw/testdata/fz2/fz2_failure_ledger_f18_2026-08-11.json")
+                       "sw/testdata/fz2/fz2_failure_ledger_f19_2026-08-12.json")
 
 
 def load(path=None, why="", quiet=False):

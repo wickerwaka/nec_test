@@ -2,19 +2,31 @@
 
     tool        sw/fz2_immaterial.py            (reviewer-re-runnable, offline)
     census      sw/fz2_materiality.py           (imported as a library, not forked)
-    LIVE ERA    FLASH #18 -- see PART I
-    input       sw/testdata/fz2/fz2_failure_ledger_f18_2026-08-11.json
+    LIVE ERA    FLASH #19 -- see PART I
+    input       sw/testdata/fz2/fz2_failure_ledger_f19_2026-08-12.json
                 (= `sw/fz2_ledger.py:CURRENT`)
-                + the 110 banked FABRIC captures it names, sha256-verified
-    branch      fuzz-v2-on-relanding @ 770c0d1b85
-    era         sof b2a1fe5f83167fbf…  (FLASH #18)
-    date        2026-08-11
+                + the 114 banked FABRIC captures it names, sha256-verified
+    branch      fuzz-v2-on-relanding @ 6e91923853
+    era         sof 03365b1115e1f338…  (FLASH #19)
+    date        2026-08-12
     board       NOT TOUCHED.  No capture, no flash, no RTL edit, no re-score.
 
-    HISTORY     FLASH #17 (21 members, residue 92 = 113 - 21) is retained
+    HISTORY     FLASH #18 (24 members, residue 86 = 110 - 24) is retained
+                VERBATIM as PART I-F18.  Its input was
+                fz2_failure_ledger_f18_2026-08-11.json, branch @ 770c0d1b85,
+                era sof b2a1fe5f83167fbf….
+                FLASH #17 (21 members, residue 92 = 113 - 21) is retained
                 VERBATIM as PART II.  Its input was
                 fz2_failure_ledger_f17_2026-08-11.json, branch @ ae3da7c59a,
                 era sof 26c19f613e2caae8….
+
+    ⚠ READING NOTE ON THE PART NAMES.  Blocks are ordered NEWEST FIRST and the
+    older ones are NOT renumbered: the F18 block's prose refers to the F17
+    block as "PART II" and to its own sections as "§I.x", and renumbering would
+    mean editing superseded text.  The live block is PART I (FLASH #19), the
+    previous live block keeps its own §I.x numbering under the heading PART
+    I-F18, and PART II is still FLASH #17.  **Inside a block, a bare §I.x
+    reference means that block's.**
 
     reproduce   python3 sw/fz2_immaterial.py falsify       # the eight bars
                 python3 sw/fz2_immaterial.py census        # members + evidence
@@ -23,9 +35,10 @@
 ⚠ **THE MEMBERSHIP IS PARSED FROM THIS FILE, AND ONLY FROM BETWEEN THE ANCHORS
 IN §I.2.**  `falsify`'s **G7** reads the `IMMATERIAL-MEMBERS-BEGIN` /
 `-END` HTML-comment pair — the member rows **and**, since 2026-08-11, the
-`WORKING-RESIDUE` headline — and nothing else.  **PART II's table is history
-and is not a claim**; its anchors are renamed `IMMATERIAL-MEMBERS-F17-*` so
-exactly one live pair exists.
+`WORKING-RESIDUE` headline — and nothing else.  **PART I-F18's and PART II's
+tables are history and are not claims**; their anchors are renamed
+`IMMATERIAL-MEMBERS-F18-*` and `IMMATERIAL-MEMBERS-F17-*` so exactly one live
+pair exists.
 
 ⚠ **THE ANCHOR LITERALS ARE DELIBERATELY NOT SPELT OUT IN PROSE ANYWHERE IN
 THIS FILE.**  `dispo_doc()` splits on the FIRST occurrence of each, so a
@@ -35,7 +48,166 @@ to nothing and G7 would score an empty member set.  Read them off §I.2.
 ---
 ---
 
-# PART I — FLASH #18.  **THE LIVE DISPOSITION.**
+# PART I — FLASH #19.  **THE LIVE DISPOSITION.**
+
+    re-derived 2026-08-12 under `docs/notes/fz2_f19_housekeeping_prereg_2026-08-12.md`,
+    committed at `6e91923853` BEFORE either tool was run against the F19 ledger.
+    results     docs/notes/fz2_f19_housekeeping_results_2026-08-12.md
+
+## I.0 THE CLASS DID NOT MOVE AT ALL.  THE POPULATION AROUND IT DID.
+
+**This era's headline is a NON-MOVEMENT, and it is the strongest form the
+membership clause has ever been measured in.**  FLASH #19 landed **E-1 alone**
+(one `set_multicycle_path` pair, no RTL) and re-captured the corpus.  Against
+the F18 ledger:
+
+    ENTERED the ledger  4   (all four classify FUNCTIONAL -- none is a member)
+    LEFT                0
+    DISCARDED           2   (ps3_8080, out of the denominator entirely)
+    total             110 -> 114     denominator 3,839 -> 3,837
+
+    IMMATERIAL         24 -> 24     ZERO entrants, ZERO leavers
+    WORKING RESIDUE    86 -> 90     49 FUNCTIONAL + 30 TIMING + 11 UNSCOREABLE
+
+**Every one of the 24 members keeps its row count, differing-column list, cycle
+count and done clock BYTE-IDENTICAL to PART I-F18's table.**  The quoting form
+for this era is:
+
+> **90 material-or-unproven of 114 diverging of 3,837**
+> — 49 FUNCTIONAL + 30 TIMING + 11 UNSCOREABLE, with 24 dispositioned
+> `IMMATERIAL`.
+
+⚠ **THE RESIDUE GREW AND NOTHING GOT WORSE.**  The four entrants are four of
+the six seeds FLASH #19 §4.6 measured as the **capture noise floor** — a second
+capture on the same bitstream minutes later reverted all six.  The census
+partitions run A because choosing the run after seeing it is the move this
+campaign's rules exist to prevent.
+
+⚠ **THE GHOST LAUNCH RELOCATION IS NOT IN THIS DISPOSITION AND CANNOT BE.**  It
+merged at `ef19010e63`, after FLASH #19 was captured, and is on no flashed
+bitstream; both legs of every row here are fabric.  Registered before the run,
+measured after: **zero relocation-driven cells.**
+
+⚠ **NO RATE, BAR OR VERDICT MOVES, ON THIS ERA EITHER.**  This disposition is
+still deliberately **not wired into any scorer**.
+
+## I.1 THERE ARE NO ENTRANTS, SO THERE IS NO CLAUSE TABLE — AND THAT IS THE POINT
+
+PART I-F18 §I.1 had to admit three seats and printed 18 clause cells to do it.
+This era admits none, so the corresponding check is the **stability** one, and
+it is stated as a bar rather than as prose: **G7 compares the anchored table
+below, seed for seed, against what `evidence()` derives on every invocation**,
+and it fails loudly in either direction.  A member that quietly left, or a
+cell that quietly moved, is what G7 exists to catch.
+
+The four ledger entrants are all **FUNCTIONAL** and therefore outside this
+class by the first clause; they are named, with the branch each took, in the
+census PART I §I.2.
+
+⚠ **One of them exposed a pre-existing derivation disagreement** — `fz2e/508068`
+reads `arch: NODUMP` in the ledger while the census finds a MAGIC-anchored core
+dump at clock 1525.  Six seeds in this ledger have that shape.  **It cannot
+reach this class**: every clause here is computed from the census's own leaves,
+and the class the disagreement could move a seed between is FUNCTIONAL ↔
+UNSCOREABLE, neither of which is IMMATERIAL.  Booked in census §I.6 item 2.
+
+## I.2 THE 24, NAMED WITH THEIR EVIDENCE — UNMOVED, CELL FOR CELL
+
+Grouped by the ledger's A-15 family, carried forward unmodified.  `cyc` is the
+bus cycles each leg ran inside the compare window — **identical in both legs on
+all 24, by clause (4)**; `done` is the done-marker clock, **identical in both
+legs on all 24, by clause (5)**.
+
+⚠ **This table is the reader's copy, not the class.**  The class is COMPUTED by
+`evidence()` on every invocation, and **G7 fails loudly if this table and the
+derivation ever disagree, in either direction.**
+
+⚠ **`banked verdict / sub` IS AN ERA-LOCAL READING** and may not be diffed
+against PART II's column, for the reason PART I-F18 §I.2 gives (`80075d049a`
+retired the `open_bus` accept rule).  **No clause can see `banked_sub` at all.**
+
+<!-- IMMATERIAL-MEMBERS-BEGIN -->
+
+    WORKING-RESIDUE = 90 = 114 − 24
+
+| seed | sub | tier | escaped | family | what differs | cyc | done |
+|---|---|---|---:|---|---|---:|---:|
+| `fz2e/515056` | COSMETIC | soup | — | A2 qs-pop other offset | 2 rows: `qs`=2 | 137 | 1140 |
+| `fz2e/516029` | COSMETIC | soup | — | A2 qs-pop other offset | 1 rows: `qs`=1 | 203 | 2591 |
+| `fz2c/409065` | COSMETIC | raw | 225 | A3 cycle-time slip (non-qs) | 16 rows: `addr`=2, `data`=12, `nxta`=2 | 757 | 3600 |
+| `fz2e/513026` | TRANSIENT | soup | 2 | A3 cycle-time slip (non-qs) | 1 rows: `bs`=1 | 103 | 536 |
+| `fz2e/521049` | COSMETIC | raw | 64 | A3 cycle-time slip (non-qs) | 14 rows: `addr`=2, `data`=10, `nxta`=2 | 346 | 3617 |
+| `fz2e/525017` | COSMETIC | raw | 39 | A3 cycle-time slip (non-qs) | 12 rows: `addr`=2, `data`=8, `nxta`=2 | 208 | 2644 |
+| `fz2e/529009` | COSMETIC | raw | — | A3 cycle-time slip (non-qs) | 8 rows: `data`=8 | 264 | 1688 |
+| `fz2c/404071` | TRANSIENT | soup | — | C2 INTA-vectored delivery | 1 rows: `bs`=1 — phantom-T1 seat | 174 | 1196 |
+| `fz2e/514044` | TRANSIENT | soup | — | C2 INTA-vectored delivery | 1 rows: `bs`=1 — phantom-T1 seat | 233 | 1579 |
+| `fz2e/516001` | TRANSIENT | soup | — | C2 INTA-vectored delivery | 1 rows: `bs`=1 — phantom-T1 seat | 204 | 2603 |
+| `fz2c/408021` | TRANSIENT | raw | — | E1 same-status data cycle, different address | 26 rows: `addr`=3, `bs`=12, `data`=6, `nxta`=3, `ps`=2, `qs`=2, `ube`=20 | 261 | 1459 |
+| `fz2c/409025` | COSMETIC | raw | 51 | E1 same-status data cycle, different address | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 451 | 3599 |
+| `fz2c/410008` | COSMETIC | raw | — | E1 same-status data cycle, different address | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 339 | 2406 |
+| `fz2e/517046` | COSMETIC | soup | — | E1 same-status data cycle, different address | 2 rows: `addr`=1, `nxta`=1 | 251 | 1489 |
+| `fz2e/518033` | COSMETIC | raw | 20 | E1 same-status data cycle, different address | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 805 | 3574 |
+| `fz2e/519072` | COSMETIC | raw | 18 | E1 same-status data cycle, different address | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 266 | 1386 |
+| `fz2e/522029` | COSMETIC | raw | 280 | E1 same-status data cycle, different address | 32 rows: `addr`=8, `data`=16, `nxta`=8 | 550 | 3603 |
+| `fz2e/524055` | COSMETIC | raw | 214 | E1 same-status data cycle, different address | 2 rows: `addr`=1, `nxta`=1 | 376 | 3172 |
+| `fz2e/528010` | COSMETIC | raw | 128 | E1 same-status data cycle, different address | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 540 | 3665 |
+| `fz2e/530034` | COSMETIC | raw | — | E1 same-status data cycle, different address | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 246 | 968 |
+| `fz2e/535036` | COSMETIC | raw | 56 | E1 same-status data cycle, different address | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 289 | 3576 |
+| `fz2e/521024` | COSMETIC | raw | 60 | NEW/UNCLASSIFIED | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 444 | 3613 |
+| `fz2e/522002` | COSMETIC | raw | 115 | NEW/UNCLASSIFIED | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 331 | 3572 |
+| `fz2e/532032` | COSMETIC | raw | 127 | NEW/UNCLASSIFIED | 2 rows: `qs`=2 | 492 | 3451 |
+
+<!-- IMMATERIAL-MEMBERS-END -->
+
+**By family: E1 11 · A3 5 · C2 3 · NEW/UNCLASSIFIED 3 · A2 2.**  By tier:
+**raw 17 · soup 7**.  Escaped: **14 of 24**.  By sub-class: **COSMETIC 19 ·
+TRANSIENT 5**.  **Every one of these aggregates is identical to PART I-F18's,
+and so is every cell of the table above.**
+
+## I.3 WHAT IS STILL **NOT** DISPOSITIONED
+
+* **The 11 UNSCOREABLE seeds stay open** — unmoved from PART I-F18, seed for
+  seed, all `raw`, all escaped.  Counterfactual on F19: `would be` TIMING 4 ·
+  TRANSIENT 1 · COSMETIC 6.  **G1 is the bar that none of them can take this
+  class.**
+* **`TIMING_RECONVERGED` is back to 7 seeds, and the user's ruling carries.**
+  RULED 2026-08-11: *"Timing reconvergence seeds are material."*  `fz2e/530020`
+  LEFT — **its own F18 falsifier fired** (census PART I §I.4).  All 7 stay
+  MATERIAL and inside the 90.  ⚠ **Registered on this era: the cell has moved by
+  one seed with no mechanism in each of two consecutive eras, and it is NOT a
+  ratchet.**
+
+## I.4 THE FALSIFIER ON THIS ERA — `falsify` EXITS 0, G1–G8 PASS
+
+| bar | measured on FLASH #19 |
+|---|---|
+| **G1 DUMP PROOF** | **0 / 24** — PASS.  The pool grew 23 → 24 with `fz2e/526075` |
+| **G2 DUMP IDENTITY** | **0 / 36** — PASS.  The pool grew 33 → 36 with `fz2e/508068`, `fz2e/509050`, `fz2e/514001` |
+| **G3 SCHEDULE** | **0 / 84** — PASS.  The pool grew 80 → 84: all four entrants have a changed schedule.  ⚠ The pre-registration §1.2 predicted **80** here, *"derived by exclusion"* and flagged as the one secondary cell that was — it is a MISS, reported as registered |
+| **G4 NOT UNIVERSAL** | **FALSE on 90 / 114** — PASS.  By first failing clause: `arch` 36 · `cycle_starts` 30 · `no_dump_proof` 24 |
+| **G5 CONTROLS** | **114 / 114 · 114 / 114** — PASS |
+| **G6 THE CENSUS** | **0 / 8 cells disagree** — PASS, against the census's **anchored** PART I block |
+| **G7 THE DOCUMENT** | **0 disagreements** — PASS, against §I.2's anchored table and its `WORKING-RESIDUE` headline |
+| **G8 NO FORK** | **0 / 114 disagree** — PASS |
+
+**NO TOOL CHANGE WENT WITH THIS RE-DERIVATION.**  The F18 sitting's parser
+scope change (anchor-only parsing in both documents) is exactly what made this
+era's append-only history possible, and nothing beyond the `CURRENT` pointer
+and the two documents was touched.  The demonstration that `falsify` still
+FAILS on a perturbation is in
+`docs/notes/fz2_f19_housekeeping_results_2026-08-12.md`.
+
+---
+---
+
+# PART I-F18 — FLASH #18.  ⚠ **SUPERSEDED 2026-08-12 BY PART I (FLASH #19).  HISTORY, NOT A CLAIM.**
+
+**Everything below this line to the PART II divider is the FLASH #18-era
+disposition, retained byte-for-byte as it was registered**, apart from this
+heading and the two anchor comments, which are renamed
+`IMMATERIAL-MEMBERS-F18-BEGIN/END` so that exactly one LIVE anchor pair exists
+in the file.  Its sections are numbered `I.x`, as they were when it was live;
+**a bare `§I.x` reference inside this block means this block's.**
 
     re-derived 2026-08-11 under `docs/notes/fz2_f18_housekeeping_prereg_2026-08-11.md`,
     committed at `a05af666aa` BEFORE this run.
@@ -121,7 +293,7 @@ and dumps**.  **No clause in §II.2 can see `banked_sub` at all**, so the class
 is unaffected — which is the structural reason this costs the disposition
 nothing.
 
-<!-- IMMATERIAL-MEMBERS-BEGIN -->
+<!-- IMMATERIAL-MEMBERS-F18-BEGIN -->
 
     WORKING-RESIDUE = 86 = 110 − 24
 
@@ -152,7 +324,7 @@ nothing.
 | `fz2e/522002` | COSMETIC | raw | 115 | NEW/UNCLASSIFIED | 4 rows: `addr`=1, `data`=2, `nxta`=1 | 331 | 3572 |
 | `fz2e/532032` | COSMETIC | raw | 127 | NEW/UNCLASSIFIED | 2 rows: `qs`=2 | 492 | 3451 |
 
-<!-- IMMATERIAL-MEMBERS-END -->
+<!-- IMMATERIAL-MEMBERS-F18-END -->
 
 **By family: E1 11 · A3 5 · C2 3 · NEW/UNCLASSIFIED 3 · A2 2.**  By tier:
 **raw 17 · soup 7**.  Escaped: **14 of 24**.  By sub-class: **COSMETIC 19 ·
