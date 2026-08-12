@@ -55,14 +55,43 @@ for nineteen mechanisms is nothing BUT receipts from this tool):
     argument about mtimes.  It is the artifact layer's own rule applied to the
     gate's own inputs.
 
-    python3 sw/quartus_gate.py                 # clean build + gate  (~10 min)
+THE TWO CONFIGURATIONS, AND THE TRAP THAT USED TO SIT BETWEEN THEM.  `G6` is
+scored on the CONTROL build; the bitstream that gets FLASHED is the RETENTION
+one (`X1_AD_RETENTION=1`).  Until 2026-08-11 this tool could only build the
+first: `build()` ran `quartus_sh --flow compile` with no `--verilog_macro` and
+never read the environment, so the recipe for the second lived only in prose
+across five pre-registrations, and
+
+    X1_AD_RETENTION=1 python3 sw/quartus_gate.py
+
+was **ACCEPTED AND IGNORED** -- it produced a CONTROL build whose `.rbf` was
+byte-identical to the control's, under a receipt somebody had labelled
+RETENTION by hand.  FLASH #18 §1.2 caught it on the DERIVED `configuration`,
+one step before flashing it, and booked the fix.  Now:
+
+  * `--retention` runs the recorded four-step recipe (`build_commands()`), and
+  * the environment variable is **REFUSED** -- accepted-and-ignored became
+    refused-with-reason, so the variable can no longer reach a run that will
+    not honour it.
+
+`configuration` is still DERIVED from the reports and NEVER from the flag: the
+flag records what was ASKED for, in `build.configuration_requested`, and the
+disagreement between the two is exactly the check that caught FLASH #18.
+
+    python3 sw/quartus_gate.py                 # CONTROL build + gate (~10 min)
+    python3 sw/quartus_gate.py --retention     # RETENTION build + gate
+    python3 sw/quartus_gate.py --dry-run [--retention]   # print the stages only
     python3 sw/quartus_gate.py --parse-only    # re-gate an existing report set
     python3 sw/quartus_gate.py --tree DIR      # gate a build kept elsewhere
 
-EXIT 0 = PASS, 1 = RED, 2 = the gate could not run (missing tool / report).
+Its own falsifier is `sw/test_quartus_gate.py` (Q1-Q7), which needs no Quartus.
+
+EXIT 0 = PASS, 1 = RED, 2 = the gate could not run (missing tool / report, or
+a REFUSED invocation).
 """
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -397,25 +426,91 @@ def report_manifest(tree, logpath):
 
 
 # --------------------------------------------------------------------------- #
-def build(tree, keep_db, logpath):
-    exe = QUARTUS_BIN / "quartus_sh"
-    if not exe.exists():
-        print(f"quartus_gate: {exe} not found -- the gate CANNOT RUN "
-              f"(this is exit 2, not a PASS and not a RED)")
-        return None, 2
+# WHAT THE GATE ACTUALLY RUNS -- one function, so a reviewer and a test can
+# both read the command list without starting a ten-minute compile.
+# --------------------------------------------------------------------------- #
+def build_commands(retention=False):
+    """-> [[argv], ...].  The stages, in order, as they will be run.
+
+    CONTROL is `quartus_sh --flow compile`, byte for byte what this gate has
+    always run.  RETENTION is the RECORDED four-step manual recipe
+    (`fuzzv2_retention_prereg_2026-08-08.md` §2 and §6.1, and four earlier
+    pre-registrations in identical words) -- and the macro travels on
+    `quartus_map` ONLY, because that is the stage that reads Verilog.
+
+    THIS FUNCTION IS THE WHOLE POINT OF THE `--retention` FLAG.  Before it,
+    the recipe lived only in prose across five documents, `build()` had no way
+    to express it, and `X1_AD_RETENTION=1 python3 sw/quartus_gate.py` was
+    ACCEPTED AND IGNORED -- it produced a CONTROL build whose `.rbf` was
+    byte-identical to the control's and whose receipt (`aa3ca3e028dff7d2…`)
+    was labelled RETENTION by hand while its DERIVED configuration read
+    `CONTROL/DEFAULT`.  FLASH #18 §1.2 caught that on the derived label, one
+    step before flashing it."""
+    q = lambda n: str(QUARTUS_BIN / n)                        # noqa: E731
+    if not retention:
+        return [[q("quartus_sh"), "--flow", "compile", PROJECT, "-c", REVISION]]
+    # ⚠ THE MACRO IS PASSED **UNQUOTED**, AND THAT IS NOT A DEVIATION FROM THE
+    # RECORDED RECIPE.  Every pre-registration writes it as
+    # `--verilog_macro="X1_AD_RETENTION=1"` because it is writing a SHELL
+    # command line, where the shell strips the quotes.  This runs through
+    # `subprocess` with no shell, so quotes here would reach the compiler as
+    # literal characters.  Checked against the artifact rather than recall:
+    # ALL TWELVE archived retention receipts -- including FLASH #18's
+    # `277d5ccf0f8b9398…`, the bitstream on the board -- record
+    # `configuration_detail.command_line` as
+    #     quartus_map --verilog_macro=X1_AD_RETENTION=1 nec_test -c nec_test_ucore
+    # i.e. UNQUOTED is what Quartus actually received, every time.
+    return [
+        [q("quartus_map"), f"--verilog_macro={RETENTION_MACRO}=1",
+         PROJECT, "-c", REVISION],
+        [q("quartus_fit"), PROJECT, "-c", REVISION],
+        [q("quartus_asm"), PROJECT, "-c", REVISION],
+        [q("quartus_sta"), PROJECT, "-c", REVISION],
+    ]
+
+
+def build(tree, keep_db, logpath, retention=False):
+    cmds = build_commands(retention)
+    for c in cmds:
+        if not Path(c[0]).exists():
+            print(f"quartus_gate: {c[0]} not found -- the gate CANNOT RUN "
+                  f"(this is exit 2, not a PASS and not a RED)")
+            return None, 2
     if not keep_db:
         for d in ("db", "incremental_db", OUTDIR):
             shutil.rmtree(HDL / d, ignore_errors=True)
-    cmd = [str(exe), "--flow", "compile", PROJECT, "-c", REVISION]
-    print(f"quartus_gate: {' '.join(cmd)}   (cwd {HDL})", flush=True)
     t0 = time.time()
+    stages, rc = [], 0
+    # ONE log, appended stage by stage, because `report_manifest()` hashes it
+    # into the receipt and a gate whose transcript is split across files has a
+    # receipt that does not name what it read.
     with open(logpath, "w") as lf:
-        rc = subprocess.run(cmd, cwd=HDL, stdout=lf,
-                            stderr=subprocess.STDOUT).returncode
+        for c in cmds:
+            print(f"quartus_gate: {' '.join(c)}   (cwd {HDL})", flush=True)
+            lf.write(f"\n=== quartus_gate stage: {' '.join(c)}\n")
+            lf.flush()
+            s0 = time.time()
+            src = subprocess.run(c, cwd=HDL, stdout=lf,
+                                 stderr=subprocess.STDOUT).returncode
+            stages.append({"cmd": c, "rc": src,
+                           "seconds": round(time.time() - s0, 1)})
+            print(f"quartus_gate:   rc={src} in {time.time()-s0:.0f}s",
+                  flush=True)
+            if src != 0:
+                # A LATER STAGE MUST NOT RUN ON AN EARLIER ONE'S FAILURE.  It
+                # would read the PREVIOUS build's database and emit reports
+                # that look like this run's.
+                rc = src
+                print(f"quartus_gate: stage failed -- remaining "
+                      f"{len(cmds) - len(stages)} stage(s) NOT run", flush=True)
+                break
     print(f"quartus_gate: compile rc={rc} in {time.time()-t0:.0f}s "
           f"(log {logpath})", flush=True)
+    cmd = cmds[0] if len(cmds) == 1 else cmds
     return {"cmd": cmd, "rc": rc, "seconds": round(time.time() - t0, 1),
-            "log": str(logpath)}, 0
+            "configuration_requested": ("RETENTION" if retention
+                                        else "CONTROL/DEFAULT"),
+            "stages": stages, "log": str(logpath)}, 0
 
 
 def score(tree, log_text, a):
@@ -498,7 +593,70 @@ def main():
                     help="free-text tag recorded in the receipt")
     ap.add_argument("--no-qsf-check", action="store_true",
                     help="skip E1.  Only for gating a tree captured earlier.")
+    ap.add_argument("--retention", action="store_true",
+                    help=f"build the RETENTION configuration: the recorded "
+                         f"four-step manual recipe with "
+                         f"--verilog_macro={RETENTION_MACRO}=1 on quartus_map. "
+                         f"Without this flag the gate builds CONTROL, and the "
+                         f"environment variable of that name is REFUSED.")
+    ap.add_argument("--dry-run", action="store_true",
+                    help="print the stages this invocation would run, and "
+                         "exit 0.  Builds nothing, writes no receipt.")
     a = ap.parse_args()
+
+    # --- THE ENV-VAR REFUSAL ------------------------------------------------ #
+    # FLASH #18 §1.2.  `X1_AD_RETENTION=1 python3 sw/quartus_gate.py` was
+    # ACCEPTED AND IGNORED: `build()` never read the environment and never
+    # passed `--verilog_macro`, so it silently produced a CONTROL build whose
+    # `.rbf` was byte-identical to the control's.  Only the receipt's DERIVED
+    # `configuration` caught it, one step before that build was flashed.
+    # ACCEPTED-AND-IGNORED IS NOW REFUSED-WITH-REASON: the variable can no
+    # longer reach a run that will not honour it.
+    env_ret = os.environ.get(RETENTION_MACRO)
+    if env_ret not in (None, "") and not a.retention:
+        print(f"quartus_gate: REFUSING TO RUN.\n"
+              f"  {RETENTION_MACRO}={env_ret!r} is set in the environment, and "
+              f"THIS GATE HAS NEVER READ IT.\n"
+              f"  The macro reaches the compiler ONLY via --retention, which "
+              f"puts it on quartus_map's\n"
+              f"  command line.  Without that flag the variable reaches "
+              f"nothing and the build would be\n"
+              f"  a CONTROL build silently labelled by whatever you called "
+              f"it.  That happened at\n"
+              f"  FLASH #18 (receipt aa3ca3e028dff7d2…, label RETENTION / "
+              f"derived CONTROL/DEFAULT) and\n"
+              f"  it was caught by the derived label one step before the flash "
+              f"-- see\n"
+              f"  docs/notes/fz2_flash18_results_2026-08-11.md §1.2.\n"
+              f"  Do one of:\n"
+              f"    python3 sw/quartus_gate.py --retention     "
+              f"# the RETENTION build, macro passed on the command line\n"
+              f"    unset {RETENTION_MACRO}; python3 sw/quartus_gate.py    "
+              f"# the CONTROL build\n"
+              f"  (this is exit 2 -- the gate could not run.  Not a PASS and "
+              f"not a RED.)")
+        return 2
+    if a.retention and a.parse_only:
+        print(f"quartus_gate: REFUSING TO RUN.  --retention BUILDS and "
+              f"--parse-only does not build;\n"
+              f"  a run that is both would gate whatever reports happen to be "
+              f"on disk while\n"
+              f"  claiming a configuration it never compiled.  Use "
+              f"--retention alone, or --parse-only\n"
+              f"  --no-qsf-check to re-gate a retention tree built earlier.  "
+              f"(exit 2)")
+        return 2
+    if a.dry_run:
+        cmds = build_commands(a.retention)
+        print(f"quartus_gate --dry-run: "
+              f"{'RETENTION' if a.retention else 'CONTROL/DEFAULT'}, "
+              f"{len(cmds)} stage(s), cwd {HDL}")
+        for c in cmds:
+            print("  " + " ".join(c))
+        print("  (nothing built, no receipt written.  The receipt's "
+              "`configuration` is still DERIVED\n"
+              "   from the reports after a real run -- never from this flag.)")
+        return 0
 
     tree = Path(a.tree).resolve() if a.tree else (HDL / OUTDIR)
     receipt_path = Path(a.receipt) if a.receipt else (tree / "quartus_gate.json")
@@ -538,7 +696,11 @@ def main():
            "label": a.label,
            "inputs": mf,
            "command": None,                       # filled by build()/parse-only
-           "env": {},
+           # Only ever non-empty on the `--retention` path, where the variable
+           # is ALLOWED (harmless -- the macro travels on the command line) and
+           # RECORDED.  Without `--retention` a set variable is refused above,
+           # so this key can never silently describe a build that ignored it.
+           "env": ({RETENTION_MACRO: env_ret} if env_ret else {}),
            "tool": tv, "tool_name": "quartus_sh", "tool_probe": None,
            "tool_sha256": None,
            "outputs": {},
@@ -584,7 +746,7 @@ def main():
         rec["build"] = {"note": "--parse-only: reports gated as found"}
     else:
         tree.parent.mkdir(parents=True, exist_ok=True)
-        b, rc = build(tree, a.keep_db, logpath)
+        b, rc = build(tree, a.keep_db, logpath, retention=a.retention)
         if b is None:
             return rc
         rec["build"] = b
@@ -603,6 +765,13 @@ def main():
 
     # WHICH BUILD THIS RECEIPT DESCRIBES -- read out of the reports, and hashed
     # so the next reader can check the reports have not moved underneath it.
+    # ⚠ `--retention` IS **NOT** AN INPUT HERE, DELIBERATELY.  What the flag
+    # asked for is recorded in `build.configuration_requested`; what the build
+    # actually did is DERIVED from the reports, and only the derived value goes
+    # in `configuration`.  A flag that asserted its own configuration would be
+    # the `4bb65d2ab6` defect the derived label was built to catch, and it is
+    # precisely the disagreement between the two that caught FLASH #18's
+    # mis-invocation.  Keeping them independent keeps that check alive.
     rec["configuration"], rec["configuration_detail"] = parse_configuration(tree)
     rec["reports"] = report_manifest(tree, logpath)
     print(f"quartus_gate: configuration {rec['configuration']}", flush=True)

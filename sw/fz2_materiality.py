@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""fz2_materiality -- A MATERIALITY CENSUS OF THE FLASH #17 FAILURE LEDGER.
+"""fz2_materiality -- A MATERIALITY CENSUS OF THE CURRENT FAILURE LEDGER.
 
 THE QUESTION THIS ANSWERS (user, 2026-08-11, verbatim):
 
@@ -10,8 +10,8 @@ THE QUESTION THIS ANSWERS (user, 2026-08-11, verbatim):
      overall timing."
 
 The failure ledger counts SEEDS THAT DIFFER.  It does not say what the
-difference COSTS.  This tool partitions the 113 F17 failures into MEASURED
-consequence classes.  It is a LENS on banked data: it re-scores nothing,
+difference COSTS.  This tool partitions the CURRENT ledger's failures into
+MEASURED consequence classes.  It is a LENS on banked data: it re-scores nothing,
 captures nothing, touches no board and moves no verdict.  Every number it
 prints is derived from `sw/testdata/campaigns/*/captures/*.json.gz` -- the
 FABRIC rows of BOTH legs -- and from the F17 ledger that names them.
@@ -28,8 +28,9 @@ captures of the same image under the same directive, 4,063 rows each.
   fabric on 24 of 43 predicted seeds.  Reading the banked FABRIC rows makes
   that residue irrelevant to every figure below: there is no replay in the
   loop, so there is no replay bias to bound.  The cost is that this census
-  can only be taken where the capture was BANKED -- which for the 113
-  failures is 113 of 113, each verified by sha256 against the ledger.
+  can only be taken where the capture was BANKED -- which on both the F17
+  and the F18 ledgers is every failure, each verified by sha256 against the
+  ledger.
 
 THE TWO CONTROLS, RUN ON EVERY INVOCATION
 -----------------------------------------
@@ -100,7 +101,7 @@ WHAT IS *NOT* MEASURED HERE, STATED SO IT IS NOT ASSUMED
   * `family` is CARRIED FORWARD from the ledger and never re-derived --
     `fz2_ledger`'s rule for `fz2_ledger`'s reason (§38.9: the partition is a
     record of how the bus structure classified each seed, not a re-reading).
-  * NOTHING here says whose fault a divergence is.  63 of the 113 are
+  * NOTHING here says whose fault a divergence is.  A large minority are
     ESCAPED seeds; the census reports that overlap per class and does not
     adjust for it.  ⚠ CORRECTED 2026-08-11: this used to read "ESCAPED
     open-bus seeds, which F14 §4 established have no reproducible bus".
@@ -322,7 +323,12 @@ def report(res, led, out=sys.stdout):
 
     p("")
     p("=" * 78)
-    p("  fz2 MATERIALITY CENSUS -- FLASH #17 FAILURE LEDGER")
+    # The ERA IS NOT HARD-CODED.  This banner used to read "FLASH #17
+    # FAILURE LEDGER" and stayed put when `fz2_ledger.CURRENT` moved to the
+    # F18 one, so the tool printed an F18 partition under an F17 title --
+    # the mislabelled-receipt defect class, in an instrument's own output.
+    # `fz2_ledger.load()` already prints the file and the era above this.
+    p("  fz2 MATERIALITY CENSUS -- THE FAILURE LEDGER NAMED ABOVE")
     p("=" * 78)
     p(f"  seeds classified   {n}")
     p(f"  corpus denominator {denom}")
