@@ -14176,6 +14176,36 @@ measured**.
 > boundary is at the opcode byte"* remains an INTERPRETATION of the count; the
 > `IRET`-setter cell that would measure it is **not built** (cell §5.2,
 > registered in its amendment A-1.2a before the validation data existed).
+>
+> ### ⚠ §86 ERRATUM-2 — **THE `IRET`-SETTER CELL IS BUILT, AND THE POSITION
+> QUESTION HAD A FALSE PRESUPPOSITION** (`KR`/`KS`, 2026-08-11, coordinator
+> booking of `docs/notes/iret_tf_cell_results_2026-08-11.md`; prereg
+> `53242e3865`, derivation `22151f64c7`, disjoint validation `457694f5de`;
+> FLASH #17, 1,072 cells, 0 transport errors)
+>
+> * **KR (silicon): the TF trap is TAKEN at an instruction RETIRE and at
+>   nothing else.** A prefix hand-over and an `0F` escape's re-decode are
+>   SAMPLE events only — never a place the trap can land. Proved
+>   constructively with a NOP-filler instrument that separates the four
+>   candidate hand-over positions by 3-7 bytes: all four are EMPTY
+>   (`P1_p4x` reads 13, the retire, where the hand-over rules predict
+>   6/9/10). At filler 0 — the `tf0f` geometry — all candidates collapse to
+>   one number, which is why `tf0f` could not see this. The 20-rule
+>   pre-registered product collapses to ONE rule (`S1.*.B0`), **49/49
+>   derivation + 14/14 disjoint = 63/63**.
+> * **KS (silicon): a `popf` setter arms on the SECOND boundary pop after
+>   it; an `IRET` setter arms on the FIRST.** No new mechanism — §86.B's
+>   existing 4-clock floor explains both (a `popf` rise lands inside the
+>   floor of its own retire; an `IRET`'s is cleared of it by the flush and
+>   refetch). §86.C's "W-3 asymmetry" is ANSWERED by this.
+> * **`KM`'s COUNT law is VALIDATED on the disjoint setter** (24 IRET-set
+>   legs hold it); **`KM`'s INTERPRETATION `Bd` ("the second boundary is at
+>   the opcode byte") is REFUTED** (31/49 derivation, 2/14 validation).
+> * **The ucore already implements KR** (`bnd_armed` is set only at a
+>   retire): chip vs core **0 of 1,072 cells differ**, QS streams identical
+>   1,072/1,072. **No RTL candidate arises from this cell.** It also
+>   EXCLUDES a take-position defect as the explanation for `fz2c/404041`'s
+>   pre-KM residue — that residue is elsewhere.
 
 ### §86.A THE LANDING — the arm, and the one thing §85.3 asked for twice that is really once
 
