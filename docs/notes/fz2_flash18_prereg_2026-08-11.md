@@ -386,6 +386,18 @@ finding**, not a noise candidate.
 All measured UNMOVED by the merged-tree replay (§1), in `bad` **and** `first`.
 **Registered: unmoved in fabric, on both columns.**
 
+⚠ **AMENDMENT A-1 (committed with the scorer, while the CONTROL build was still
+running, BEFORE the flash and BEFORE the F18 ledger existed).**  The table below
+quotes the **replay's `bad_rows`**, and two of its cells therefore differ from
+the F17 **ledger** entry by that seed's `flick` — `fz2c/408019` reads 1086 here
+and 1087 in the ledger.  **The bar is and always was "UNMOVED", so the scorer
+compares `N[s]` against `R[s]` directly**, which is unit-consistent by
+construction; the literals below are printed by the scorer as a *transcription
+check* and any mismatch is labelled as one.  This was caught by running
+`sw/fz2_f18_score.py` against the **F17 null** before the board was touched —
+which is what the null run is for — and it is the same §1.1 units trap, found a
+second time in a second place.
+
 | group | seeds | F17 `bad` / `first`, all predicted UNMOVED |
 |---|---|---|
 | **the §64.1 four** (KM/N1 list) | `fz2c/405002` · `fz2c/405013` · `fz2c/405072` · `fz2e/512056` | 840/**527** · 921/**1331** · 891/**636** · 984/**1475** |
