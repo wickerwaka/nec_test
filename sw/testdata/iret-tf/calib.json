@@ -1,0 +1,120 @@
+{
+ "tool": "iret_tf_cell calib",
+ "leg": "tb_sys ret",
+ "ts": "2026-08-12T00:57:12Z",
+ "note": "instrument setting only; every scored quantity is measured from the capture's own transactions",
+ "block": 16,
+ "R": 6,
+ "ncap": {
+  "0": 2000,
+  "1": 2700,
+  "2": 3400,
+  "3": 4090
+ },
+ "worst": {
+  "0": {
+   "I0_p4x": {
+    "entries": 6,
+    "last_entry_row": 1289,
+    "ok": true,
+    "why": null
+   },
+   "I1_p4x": {
+    "entries": 6,
+    "last_entry_row": 1253,
+    "ok": true,
+    "why": null
+   },
+   "P2_p4x": {
+    "entries": 6,
+    "last_entry_row": 852,
+    "ok": true,
+    "why": null
+   },
+   "P1_p4x": {
+    "entries": 6,
+    "last_entry_row": 844,
+    "ok": true,
+    "why": null
+   }
+  },
+  "1": {
+   "I0_p4x": {
+    "entries": 6,
+    "last_entry_row": 1743,
+    "ok": true,
+    "why": null
+   },
+   "I1_p4x": {
+    "entries": 6,
+    "last_entry_row": 1689,
+    "ok": true,
+    "why": null
+   },
+   "P2_p4x": {
+    "entries": 6,
+    "last_entry_row": 1149,
+    "ok": true,
+    "why": null
+   },
+   "P1_p4x": {
+    "entries": 6,
+    "last_entry_row": 1131,
+    "ok": true,
+    "why": null
+   }
+  },
+  "2": {
+   "I0_p4x": {
+    "entries": 6,
+    "last_entry_row": 1965,
+    "ok": true,
+    "why": null
+   },
+   "I1_p4x": {
+    "entries": 6,
+    "last_entry_row": 1902,
+    "ok": true,
+    "why": null
+   },
+   "P2_p4x": {
+    "entries": 6,
+    "last_entry_row": 1315,
+    "ok": true,
+    "why": null
+   },
+   "P1_p4x": {
+    "entries": 6,
+    "last_entry_row": 1289,
+    "ok": true,
+    "why": null
+   }
+  },
+  "3": {
+   "I0_p4x": {
+    "entries": 6,
+    "last_entry_row": 2227,
+    "ok": true,
+    "why": null
+   },
+   "I1_p4x": {
+    "entries": 6,
+    "last_entry_row": 2155,
+    "ok": true,
+    "why": null
+   },
+   "P2_p4x": {
+    "entries": 6,
+    "last_entry_row": 1485,
+    "ok": true,
+    "why": null
+   },
+   "P1_p4x": {
+    "entries": 6,
+    "last_entry_row": 1457,
+    "ok": true,
+    "why": null
+   }
+  }
+ }
+}

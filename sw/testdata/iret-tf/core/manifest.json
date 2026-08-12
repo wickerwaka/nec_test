@@ -1,0 +1,13 @@
+{
+ "tool": "iret_tf_cell core",
+ "leg": "tb_sys ret",
+ "receipt": {
+  "base": "6122264fe22536a4b4be4c2b19c1372bce56e6a7cb342d561e7789a796c69b80",
+  "ret": "63308b10ac00a812ec2eba33f29b0a7b784ffc507ab6d606e533bea2cca7d551"
+ },
+ "cells": 832,
+ "seconds": 244.5,
+ "block": 16,
+ "R": 6,
+ "ts": "2026-08-12T01:01:22Z"
+}
