@@ -383,18 +383,123 @@ always_ff @(posedge clk) begin
 end
 
 wire core_reset = c_reset_q | ~cfg_use_core;   // held in reset unless A/B=core
+`ifdef SYNTHESIS
 wire [15:0] core_ss_rdata_unused;
+`else
+wire [15:0] core_ss_rdata;      // M10-SYS probe reads it (see the block below)
+`endif
 wire        core_ss_err_unused;
 wire        core_ss_bus_quiet_unused;
 
+`ifndef SYNTHESIS
+//----------------------------------------------------------------------------
+// M10-SYS -- THE SAVE-STATE FREEZE PROBE.  SIMULATION ONLY, AND THE GUARD IS
+// THE PROOF: both QSFs set `VERILOG_MACRO "SYNTHESIS=1"`
+// (hdl/nec_test_ucore.qsf:71, hdl/nec_test.qsf:60), so Quartus never sees a
+// character of this block, and the five port connections above are written as
+// `ifdef SYNTHESIS <the line exactly as it stood at 6cbb01a642> `else <the
+// probe's line>`.  Strip the `ifndef` blocks, take the `ifdef` arms, and the
+// file is byte-identical to 6cbb01a642's -- which is a stronger inertness
+// claim than "one build looked the same", and it is checkable by reading.
+//
+// WHY IT EXISTS (fz2_w8_ghostsel_results_2026-08-11.md sec.2 and sec.3).  The
+// M10 register solve freezes the core through the save-state map and asks
+// which named register formed the chip's address.  It could only do that on
+// `tb_v30_core`, which has ONE pin-event scheduler: SIX of thirteen wave-8
+// DERIVE seats are NOREPRO there for harness reasons, and the derivation
+// starved at n = 1.  On this harness the SAME 28 seeds reproduce the fabric
+// verdict AND the fabric first-bad row 28/28.  The port was already in the
+// DUT and tied off; this routes it out.
+//
+// IT IS A READ-ONLY TERMINAL FREEZE, and all three words carry weight.
+//
+//   READ-ONLY.  `SS_WE` is never asserted -- the port stays tied to 1'b0 even
+//   here.  `tb_v30_core`'s mode 6 does save -> print -> LOAD, and that load
+//   writes back exactly what it read purely so the run can RESUME.  This probe
+//   never resumes, so it never writes, which removes the whole
+//   SS_WE-while-CE-high hazard class (v30_core.sv:138) by construction.
+//
+//   TERMINAL.  `fz2_m10._one_solve` DISCARDS the rows of every freeze run --
+//   the fork validation is a separate un-frozen replay -- so the freeze need
+//   not be resumable.  That is why parking only the CORE is sufficient and
+//   `nec_bus` is left running: it cannot move the core.
+//
+//   FREEZE.  Every architectural flop in v30u_eu/v30u_biu is gated by
+//   `ss_we || srst || ce`, while the save-state read path (`ss_addr_q` and the
+//   two read muxes) is `always @(posedge clk)` with NO `ce`.  So the stream
+//   runs on the fast clock while the core is stopped -- which is exactly the
+//   property `ss_park` relies on in `tb_v30_core`.
+//
+// WHERE THE FREEZE POINT IS, DERIVED AND NOT ASSUMED.  `nec_bus.sv:687` writes
+// one `cap_record` per CPU clock at the `tick_rise` posedge, and the core's CE
+// IS `bus_tick_rise` -- the same edge.  `tb_v30_core` emits its row at its own
+// CE posedge recording the cycle just ending.  So row k means the same core
+// clock on both harnesses by construction.  The counter below skips leading
+// RESET records (`cap_record[55]`), which is `fz2_replay._drop_reset`'s own
+// rule -- the rule that makes a tb_sys row index mean what a banked row index
+// means -- and the park waits for that cycle's `tick_fall` so cycle k gets
+// both its CE and its CE_HALF, mirroring `ss_park`'s release discipline.
+//
+// The falsifier is registered, not asserted: on the three seats `tb_v30_core`
+// already solves, this leg must return byte-identical register terms at every
+// freeze d.  fz2_m10sys_prereg_2026-08-11.md sec.3.
+//----------------------------------------------------------------------------
+integer m10_ss_at   = -1;      // freeze after this row index (-1 = disarmed)
+integer m10_ss_mode = 0;       // 6 = stream the addressed map, as tb_v30_core
+integer m10_row     = -1;      // rows emitted so far, RESET records skipped
+reg     m10_seen    = 1'b0;
+reg     m10_park    = 1'b0;
+reg [8:0] m10_ss_addr = 9'b0;
+
+initial begin
+    if (!$value$plusargs("ss_at=%d",   m10_ss_at))   m10_ss_at   = -1;
+    if (!$value$plusargs("ss_mode=%d", m10_ss_mode)) m10_ss_mode = 0;
+end
+
+wire m10_rowtick = cap_valid && !cap_record[55];
+
+always_ff @(posedge clk) begin
+    if (m10_rowtick) begin
+        m10_row <= m10_row + 1;
+        if (m10_ss_at >= 0 && m10_ss_mode == 6 && (m10_row + 1) == m10_ss_at)
+            m10_seen <= 1'b1;
+    end
+    // park AFTER this cycle's CE_HALF has been delivered and before the next
+    // CE: `tick_fall` is mid-cycle, `tick_rise` starts the next one.
+    if (m10_seen && bus_tick_fall) m10_park <= 1'b1;
+end
+
+integer m10_i;
+initial begin
+    wait (m10_park === 1'b1);
+    @(posedge clk);                       // one settled parked clock
+    for (m10_i = 0; m10_i < v30_ss_pkg::SS_COUNT; m10_i = m10_i + 1) begin
+        m10_ss_addr = v30_ss_pkg::ss_addr_of(m10_i);
+        // SS_ADDR -> ss_addr_q (stage) -> the module read mux -> SS_RDATA:
+        // three posedges to settle, sampled at a negedge.  `tb_v30_core`'s
+        // `ss_read` timing, unchanged, because the path is the same path.
+        @(posedge clk); @(posedge clk); @(posedge clk); @(negedge clk);
+        $display("SS6 idx=%0d word=%0d addr=%03x val=%04x",
+                 m10_ss_at, m10_i, v30_ss_pkg::ss_addr_of(m10_i),
+                 core_ss_rdata);
+    end
+    $display("M10SYS DONE row=%0d ss_at=%0d", m10_row, m10_ss_at);
+    $finish;
+end
+`endif
 // harness read data driven onto the core's AD[15:0] during its read cycles
 assign core_ad[15:0] = c_addrv_q ? c_rdata_q : 16'hzzzz;
 
 v30_core u_core
 (
     .CLK       (clk),
+`ifdef SYNTHESIS
     .CE        (bus_tick_rise),
     .CE_HALF   (bus_tick_fall),
+`else
+    .CE        (bus_tick_rise & ~m10_park),
+    .CE_HALF   (bus_tick_fall & ~m10_park),
+`endif
     .RESET     (core_reset),
     .READY     (c_ready_q),
     .INT       (c_int_q),
@@ -407,10 +512,17 @@ v30_core u_core
     .RD_N      (core_rd_n),
     .UBE_N     (core_ube_n),
     .BUSLOCK_N (core_buslock_n),
+`ifdef SYNTHESIS
     .SS_ADDR   (9'b0),
     .SS_WDATA  (16'b0),
     .SS_WE     (1'b0),
     .SS_RDATA  (core_ss_rdata_unused),
+`else
+    .SS_ADDR   (m10_ss_addr),
+    .SS_WDATA  (16'b0),                 // M10-SYS never writes: READ-ONLY probe
+    .SS_WE     (1'b0),                  // ditto -- the tie-off is the reality
+    .SS_RDATA  (core_ss_rdata),
+`endif
     .SS_ERR    (core_ss_err_unused),
     .SS_BUS_QUIET(core_ss_bus_quiet_unused)
 );

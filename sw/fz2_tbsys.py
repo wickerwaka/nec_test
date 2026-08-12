@@ -131,8 +131,17 @@ def img_coexist():
 # --------------------------------------------------------------------------- #
 def run_tb(leg, image, cap_path, ncap=NCAP, waits=0, div=8, pins=None,
            evts=None, tvec=None, vecctl=None, timeout=3600,
-           wrand=None, wvec=None, quiet=False):
+           wrand=None, wvec=None, quiet=False, ss_at=None):
     """One tb_sys run.  `evts` is {scheduler: (addr, delay, hold, pin)}.
+
+    `ss_at` arms `M10-SYS`, the save-state freeze probe in `system_large.sv`
+    (simulation-only, `ifndef SYNTHESIS`; see the block there and
+    `fz2_m10sys_prereg_2026-08-11.md`).  It is a READ-ONLY TERMINAL freeze: the
+    run stops at that row, streams the addressed map to stdout as `SS6` lines
+    and `$finish`es, so there is NO `SYS DONE` line and NO capture file.  The
+    caller gets `words = []` and reads the stream out of `stdout`.  Naming it
+    is the ONLY way to reach the probe -- an un-named run issues byte-identical
+    AXI traffic and drives a constant-0 park, which is `cmd_inert`'s claim.
 
     `wrand` is `(wmax, wseed)` and `wvec` a list of per-bus-cycle Tw counts --
     the SAME two arguments `check_seq.run_tb` takes for `tb_v30_core`, and the
@@ -168,9 +177,21 @@ def run_tb(leg, image, cap_path, ncap=NCAP, waits=0, div=8, pins=None,
         elif wrand is not None:
             wmax, wseed = wrand
             argv += ["+wrand=1", f"+wmax={wmax}", f"+wseed={wseed & 0xFFFF:04x}"]
+        if ss_at is not None:
+            argv += [f"+ss_at={ss_at}", "+ss_mode=6"]
         t0 = time.time()
         r = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
     out = r.stdout
+    if ss_at is not None:
+        # the probe terminated the run; there is no capture and no SYS DONE.
+        if "M10SYS DONE" not in out:
+            raise RuntimeError(
+                f"tb_sys +ss_at={ss_at} never reached the freeze row\n"
+                f"stdout tail: {out[-2000:]}\nstderr: {r.stderr[-800:]}")
+        return {"words": [], "fired": 0, "vecused": 0, "stdout": out,
+                "readbacks": [l for l in out.splitlines()
+                              if l.startswith(("SYS EVT", "SYS REG"))],
+                "secs": time.time() - t0, "argv": argv}
     m = None
     for line in out.splitlines():
         if line.startswith("SYS DONE "):

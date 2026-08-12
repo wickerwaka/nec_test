@@ -59,6 +59,8 @@ import check_seq                                              # noqa: E402
 import fuzz_campaign as fzc                                   # noqa: E402
 import fuzz_classify as fc                                    # noqa: E402
 import fz2_failview as fv                                     # noqa: E402
+import fz2_replay as fzr                                      # noqa: E402
+import fz2_tbsys as tbs                                       # noqa: E402
 
 LEDGER = ROOT / "sw" / "testdata" / "fz2" / \
     "fz2_failure_ledger_f15_2026-08-10.json"
@@ -315,6 +317,54 @@ def replay(seed, ss_at=None, n=4200):
         shutil.rmtree(td, ignore_errors=True)
 
 
+SS6_RE = re.compile(r"SS6 idx=-?\d+ word=\d+ addr=([0-9a-f]+) val=([0-9a-f]+)")
+
+
+def replay_tbsys(seed, ss_at=None, leg="ret"):
+    """(rows, ss_words) -- THE SAME QUESTION, ON `tb_sys` (`M10-SYS`).
+
+    Wave-8 §2 is the reason this exists: `tb_v30_core` has ONE pin-event
+    scheduler and SIX of thirteen DERIVE seats are `NOREPRO` on it for harness
+    reasons, while `fz2_replay --leg ret` on THIS harness reproduces the fabric
+    verdict AND the fabric first-bad row on 28 of 28 of the same seeds.
+
+    The case is derived through `fz2_replay.regen_case` -- `fuzz_campaign`'s own
+    three calls in its own order, KEEPING the cfg `build()` mutated, because
+    `ucsim_fuzz.regen` drops that mutation and 679 of the corpus's event seeds
+    would silently run at a 2-clock hold where the capture was taken at 300
+    (fz2_replay's module docstring).  The directive, the overlay and the wait
+    source are `fz2_replay.replay_sys`'s, unchanged: BOTH schedulers, `TVEC`,
+    `VECCTL`, and the seed's own `wvec`/`wrand`/fixed level."""
+    cid, k = seed.split("/")
+    k = int(k)
+    cfg, image, meta, sha = fzr.regen_case(cid, k)
+    if sha != lines()[seed]["image_sha256"]:
+        raise ValueError(f"{seed}: GEN_DRIFT")
+    evts, tvec, vecsub = fzc.term_directive(cfg, meta)
+    w = cfg["waits"]
+    cs, ip = tvec
+    td = tempfile.mkdtemp(prefix="m10sys_", dir=os.environ.get(
+        "UCSIMT_TMP", str(Path.home() / ".cache" / "ucsimt-tmp")))
+    try:
+        r = tbs.run_tb(leg, image, Path(td) / "cap.hex", ncap=fzr.NCAP,
+                       waits=0 if w["wrand"] else w["fixed"], div=fzr.DIV,
+                       evts={i: t for i, t in enumerate(evts) if t},
+                       tvec=(cs << 16) | ip, vecctl=vecsub,
+                       wrand=(w["wmax"], w["wseed"]) if w["wrand"] else None,
+                       wvec=fzc.wvec_of(cfg), quiet=True, ss_at=ss_at)
+    finally:
+        import shutil
+        shutil.rmtree(td, ignore_errors=True)
+    rows = [] if ss_at is not None else fzr._drop_reset(tbs.decode(r["words"]))
+    ss = {int(m.group(1), 16): int(m.group(2), 16)
+          for m in SS6_RE.finditer(r["stdout"])}
+    return rows, ss
+
+
+def replay_for(tb):
+    return replay if tb == "core" else replay_tbsys
+
+
 # --------------------------------------------------------------------------- #
 # the address solve
 # --------------------------------------------------------------------------- #
@@ -444,12 +494,13 @@ def _one_solve(job):
     """One seat: validate the offline replay against the board, sweep the
     save-state freeze across the fork, and report every named term that
     reproduces the CHIP's address and every one that reproduces the CORE's."""
-    seed, fb, chip, core, win, ledger, span = job
+    seed, fb, chip, core, win, ledger, span, tb = job
     A = ss_addrs()
+    rp = replay_for(tb)
     rec = {"seed": seed, "fork_row": fb, "chip_addr": chip,
-           "core_addr": core}
+           "core_addr": core, "tb": tb}
     try:
-        rows, _ = replay(seed)
+        rows, _ = rp(seed)
     except Exception as ex:                                   # noqa: BLE001
         rec["status"] = f"REPLAY_ERR {str(ex)[:100]}"
         return rec
@@ -473,7 +524,7 @@ def _one_solve(job):
     rec["freezes"] = []
     for d in range(-span, 2):
         try:
-            _r, ss = replay(seed, ss_at=fb + d)
+            _r, ss = rp(seed, ss_at=fb + d)
         except Exception:                                     # noqa: BLE001
             continue
         if not ss:
@@ -557,7 +608,9 @@ def cmd_solve(a):
                 and r["chip_addr"] is not None
                 and r["chip_addr"] != r["core_addr"]]
     jobs = [(r["seed"], r["first_bad_row"], r["chip_addr"], r["core_addr"],
-             r["win"], a.ledger, a.span) for r in todo]
+             r["win"], a.ledger, a.span, a.tb) for r in todo]
+    print(f"  freeze instrument: tb={a.tb} "
+          f"({'tb_v30_core, one scheduler' if a.tb == 'core' else 'tb_sys / M10-SYS, three schedulers + overlay'})")
     from concurrent.futures import ProcessPoolExecutor
     out = []
     with ProcessPoolExecutor(max_workers=a.jobs) as ex:
@@ -680,6 +733,13 @@ def main():
     s.add_argument("--seeds", default=None)
     s.add_argument("--maxdiv", type=int, default=8)
     s.add_argument("--span", type=int, default=12)
+    s.add_argument("--tb", choices=("core", "sys"), default="core",
+                   help="which harness the freeze runs on.  `core` is "
+                        "tb_v30_core (the historical leg, ONE pin-event "
+                        "scheduler); `sys` is M10-SYS on tb_sys -- three "
+                        "schedulers, the NMI vector overlay and the board's "
+                        "own wait sources.  Default `core` so every historical "
+                        "invocation still means what it meant.")
     s.add_argument("--jobs", type=int, default=6)
     s.add_argument("--out", default=str(ROOT / "sw" / "testdata" / "fz2" /
                                         "fz2_m10_solve.json"))
