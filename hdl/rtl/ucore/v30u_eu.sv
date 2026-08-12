@@ -1907,6 +1907,41 @@ assign q_first = (st == S_OPC_POP) ? pop_is_first
                  row_epop ? 1'b1
                : 1'b0;
 
+// KM -- THE PIN QUESTION AND THE BOUNDARY QUESTION ARE NOT THE SAME QUESTION.
+//
+// `q_first` answers "does this pop START an instruction?" and that is exactly
+// what the `QS` pins announce (v30u_biu.sv `QS_FIRST`/`QS_SUBSEQ`).  The BRK/TF
+// arm asks a different one -- "is this the pop whose byte the LOADER DECODES?"
+// -- and on an `0F`-escaped instruction the two differ: the escape's SECOND
+// byte is the opcode, popped in `S_EXT_POP`, and the pins announce it
+// SUBSEQUENT.  Everywhere else the two coincide, so this is ONE term.
+//
+// MEASURED, silicon, FLASH #17, `docs/notes/tf0f_cell_results_2026-08-11.md`:
+// 512 directed cells x 4 waits x 4 alignments, 2,880 scored traps per engine,
+// derivation 16/16 and a DISJOINT validation 14/14.  An instruction contributes
+// ONE TF boundary unit plus ONE MORE iff its opcode byte is not its first byte
+// -- prefixes and/or an `0F` escape -- and the extra unit is ONE however deep
+// the decoration and however many KINDS of it are present.  The eleven bare-
+// `0F` legs are the whole divergence: the chip is one unit EARLIER on all of
+// them (`x13 x1b x18 x28 x33 y1e`, `v_x39 v_x1f v_x10 v_x2a v_y13`), 176 of 512
+// cells, every one in the same direction, at every wait and every alignment.
+//
+// SATURATION NEEDS NO COUNTER, AND IS NOT ADDED HERE -- IT IS ALREADY WHAT THIS
+// TREE DOES.  `brk_arm` is ONE FLOP holding a LEVEL (`brk_arm_n = brk_seen`),
+// and the TAKE is `bnd_fire = at_bnd && bnd_take` with `bnd_opc` gated by
+// `bnd_armed`, which is set only at a RETIRE and never at a prefix hand-over.
+// So extra samples INSIDE an instruction cannot move its trap earlier than its
+// own retire boundary.  That is already why `pfx1`..`pfx4` all read TWO units
+// while the pins announce two, three, four and five (384 traps, both engines),
+// and it is why adding the escape's sample leaves the PREFIXED-`0F` legs
+// `z1b` / `v_p2x` / `v_p4x` -- 288 traps -- exactly where they are.
+// *Falsifier*: any capture in which a prefixed `0F` instruction with `PSW.TF`
+// set traps one unit earlier than an unprefixed one of the same length.
+//
+// The three other `q_first` consumers -- the `QS` pins, `eu_halt` and
+// `first_pop_seen` -- deliberately keep asking the PIN question.
+wire q_bnd_pop = q_first || (st == S_EXT_POP);
+
 // --- the bus request -------------------------------------------------------
 // exec_impl.h::bus_read / bus_write: a staged write must run before the next
 // cycle, so the row first pairs it (`emit_pending`) and then posts its own.
@@ -3123,7 +3158,12 @@ always @* begin
         // *Falsifier*: a capture in which the chip recognises an external
         // interrupt at a boundary with `PSW.TF` armed and does NOT then read
         // vector 1 before the handler's first instruction retires.
-        brk_smp_n = (q_pop && q_ripe && q_first) || (bnd_fire && irq_take);
+        //
+        // KM (2026-08-11) -- `q_first` -> `q_bnd_pop`.  §86's sentence above is
+        // right in KIND and wrong in COUNT, and its second half was never in
+        // the RTL at all; the erratum and the silicon it is written on are at
+        // the `q_bnd_pop` declaration and in `ucore_provenance.md` §86 ERRATUM.
+        brk_smp_n = (q_pop && q_ripe && q_bnd_pop) || (bnd_fire && irq_take);
         unhalt_pend_n = 1'b0;
         if (bnd_fire)
             irq_fast_inta_n = bnd_opc || eu_bnd_post;
@@ -3333,11 +3373,23 @@ always @* begin
         // boundaries afterwards.  `brk_smp` is that clock and nothing else.
         //
         // AND THIS IS WHY THERE IS NO PREFIX SPECIAL CASE.  §85.3 asks for the
-        // retire boundaries AND the prefix hand-over; `q_first` is ONE
+        // retire boundaries AND the prefix hand-over; `q_bnd_pop` is ONE
         // predicate that is both, because a prefix retires as its own 2-clock
-        // instruction with its own F pop (`prefix_retire()` -> `pop_is_first`)
-        // and the `0F` escape's first byte does too.  "A PREFIX BYTE ENDS AN
-        // INSTRUCTION BOUNDARY" is already what the pop stream says.  Contrast
+        // instruction with its own F pop (`prefix_retire()` -> `pop_is_first`).
+        // "A PREFIX BYTE ENDS AN INSTRUCTION BOUNDARY" is already what the pop
+        // stream says.
+        //
+        // ⚠ ERRATUM (KM, 2026-08-11) -- THIS PARAGRAPH USED TO END *"and the
+        // `0F` escape's first byte does too"*.  THAT WAS NEVER IMPLEMENTED
+        // (`S_EXT_CHG1` sets nothing) AND, AS WRITTEN, NAMES THE WRONG BYTE:
+        // silicon counts the escape's SECOND byte -- the opcode -- which the
+        // pins announce SUBSEQUENT on both engines.  The predicate is therefore
+        // NOT `q_first`, and the term that makes it right is at `q_bnd_pop`.
+        // §86's own count is wrong in the other direction too: a prefix STACK
+        // is ONE extra unit whatever its depth, so "the sampling boundaries are
+        // simply the opcode pops the `QS = 1` pins announce" is refuted in BOTH
+        // directions, engine-free (cell §6, `pfx4` = five pins / two units).
+        // Contrast
         // `bnd_armed`, which the INT recognition needs precisely to EXCLUDE the
         // prefix hand-over ("the measured *no sample between 26 and 8B*"):
         // sample and take are different events at the same boundary, and the

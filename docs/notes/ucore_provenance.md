@@ -14116,6 +14116,67 @@ Pre-registration: `docs/notes/sm3_s25_prereg_2026-08-05.md`, committed at
 `4cca409483` **before any RTL was edited and before any figure below was
 measured**.
 
+> ### ⚠ §86 ERRATUM — **THE SAMPLING BOUNDARY IS NOT THE `QS = 1` POP, IN EITHER DIRECTION** (`KM`, 2026-08-11)
+>
+> *This ledger is CLOSED at §88 and is not appended to. This block is an
+> ERRATUM, not an addition: it is written here because §86's own sentence is
+> refuted by later silicon and a closed ledger with an unmarked refuted claim in
+> it is worse than one with an erratum in it. Nothing of §86 is deleted.*
+>
+> §86.A registers the sample as *"`q_pop && q_ripe && q_first`"* and reasons
+> that this is ONE predicate because *"a prefix retires as its own two-clock
+> instruction with its own F pop … **and so does the `0F` escape's first
+> byte**"*, concluding **"the sampling boundaries are simply the opcode pops the
+> `QS = 1` pins announce."** The directed board cell
+> (`docs/notes/tf0f_cell_results_2026-08-11.md`; prereg `f08a597ed5`, amendment
+> `c13ec814f3`; FLASH #17, 512 cells over 4 waits × 4 alignments, **2,880 scored
+> traps per engine**, derivation **16/16** and a **DISJOINT validation 14/14**)
+> corrects it as follows.
+>
+> * **RIGHT IN KIND, WRONG IN COUNT — the prefix half.** A prefix STACK
+>   contributes **ONE** extra boundary unit whatever its depth. `pfx1 … pfx4`
+>   (`2e01d8`, `2e3e01d8`, `2e3e2601d8`, `2e3e263601d8`) read `pushed_off`
+>   7 · 8 · 9 · 10 — **two units at every depth** — on **both engines**, 384
+>   traps, no exception. "Four prefixes contribute four boundaries" is false.
+> * **NEVER IMPLEMENTED, AND THE WRONG BYTE — the `0F` half.** *"…and so does
+>   the `0F` escape's first byte"* was **not in the RTL**: `S_EXT_CHG1` set
+>   nothing, and `pop_is_first` is read only when `st == S_OPC_POP`, so the
+>   sentence could not have been true of this core. It is also the wrong byte:
+>   what silicon counts is the escape's **SECOND** byte — the opcode, popped in
+>   `S_EXT_POP` — which the pins announce **SUBSEQUENT** (`QS = 3`) on both
+>   engines. Measured: the eleven bare-`0F` legs are the whole divergence, the
+>   chip one unit earlier on every one of them, **176 of 512 cells**, same
+>   direction, every wait, every alignment.
+> * **THEREFORE THE QUOTED SENTENCE IS REFUTED IN BOTH DIRECTIONS, AND
+>   ENGINE-FREE** (cell §6, measured off the pins with no engine in the loop):
+>   on a prefix stack the pins announce **MORE** than the boundary uses (`pfx4`:
+>   five `QS = 1`, two units), and on a bare `0F` silicon uses a boundary the
+>   pins do **NOT** announce. The QS streams of chip and core are identical on
+>   **480 of 480** compared cells, so the divergence was never in the queue, the
+>   pop or the decode front end — only in what CONSUMES the stream.
+>
+> **WHAT §86 GOT RIGHT AND IS NOT TOUCHED.** The sample INSTANT (one clock past
+> the pop), `brk_arm` as ONE flop holding a LEVEL, the TAKE at `bnd_fire`, the
+> `01D8` row-0 / row-2 door, the depth-4 pipeline, and the five flops. **The
+> saturation `KM` requires was ALREADY structural in this core** and needed
+> nothing added: the arm is a bit and the take is gated by `bnd_armed`, which is
+> set only at a RETIRE, so extra samples inside an instruction cannot move its
+> trap earlier than its own boundary. That is why `pfx1 … pfx4` were already
+> right.
+>
+> **THE CORRECTION IS ONE TERM**, landed 2026-08-11 with no flop, no save-state
+> address and no opcode named — `wire q_bnd_pop = q_first || (st == S_EXT_POP);`
+> feeding `brk_smp_n` alone, with the `QS` pins, `eu_halt` and `first_pop_seen`
+> deliberately left on `q_first`. Pre-registration
+> `docs/notes/tf0f_km_landing_prereg_2026-08-11.md`, results
+> `docs/notes/tf0f_km_landing_results_2026-08-11.md`.
+>
+> ⚠ **WHAT THIS DOES NOT RESOLVE.** `pushed_off` measures the COUNT of units a
+> probe contributes (1 vs 2), **not WHERE the second one sits**. *"The second
+> boundary is at the opcode byte"* remains an INTERPRETATION of the count; the
+> `IRET`-setter cell that would measure it is **not built** (cell §5.2,
+> registered in its amendment A-1.2a before the validation data existed).
+
 ### §86.A THE LANDING — the arm, and the one thing §85.3 asked for twice that is really once
 
 `v30u_eu.sv` + `v30u_eu_step.svh` + `v30u_eu_row.svh` + the two save-state
