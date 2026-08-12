@@ -8,6 +8,35 @@ null before the board was touched**.
 Every bar is reported in the form it was registered in. **Nothing is
 re-registered after the fact.**
 
+---
+
+## ⚠ READ FIRST — THIS SITTING'S ERA CLOSED AT `3836779ade`
+
+**The ghost LAUNCH relocation (`093efbcfc2`, merged `ef19010e63`) landed FOUR
+RTL files immediately after this sitting's last commit.** Every figure in this
+document was measured on a tree in which `hdl/rtl/` and `sim/` were **FLASH
+#18's byte for byte** — verified before the build, before the flash, and again
+at the close. **The relocation is not in FLASH #19 and did not affect any
+measurement here.** But the tree has since moved, and the consequence is the
+standing one:
+
+    fz2_replay fabric era guard, at the merged HEAD:
+      its inputs  84/88 hash IDENTICAL
+        MOVED  hdl/rtl/ucore/v30_core.sv · v30u_biu.sv · v30u_eu.sv · v30u_ss_pkg.sv
+      -> REFUSES
+
+**NO FABRIC FIGURE IN THIS DOCUMENT MAY BE QUOTED AGAINST THE POST-RELOCATION
+TREE**, and §3's *"era guard PASS at 88/88"* is a statement about the era
+`fc0ae65d56 … 3836779ade`, **not** about HEAD. The guard is doing exactly its
+job by refusing; re-syncing it is the next flash's clause, as it was this
+sitting's `Q-1`.
+
+The relocation's own 528-cell column (275 → 384) is an **offline** result on a
+bitstream that does not exist yet. **It has had no fabric confirmation**, and
+this sitting supplies none.
+
+---
+
     branch      fuzz-v2-on-relanding, HEAD a37f05d4b8 -> prereg fc0ae65d56
     RTL         git diff 770c0d1b85 HEAD -- hdl/rtl/ sim/   ->  EMPTY
                 (checked before the build AND before the flash)
