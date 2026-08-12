@@ -1,0 +1,298 @@
+{
+ "stage": "fz2 capture",
+ "host": "root@mister-nec",
+ "pops": [
+  "enriched"
+ ],
+ "seed_list_sha256": "45d25f31a325c4965da81117d5f4217b86487aa1abb0078faed26a72ed9bec32",
+ "started": "2026-08-12T08:23:32Z",
+ "strata": [
+  {
+   "stratum": "enr/soup/noevt/fix0",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/noevt/fix1",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/noevt/fix2",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/noevt/fix3",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand1",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand3",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand7",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/noevt/wrand15",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/noevt/wvec-uni",
+   "cid": "fz2e",
+   "k_lo": 508000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 10.4,
+   "rate": 7.73
+  },
+  {
+   "stratum": "enr/soup/stim/fix0",
+   "cid": "fz2e",
+   "k_lo": 509000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 8.4,
+   "rate": 9.47
+  },
+  {
+   "stratum": "enr/soup/stim/fix1",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/stim/fix2",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/stim/fix3",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/stim/wrand1",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/stim/wrand3",
+   "cid": "fz2e",
+   "k_lo": 514000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 8.5,
+   "rate": 9.46
+  },
+  {
+   "stratum": "enr/soup/stim/wrand7",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/stim/wrand15",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/soup/stim/wvec-uni",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/noevt/fix0",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/noevt/fix1",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/noevt/fix2",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/noevt/fix3",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand1",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand3",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand7",
+   "cid": "fz2e",
+   "k_lo": 524000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 10.2,
+   "rate": 7.86
+  },
+  {
+   "stratum": "enr/raw/noevt/wrand15",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/noevt/wvec-uni",
+   "cid": "fz2e",
+   "k_lo": 526000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 12.4,
+   "rate": 6.43
+  },
+  {
+   "stratum": "enr/raw/stim/fix0",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/stim/fix1",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/stim/fix2",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/stim/fix3",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/stim/wrand1",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/stim/wrand3",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/stim/wrand7",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/stim/wrand15",
+   "n": 80,
+   "written": 80,
+   "skipped": true
+  },
+  {
+   "stratum": "enr/raw/stim/wvec-uni",
+   "cid": "fz2e",
+   "k_lo": 535000,
+   "n": 80,
+   "written": 80,
+   "rc": 0,
+   "seconds": 13.1,
+   "rate": 6.09
+  }
+ ],
+ "div_guards": [
+  {
+   "tag": "fz2e-08-enr/soup/noevt/wvec-uni",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-12T08:23:34Z"
+  },
+  {
+   "tag": "fz2e-09-enr/soup/stim/fix0",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-12T08:23:49Z"
+  },
+  {
+   "tag": "fz2e-14-enr/soup/stim/wrand3",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-12T08:24:03Z"
+  },
+  {
+   "tag": "fz2e-24-enr/raw/noevt/wrand7",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-12T08:24:18Z"
+  },
+  {
+   "tag": "fz2e-26-enr/raw/noevt/wvec-uni",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-12T08:24:34Z"
+  },
+  {
+   "tag": "fz2e-35-enr/raw/stim/wvec-uni",
+   "readback": "div=8 (4 MHz), commanded by this connection",
+   "state": "PINNED",
+   "rig": "WRAND=0 replay=0 (commanded clean at connect, OK/OK)",
+   "ts": "2026-08-12T08:24:53Z"
+  }
+ ],
+ "board_seconds": 99.8,
+ "halted": null,
+ "finished": "2026-08-12T08:25:12Z"
+}

@@ -1,0 +1,414 @@
+{
+ "tool": "ghost_pred_cell run",
+ "host": "root@mister-nec",
+ "use_core": false,
+ "position": "socketed chip",
+ "div": 8,
+ "git": "3118a2db46",
+ "spec": "docs/notes/ghost_pred_cell_prereg_2026-08-11.md",
+ "ts": "2026-08-12T11:52:02Z",
+ "flash": {
+  "entries": 23,
+  "tail": {
+   "ts": "2026-08-12T11:51:37Z",
+   "sof_path": "hdl/output_files_ucore/nec_test_ucore.sof",
+   "sha256": "26d6e79166183a21bdebe4f6c7c0b8128389eaae1acb02ff8bef57eb9ee182ee",
+   "git_describe": "3118a2db46-dirty",
+   "verify": "OK"
+  }
+ },
+ "block": 32,
+ "R": 5,
+ "images": {
+  "alu88_a0": "6c43525d16a8a7da7e4ee836ef0c6de4191aae0449911ebff429854105b15670",
+  "alu88_a1": "9044f1f4eabbc4161c6da8caddc49d996b7b16664ab44812cee24c6286006f93",
+  "alu88_a2": "25c9059a9153e039c6d29d8378f2dc2794cf242d860afd029c0e389e975a76fa",
+  "alu88_a3": "66a0562d82797fb13ae9250249f6688790d4dde0797780f91014f82c9faa36e5",
+  "alu44_a0": "4eada192a0946ee73896a8ded0dccbfb6cb73a011e3f5af1c8a7b8aec884e08e",
+  "alu44_a1": "bf2f3c6723d3d05dea6e485cc238fe56997d2935d4575e68b1818a5dacfcd556",
+  "alu44_a2": "f5f91c7b7fabba679dbd7ffd27612a399ef01b2882d0ecd6c8f85276db334cb1",
+  "alu44_a3": "b0a06b4031ff54e43d344d1904c4647d0183ff7a223917b905e780a53214f8f2",
+  "alu08_a0": "e45a66b981c54238ef65d4003fd24390d3e76d27079bc74700a4bd0b860528c4",
+  "alu08_a1": "08cbc15af6be1c0c2a79628d35836b7b52cf02261b53d3e3d18095e83b638741",
+  "alu08_a2": "778e1abcbc664716bb790238da8bc053c5db302cbc71b5f43b79a7d26b3b850e",
+  "alu08_a3": "36f92b1f0d501050bfac20cb4a4df8650df649c1dc481ffa88ffb029cedc49cc",
+  "mul_a0": "dea815f3ef435178469a64260dc245916c233e92ca57f6e2860dfebd4d3f7b3b",
+  "mul_a1": "bc48e52845ef23957938ca09b509fe0b815fb46b7f17faa8ca1a3603092a1c7d",
+  "mul_a2": "f641a4e144525f4a65b0090cbea0b008db5740d6242fc01d5df17e5bda58ffd4",
+  "mul_a3": "0f0134152cc74afc4020e8567a851f4b3fd0a463a39a9ef1c89561b2a525c37e",
+  "imul_a0": "e61b0131d652ffd1fbc79b00cf091b5cab8c5497da711c1a7795964d360839bd",
+  "imul_a1": "d8b4de23ebad95fe7536c28823784f71c0695f569a7faf08a95b0e8493156d98",
+  "imul_a2": "f2955de229b8f1a74e0d7e4299e281108cfe97e96b142c72ddcc86b56f2bec42",
+  "imul_a3": "8059696b356e551967aed524bd8af4da342503838c4a75336f25f188d1588a31",
+  "pop0_a0": "5141df755309196d7100671c62fae4a8c0c330a99d3705c96b971d641003c6f3",
+  "pop0_a1": "c057030fd91e255a277e7d82a2d3b4ca2169d47f1182f9977f688ab69335caa6",
+  "pop0_a2": "7caeff6587ede672686a23c3af24f2c16a0acb5c86a08f378bccb3061c201ca7",
+  "pop0_a3": "b37a6c8048a2061374b514086ad55454981973979d462e20d53ac12d7ff18f4c",
+  "pop1_a0": "e5f5a8da328c1c5e79555387cd1b9b03427eceecfea107bd8f51c9401441f9e2",
+  "pop1_a1": "57ecc28cb5d3c3268288ed834a62f98fbde7fd2abb48bed0803819c9409adf30",
+  "pop1_a2": "1bb0911436bf6f890f992346b1e12e39997429bb5285975f9a9043219fed179a",
+  "pop1_a3": "389f220bfb6cd20c1327700d215da03433b00391430c1484a9cadedba6d5c10a",
+  "pop2_a0": "419371eb4d58431d9d69085d4ffad7d25e8d60f93d6df6dd8cc0868f86e5bc6f",
+  "pop2_a1": "2fc3a83b00ea3943f8cb02ee5963affa0d67a634dfb1b421fa212b47620297d7",
+  "pop2_a2": "5fcda979ebabc9bf08f980c3768f2279c928a1a5bd3d936b080760a399c34d81",
+  "pop2_a3": "f50a9d5fce41ee5b9f799f1f67f0ca1e56b3cb5d36ca7d92fcea8dafa50e5105",
+  "mem1_a0": "55102b63a1eb1879b65468dae1c64ce25c1e5d0dcd033b5554cd0e03329fd199",
+  "mem1_a1": "9df56c83a7f66f93c53d003fbb37514205ac2343dc1bc5a4eb46067be9e1648d",
+  "mem1_a2": "1a3729a70cf7b0ffc29f28b6f4cfa950fbe715c090aeeed488d298fb564acf12",
+  "mem1_a3": "80062638e74cb118e7dfecf06f804ad021375b864cd26fa65055cc41f671fa02",
+  "mem3_a0": "1aa7d1b7df76c101d6a22d1e89ed34ffc17b1bcbc10ce0b5a8e8426d390e5087",
+  "mem3_a1": "f04ce4a7aacb0826c52f2b569485dca76edaf5c96853f48d7c7afdda7ebfb325",
+  "mem3_a2": "aefa728e4db1c0d40c877505b18bf97ae99a97b2b327357a44c24befb66b92b1",
+  "mem3_a3": "609002de22ffb7d380f3abd1f8fbafd5dcdbfc85b9fad95b20508fd64b1e37e1",
+  "mem3r_a0": "8215ff03159a03f674918db66a7cc7e6a933162e09bdbf2654b88206518ffcfc",
+  "mem3r_a1": "d829aecc3cf367bc52f99998d6e0dc2d50209c931bceb5c0b9123467783d5801",
+  "mem3r_a2": "71b01eb68f7be05afe8238ac37bded65efb0d9d5385a867e34d5804ace8ec3c5",
+  "mem3r_a3": "1b121c3a47ebd97040e3bbc081adddfd15431bf3392ce455e9fe0bef60cfade3",
+  "memw_a0": "060d88b3cc843b6815257b8ca08dac7c9792d7e85eeff6297d28b19f5495a91a",
+  "memw_a1": "f0128fb53caf32aa82620fc43122ef336e1b70325a9102f68bbeb2dc9052e751",
+  "memw_a2": "d0e7b7c271c0db5115de127a33274838fae6d68c9548e2555354069ea12c8215",
+  "memw_a3": "81e25dee2b8c07c41e21ec1a5c6beb4caccb20453fc5f82b9dd146fa43b3cb07",
+  "popmem_a0": "7749a56d2978096fa6efc59cf048999b806c93d4c6bd3cf45748f36f5ce7044c",
+  "popmem_a1": "f4ef1d9356f7bb8dda10ca2bff0d985f1551a8c9dc0a577a1422c83d5ecda45a",
+  "popmem_a2": "e4c40602ca6e47913d54b021345f9d730c7c560ff4a146c1a7b28ce7126465df",
+  "popmem_a3": "47e951739b39c7768dc16dc877cf5e8ab00bd078aa02c64cc04e41b6f646750f",
+  "mempop_a0": "b5f8c686c9b7012ef228a577a81151fa071c47e9d405abfca6adc8c846530efe",
+  "mempop_a1": "8bb1f0e9684c047c074513ac344956dbbb9028711f983e3efbeb2a84611b70fb",
+  "mempop_a2": "7ad4e71cf8ec15deb813e75af7cf32ad327260d9885a156bc2d40f7e170c512c",
+  "mempop_a3": "74b2a48829b972d285b4773fea392bad5229136e5b6692adcbae651b97813b2e",
+  "mov8e_a0": "5fe936314974175e4e8ab5ed606cb454d7b2a6e0d622268f54c8e74b0d1f7fad",
+  "mov8e_a1": "b1fe3b239cc58f940d6fd7971a19c3c0f8ce72d990a64d7af0a9003ed4a8be6a",
+  "mov8e_a2": "716038a03f3fa8444761fb24c594b8e9ecf2301fb6d38795943e9504ca725521",
+  "mov8e_a3": "731fd34846a20551febc965efa02637bf86e177fe3f2872c2aa373143e8fd9fd",
+  "pfxmem_a0": "6e47c10ee159b114aba7769b5c2ad95d37e274312f53207bc62c0216d465f76d",
+  "pfxmem_a1": "e6d6b74e9782a1b938f3cecafbe180601c5cb5852fe271109bee80e828f3a451",
+  "pfxmem_a2": "3d8f9d3db837c0c98109eae2cfa120f440a19ecc6342be7bdbf1169a69b37d9b",
+  "pfxmem_a3": "576ab73e564bf61e185887f80a5dadccc70b48391b27c584c13ae9da8fc51f72",
+  "pfxpro_a0": "4707ff601323750e09b17f6a7872fdc332ae38540f0c81ac9ffb8af015f5017d",
+  "pfxpro_a1": "1a2cb504d18a9abd5cf8273f83fc1615e0042cd19bc26bb75f88ccd842b52d3d",
+  "pfxpro_a2": "eca5a5dfb5255c993e900904173cf304eabbb10e7f4226dadc50932029f32fa3",
+  "pfxpro_a3": "f679321a0b81c7e7cca1611e583e2477042043889b197e51001aacfe27592bca",
+  "n_pop_a0": "25b11309044f1944bc9a2840372f05be57d76a21d799f3d3f308e41ee0f4a81c",
+  "n_pop_a1": "f876caecf397c25ff3b276493d858374827ab817d1be4e71c8caf136f3d09bdb",
+  "n_pop_a2": "5ff2090d0440ff10a8cfb967b095a369e5085d894644680c8ff7307e941f5796",
+  "n_pop_a3": "187d11396946d1b7d1dcc185befded6de24f50ace6c9364ffc1358f9fe666d97",
+  "n_mod0_a0": "14572a3179b5651617c8c2f06bdc295080ec455162bed9c95c6a0a26505b063d",
+  "n_mod0_a1": "61256044f55f45021c93edaf7c1356dfd059e55e6a3fca2ef2077e2d4f5480de",
+  "n_mod0_a2": "e3eeb90351497a63df4e14761971bc68f6d0673df727fda59cd6de0c2aed7cdc",
+  "n_mod0_a3": "223d96211b35fc27ecf11e600587dfd23b746cc497385d3936eb76df337b47fd",
+  "sl0_a0": "6c43525d16a8a7da7e4ee836ef0c6de4191aae0449911ebff429854105b15670",
+  "sl0_a1": "9044f1f4eabbc4161c6da8caddc49d996b7b16664ab44812cee24c6286006f93",
+  "sl0_a2": "25c9059a9153e039c6d29d8378f2dc2794cf242d860afd029c0e389e975a76fa",
+  "sl0_a3": "66a0562d82797fb13ae9250249f6688790d4dde0797780f91014f82c9faa36e5",
+  "sl1_a0": "474933abd56de9e0844e2d3b628926ecf2601fa6902f3d64ecadbb5864bc29bc",
+  "sl1_a1": "c67c80955f72598c79db338360690e9227efffe83e5b42237a0773753794ff5f",
+  "sl1_a2": "7145cb5fbb686a2bb56fd8fec966e0145d540d9045c7683c4ccc9065cf2f78fb",
+  "sl1_a3": "d30d833220fa7c1f1f52cdbbb1b1162238d9106cef34ff6ad0f46a30f3df6053",
+  "sl2_a0": "3a33f66c2b6de77132c73f36d7fa1eb8ec290793734b3287d4372194fb53877c",
+  "sl2_a1": "c26af13aaf88567bad192c5acbc03d02d6e8951be4a70819605822b96c9c413c",
+  "sl2_a2": "f4a54305a43839711aaa73fe65b91a8822d615b5893c3a67623e206af9648c7b",
+  "sl2_a3": "29411ed1cf558a9e4c0e152d0eeb8139beb771930c289abceb195ee320085bea",
+  "sl3_a0": "6bdef1ca68acc9c606b38c63fd34cb7b56a19004279d901502506ef613119656",
+  "sl3_a1": "6c9b66b94f17b41063af4fe78deab34a72c63dd7e92a881ed5256dff07cce2e8",
+  "sl3_a2": "40968479f06eb458f6e5dc4e524f7b1457095a53615fcbee6d4f34cdc16de6a4",
+  "sl3_a3": "e9305ec050680a25fe25aabe719a0c7da68ab376ff6f36a59a960baccb4d1aee",
+  "sl4_a0": "8072e7e181f3877a27d9c99e9be32681ccd0d716c6f9374cb90ccaa01e9880f8",
+  "sl4_a1": "516ac3b9d52df31acdc0c0773dc8324cba5b6f632a5563002b94fd07badad027",
+  "sl4_a2": "116150999b863e4c1e87d725f7ae7e89626e46f0cdbd8bcd1fb549316973bbb2",
+  "sl4_a3": "e750981ee497ffd1caa4973da29279c219a373400ff8c23162fefa03935d8c8c",
+  "sl5_a0": "7d71d1d025c16286e64cbafc1bd8a8f03e2f606ddad693054f2dae6596a3cd04",
+  "sl5_a1": "7e2b89ada72544f6784d2ca43436e11ac8e91e5f90a16cd96850fdc974b46712",
+  "sl5_a2": "9646db284b5ac5bde211df60307b978e08e6bd71d3dbe178a159eb02ae8c15a4",
+  "sl5_a3": "9fa20773c1772083836201d5375226662af3746cf002f3f7f228a606dae1391f",
+  "sl6_a0": "fe86f72918f4ff4a5b0f04f40c9ea65d967d2bb119c1a1ebf83f694a248f7369",
+  "sl6_a1": "4aba054809624da2bffed9668d44d1f1a65bc1b2f82820b140dbce5c4dffafbf",
+  "sl6_a2": "a0b9a35973ad94c66f7658255abbeca4226b2a29ba898e0b74c907a8490f6cff",
+  "sl6_a3": "df6da08e57c42c266d04c96950112997502eb44381c5d659dd732f37041d3afb",
+  "sl7_a0": "aa14ca476b50edc73fd3b4822f5eb04487167603491859c6cb183c50703f4fa8",
+  "sl7_a1": "b6937eaf1ad25e6aa8171cf2fd0d6aa1d7c4e02a3ee40f46f9f0689a5afb144e",
+  "sl7_a2": "d1beca9a2de660b8b8a747abca1082f89af0d2d626afdd0f18698902b7f36fe9",
+  "sl7_a3": "867f1be8480de4534155a3d6767137fa94aaf9163143b2bf9d80e4dbe5e6ea9e",
+  "v_sub_a0": "310cf4550e60bd979207c0f910fc922f6bfcd07468aff250b6397389897fcbfe",
+  "v_sub_a1": "fb77b5b4afe2ad81904ac8e6fe1750044a6d008e0b567f0b439cfb7241c94078",
+  "v_sub_a2": "ed5682304ce7686b669b303c4e111d97725ca365563ca5ddfee1ebfb93450538",
+  "v_sub_a3": "773ce1f39a2e97eaaad3d007656b1973f960515162cb299d8056242cf7e25254",
+  "v_or_a0": "d449a4d9fc89a43192b6066c50aadb10fb2e2e515bb9b7a0829a53b5f265a142",
+  "v_or_a1": "742448a68a16069c677f0006d6038dd846cb8a5bc61944d161b6d52821de94ff",
+  "v_or_a2": "4baee9baedd6dc4100929e2f0d1c2d03503f1af8994317e1f4f4a4d8c5b74427",
+  "v_or_a3": "0d4831270727e62cc293a31f98c28c4f8440cca7b2e862c2476e34594d0afeef",
+  "v_inc_a0": "fb81e74bf333f954b6727c4e9f76b202acc53df6292b4f8b02dd6e590629904f",
+  "v_inc_a1": "b97f05f0606859f0abd6534e23fd658ab82dc32ba1e43b4403c47905f589e1da",
+  "v_inc_a2": "bb6bfc39dfa45168673c0fd31d81e9e6f86ac9c5662ae9599897b41bdbe7b7f0",
+  "v_inc_a3": "18dca0ab7ffd42a790559a3fdeb17cda3386ef6be982d122f32dd9b606c4e164",
+  "v_shl_a0": "074852851c2b3c92138c9fbac7737e98608d1607e0910c82da55c70649e3be3b",
+  "v_shl_a1": "d46b6609844edd2b39912a73cf52f93f8519e8b88e2d0b5c8008753da86fa9d5",
+  "v_shl_a2": "1fb44ad4a07cbf34abde312b233997cd4047d074c1015cd821144a72322166cd",
+  "v_shl_a3": "69d0a93531428a9c58d1f5c179964fc0a68bd41e7d311ee4c497974615b71e4f",
+  "v_neg_a0": "43dfa51104af6585c03a6062465936f3539860afc0a8387c951779d5036f6ede",
+  "v_neg_a1": "48b5f57910b53df0b414cf77f61076ad5ad0e85241741d141aeb94c61a22d051",
+  "v_neg_a2": "6f1a1b394bbe24ad76e06d5646c29ca423bfcfb1116f179227314a5e4860682f",
+  "v_neg_a3": "1692be1d86cc72914c9d170d1ed33d0f98b27235f8e9a1a3f988a2bfb4512e43",
+  "v_lea_a0": "3b9e95f56f9e16b5240d6770c7a01e200861c24c6c3fb09728d4beec9e62183d",
+  "v_lea_a1": "abf586a8434f0619affdf4158e8712868a66222818133aab1529d7ffe0eecea8",
+  "v_lea_a2": "3abc7c5c4b91c89e4e21746f4afc27d68b6a680809211d198526c627cc3854a2",
+  "v_lea_a3": "22749b19a324e26765ecdd25bf6e126770b0c5b7ae0affbcff507475b8d3dbe4"
+ },
+ "div_guards": [
+  [
+   "preflight",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "alu88",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "alu44",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "alu08",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "mul",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "imul",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "pop0",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "pop1",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "pop2",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "mem1",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "mem3",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "mem3r",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "memw",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "popmem",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "mempop",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "mov8e",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "pfxmem",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "pfxpro",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "n_pop",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "n_mod0",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "sl0",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "sl1",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "sl2",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "sl3",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "sl4",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "sl5",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "sl6",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "sl7",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "v_sub",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "v_or",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "v_inc",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "v_shl",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "v_neg",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "v_lea",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "final",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ]
+ ],
+ "preflight": {
+  "uptime": "11:52:02  up 30 days 16:18,  0 users,  load average: 0.10, 0.00, 0.03",
+  "board_procs": [],
+  "single_writer": "OK",
+  "local_serve_procs": []
+ },
+ "cells": 528,
+ "seconds": 21.8,
+ "transport_errors": 0,
+ "unstable": [],
+ "div_guards_unpinned": []
+}

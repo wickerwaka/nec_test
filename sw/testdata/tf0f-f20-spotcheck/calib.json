@@ -1,0 +1,40 @@
+{
+ "tool": "tf0f_cell calib",
+ "leg": "tb_sys ret",
+ "ts": "2026-08-11T22:41:35Z",
+ "note": "instrument setting only; every scored quantity is measured from the capture's own transactions",
+ "block": 16,
+ "R": 6,
+ "ncap": {
+  "0": 1500,
+  "1": 2000,
+  "2": 2500,
+  "3": 3000
+ },
+ "worst": {
+  "0": {
+   "entries": 6,
+   "last_entry_row": 857,
+   "ok": true,
+   "why": null
+  },
+  "1": {
+   "entries": 6,
+   "last_entry_row": 1143,
+   "ok": true,
+   "why": null
+  },
+  "2": {
+   "entries": 6,
+   "last_entry_row": 1305,
+   "ok": true,
+   "why": null
+  },
+  "3": {
+   "entries": 6,
+   "last_entry_row": 1477,
+   "ok": true,
+   "why": null
+  }
+ }
+}

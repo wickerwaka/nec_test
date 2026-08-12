@@ -1,0 +1,11 @@
+{
+ "tool": "ie_pinfall_cell core",
+ "leg": "tb_sys ret",
+ "receipt": {
+  "base": "9e9b1ddfe03e4ec54e7e59bbb9ac5d893b4d47c4b309d0989099829d0a1457b8",
+  "ret": "df2466eb189819aedcf808e2ec8782e3bb3bcdef2b49ef5d218c68158cedfc9c"
+ },
+ "cells": 2200,
+ "seconds": 430.9,
+ "ts": "2026-08-12T02:41:59Z"
+}

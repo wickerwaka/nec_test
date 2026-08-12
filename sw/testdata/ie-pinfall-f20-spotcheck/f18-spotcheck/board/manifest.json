@@ -1,0 +1,64 @@
+{
+ "tool": "ie_pinfall_cell run",
+ "host": "root@mister-nec",
+ "use_core": false,
+ "div": 8,
+ "spec": "docs/notes/ie_pinfall_cell_prereg_2026-08-11.md",
+ "ts": "2026-08-12T02:34:12Z",
+ "flash": {
+  "entries": 21,
+  "tail": {
+   "ts": "2026-08-12T02:18:05Z",
+   "sof_path": "hdl/output_files_ucore/nec_test_ucore.sof",
+   "sha256": "b2a1fe5f83167fbfd2b7d9f3b67d1ad10a2200448d019ce7b5bc8eed8a88dd58",
+   "git_describe": "30b46f07d3-dirty",
+   "verify": "OK"
+  }
+ },
+ "images": {
+  "eirun": "4fe2c705f1a1828e1a8dc37f37f32302c58202eba6a4168e1d90ee30704c2fcd",
+  "eihlt": "9f03679b9df19bfe7e757745472f9f5c921198e574df66e91d4d937734c5e39f",
+  "ierun": "fdb83a0d5c4cb1cfef45e4d1953279cfed50971c694f5a262f1d1cd6e0f60be5",
+  "iehlt": "2f1a09e8a31f01165c604b874e2042ec0bdc99307f4bcc9fd1c33d4336e82dfe"
+ },
+ "div_guards": [
+  [
+   "preflight",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "eihlt_w0",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "ierun_w0",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ],
+  [
+   "final",
+   {
+    "readback": "div=8 (4 MHz), commanded by this connection",
+    "state": "PINNED"
+   }
+  ]
+ ],
+ "preflight": {
+  "uptime": "02:34:13  up 30 days  7:00,  0 users,  load average: 0.04, 0.00, 0.11",
+  "board_procs": [],
+  "single_writer": "OK",
+  "local_serve_procs": []
+ },
+ "cells": 2200,
+ "seconds": 0.8,
+ "transport_errors": 0,
+ "unstable": []
+}
