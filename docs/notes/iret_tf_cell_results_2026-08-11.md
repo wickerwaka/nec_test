@@ -12,8 +12,8 @@ REFUTED as a statement about where the trap lands.**
 |---|---|
 | pre-registration | `docs/notes/iret_tf_cell_prereg_2026-08-11.md`, commit **`53242e3865`**, before the first board contact |
 | tool | `sw/iret_tf_cell.py` |
-| artifacts | `sw/testdata/iret-tf/` (`board/`, `core/`, `predictions.json`, `calib.json`, `score_der.json`, `qs.json`, `SHA256SUMS` per directory) |
-| tree | `fuzz-v2-on-relanding`, `292d898837` → `53242e3865` |
+| artifacts | `sw/testdata/iret-tf/` (`board/`, `core/`, `predictions.json`, `calib.json`, `score_der.json`, `score_val.json`, `score_all.json`, `qs.json`, `SHA256SUMS` per directory) |
+| tree | `fuzz-v2-on-relanding`, `292d898837` → `53242e3865` → `22151f64c7` |
 | board | **FLASH #17** (`.sof` `26c19f613e2caae8…`), socket only, `flash_log.jsonl` **20 entries before and after** |
 | engine leg | `tb_sys ret`, rebuilt on this tree at the `KM` landing, receipt `63308b10ac00a812…` |
 
@@ -25,9 +25,9 @@ The `TF` trap is taken at an instruction **RETIRE** and at nothing else.  A
 prefix hand-over and an `0F` escape's re-decode are **sample** events — they
 decide *which* boundary pop arms the trap — and neither is ever a place the trap
 can land.  The whole 20-rule pre-registered product collapses to **one** rule
-that clears the bar, `S1.*.B0`, at **49 of 49 derivation legs**, and the chip
-and the ucore give **identical answers on all 832 cells, in every scored
-column**.  The one genuinely new fact is the setter adjacency: **the `IRET`
+that clears the bar, `S1.*.B0`, at **49 of 49 derivation legs and 14 of 14
+disjoint validation legs**, and the chip and the ucore give **identical answers
+on all 1,072 cells, in every scored column**.  The one genuinely new fact is the setter adjacency: **the `IRET`
 setter arms on the FIRST boundary pop after it and `popf` arms on the SECOND**,
 which is one instruction per trap — a single step — and which needs no new
 mechanism, only §86.B's existing 4-clock floor applied to a rise that sits many
@@ -37,22 +37,24 @@ clocks further back.
 
 ## 2. WHAT WAS RUN
 
-One board leg, socket-only (`use_core=False`, explicit), on FLASH #17.
+Two board legs, both socket-only (`use_core=False`, explicit), both on FLASH #17.
 
-| | derivation |
-|---|---|
-| legs | 52 (49 scored + 3 null) |
-| cells (leg × waits 0-3 × align 0-3) | **832** |
-| scored traps | **4,704** per engine (49 legs × 96) |
-| wall clock | board **35 s**, `tb_sys ret` 244 s |
-| transport errors | **0** |
-| `div_guard` | **54 boundaries, all PINNED**, 0 UNPINNED |
-| structurally invalid cells | **0 of 832** |
+| | derivation | validation |
+|---|---|---|
+| legs | 52 (49 scored + 3 null) | 15 (14 scored + 1 null) |
+| cells (leg × waits 0-3 × align 0-3) | **832** | **240** |
+| scored traps per engine | **4,704** | **1,344** |
+| wall clock | board **35 s**, `tb_sys ret` 244 s | board **10 s**, `tb_sys ret` 66 s |
+| transport errors | **0** | **0** |
+| `div_guard` | **54 boundaries, all PINNED** | **17 boundaries, all PINNED** |
+| structurally invalid cells | **0 of 832** | **0 of 240** |
 
-Stability: **104 of 832 cells (12.5 %) captured ×3** — **0 TAKE-unstable** and
-**0 stream-distinct**, i.e. the full 64-bit word streams were byte-identical
-across repeats as well.  Every leg is single-valued across all 16 of its cells
-and all 6 of its traps, on both engines: 96 traps, one number, 49 times.
+**Totals: 1,072 board cells, 1,072 matched `tb_sys` cells, 6,048 scored traps
+per engine.**  Stability: **134 of 1,072 cells (12.5 %) captured ×3** — **0
+TAKE-unstable** and **0 stream-distinct**, i.e. the full 64-bit word streams
+were byte-identical across repeats as well.  Every leg is single-valued across
+all 16 of its cells and all 6 of its traps, on both engines: 96 traps, one
+number, 63 times.
 
 ---
 
@@ -102,9 +104,9 @@ and all 6 of its traps, on both engines: 96 traps, one number, 49 times.
 | `P2_*` | `nop pfx4 z1b p4x` | 2 | 6 · 6 · 6 · 6 | same | 0 |
 | `RP_*` | `nop x1b z1b` (tf0f's own images) | 0 | 6 · 8 · 9 | same | 0 |
 
-**`176 of 832` cells differ chip-vs-core: zero.  Every scored column — entry
-count, `pushed_off`, its set, the prefetch high-water mark, uniformity,
-termination — is 0 / 832.**
+**Cells differing chip-vs-core: ZERO.  Every scored column — entry count,
+`pushed_off`, its set, the prefetch high-water mark, uniformity, termination —
+is 0 / 832 here and 0 / 1,072 over both populations.**
 
 The bolded rows are the ones that carry the answer: every one of them is
 `probe_start + probe_length`, the retire.  **Not one of the deep legs pushes a
@@ -136,7 +138,10 @@ degeneracy that `B0` induces and which no observable in this cell can lift —
 §8).  No replacement was needed, so **no erratum arises and the standing
 "validate a replacement on disjoint data" rule is not triggered**; the disjoint
 validation population registered in §7 of the pre-registration is nevertheless
-captured, because it was registered, and is reported in §7 below.
+captured, because it was registered, and it is **14 / 14** — §7.
+
+**Combined, derivation + validation: `S1.*.B0` is 63 / 63 legs on both
+engines**, and the runner-up `S2.*.B0` is 47 / 63.
 
 ### 4.1 The control clauses
 
@@ -154,7 +159,9 @@ captured, because it was registered, and is reported in §7 below.
   `div_guard` boundaries, **all PINNED**, 0 UNPINNED · **I-7** **0** transport
   errors, 0 `RigMismatch` · **I-8** 12.5 % ×3, **0** TAKE-unstable, **0**
   stream-distinct · **I-9** full per-clock words retained, `SHA256SUMS` over
-  both directories (210 files each) · **I-10** below.
+  both directories (270 files each after the validation leg) · **I-10 PASS** —
+  `board_idle()` clean and **`check_ab_hw.py chip 800` = `chip-vs-golden: MATCH
+  over 800 rows`** after everything, with `flash_log.jsonl` still at 20 entries.
 
 ---
 
@@ -202,7 +209,7 @@ empty**.
 
 `sw/iret_tf_cell.py qs`, pins only, no engine in the comparison: the chip and
 the core emit the **same `QS` stream from the anchor to the first vector-1
-entry** on **832 of 832 cells, every leg including the nulls, 0 differ**.  So
+entry** on **1,072 of 1,072 cells, every leg including the nulls, 0 differ**.  So
 the agreement in §3 is not two different front ends arriving at the same answer
 by luck; the stream is the same and the thing that consumes it now agrees too.
 
@@ -217,11 +224,49 @@ is the predicate `KM` landed.
 
 ## 7. THE DISJOINT VALIDATION POPULATION
 
-Registered in the pre-registration §7 before any board contact, captured after
-the derivation verdict was committed.  Seven probes whose bytes appear nowhere
-in the derivation set, on the two discriminating geometries, plus its own null.
+Registered in the pre-registration §7 **before any board contact**, captured
+after the derivation verdict was committed (`22151f64c7`).  Seven probes whose
+bytes appear nowhere in the derivation set, on the two discriminating
+geometries, plus its own null.  **240 cells, 15 legs, board 10 s, 0 transport
+errors, 17 `div_guard` boundaries all PINNED, 0 structurally invalid cells.**
 
-*(Filled in by the validation leg — see §7.1.)*
+| leg | bytes | f | **chip** | core | Δ | `B0` | `B1` | `Bnp` | `Bd` |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `P1_v_pfxa` | `36 26 01 d8` | 1 | **9** | 9 | 0 | **9** | 6 | 7 | 7 |
+| `I0_v_pfxa` | `36 26 01 d8` | 0 | **6** | 6 | 0 | **6** | 3 | 4 | 4 |
+| `P1_v_pfxb` | `f3 2e 3e 01 d8` | 1 | **10** | 10 | 0 | **10** | 6 | 8 | 8 |
+| `I0_v_pfxb` | `f3 2e 3e 01 d8` | 0 | **7** | 7 | 0 | **7** | 3 | 5 | 5 |
+| `P1_v_z13` | `3e 0f 13 c0` | 1 | **9** | 9 | 0 | **9** | 6 | 6 | 7 |
+| `I0_v_z13` | `3e 0f 13 c0` | 0 | **6** | 6 | 0 | **6** | 3 | 3 | 4 |
+| `P1_v_p3x` | `26 36 3e 0f 13 c0` | 1 | **11** | 11 | 0 | **11** | 6 | 8 | 9 |
+| `I0_v_p3x` | `26 36 3e 0f 13 c0` | 0 | **8** | 8 | 0 | **8** | 3 | 5 | 6 |
+| `P1_v_x2a` | `0f 2a c0` | 1 | **8** | 8 | 0 | **8** | 6 | 8 | 6 |
+| `I0_v_x2a` | `0f 2a c0` | 0 | **5** | 5 | 0 | **5** | 3 | 5 | 3 |
+| `P1_v_lock` | `f0 01 d8` | 1 | **8** | 8 | 0 | **8** | 6 | 6 | 6 |
+| `I0_v_lock` | `f0 01 d8` | 0 | **5** | 5 | 0 | **5** | 3 | 3 | 3 |
+| `P1_v_xchg` | `93` | 1 | 6 | 6 | 0 | — declared non-discriminating — | | | |
+| `I0_v_xchg` | `93` | 0 | **3** | 3 | 0 | `S1` **3** vs `S2` 4 | | | |
+| `N_p1_v_p3x` | the NULL | 1 | **0 entries / 16 cells** | 0 | 0 | | | | |
+
+**`S1.*.B0` is 14 / 14 on the chip and 14 / 14 on the core.**  Every other
+registered rule misses: the runner-up `S2.*.B0` is 13/14 and its one miss is
+`I0_v_xchg`, the leg that exists to separate `S1` from `S2`; `Bd` — `KM`'s
+interpretation — is **2 / 14**.  The population really does separate the winner
+from the field, so the score is evidence and not a restatement.
+
+Two answers registered as open questions in the derivation set are also given
+here: **`LOCK` (`F0`) and `REP` (`F3`) are decoration exactly as a segment
+override is** — `v_lock` reads the decorated value and `v_pfxb`'s three-deep
+mixed stack reads the depth-independent one — which is `tf0f` V-5's answer
+holding under the new geometry as well.
+
+### 7.1 The combined column
+
+Derivation and validation together: **63 scored legs, 1,072 cells, 6,048 traps
+per engine.  `S1.*.B0` is 63 / 63 on both engines.  Chip vs core differs on 0
+of 1,072 cells in every scored column, and the `QS` pin streams are identical on
+1,072 of 1,072.**  `134 / 1,072` cells captured ×3: 0 TAKE-unstable, 0
+stream-distinct.
 
 ---
 
@@ -244,8 +289,9 @@ in the derivation set, on the two discriminating geometries, plus its own null.
 ## 9. THE RTL CANDIDATE, AND WHY THERE ISN'T ONE
 
 **There is no landing to book.**  The ucore reproduces silicon on 832 of 832
-cells and 4,704 of 4,704 traps, and the unique surviving law is the one it
-already implements: `bnd_armed` is set only at a retire (`v30u_eu.sv:1932`), and
+cells and 4,704 of 4,704 traps in the derivation population, 1,072 of 1,072
+cells and 6,048 of 6,048 traps over both populations, and the unique surviving
+law is the one it already implements: `bnd_armed` is set only at a retire (`v30u_eu.sv:1932`), and
 the `IRET`/`popf` asymmetry falls out of the `BRK_FLOOR` pipeline that is
 already there.  **A cell that finds the mechanism already complete is a
 VALIDATION, and it is stated plainly as one.**
@@ -264,7 +310,7 @@ Two things it does buy, both cheap and both real:
 **Falsifier for `KR`.**  Any capture in which a `TF` trap pushes a return
 address that is not an instruction start — in particular any capture in which a
 decorated instruction with `PSW.TF` set pushes its own opcode byte, its `0F`
-byte, or any interior byte.  832 cells and 4,704 traps here contain none.
+byte, or any interior byte.  1,072 cells and 6,048 traps here contain none.
 
 **Falsifier for `KS`.**  Any capture in which an `IRET`-set `TF` trap skips the
 first instruction after the `IRET`, or a `popf`-set one does not.

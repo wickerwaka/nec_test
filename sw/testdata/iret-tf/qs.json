@@ -1,6 +1,6 @@
 {
  "stream_diff": [],
- "compared": 832,
+ "compared": 1072,
  "per_leg": {
   "P1_nop": {
    "diff": 0,
@@ -207,6 +207,66 @@
    "of": 16
   },
   "N_i0_p4x": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_v_pfxa": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_v_pfxa": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_v_pfxb": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_v_pfxb": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_v_z13": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_v_z13": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_v_p3x": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_v_p3x": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_v_x2a": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_v_x2a": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_v_lock": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_v_lock": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_v_xchg": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_v_xchg": {
+   "diff": 0,
+   "of": 16
+  },
+  "N_p1_v_p3x": {
    "diff": 0,
    "of": 16
   }

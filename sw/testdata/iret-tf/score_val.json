@@ -1,0 +1,1233 @@
+{
+ "stage": "val",
+ "controls": {
+  "N_p1_v_p3x": {
+   "cells": 16,
+   "entry_counts": [
+    0
+   ],
+   "nonzero": []
+  }
+ },
+ "boundary": {
+  "P1_v_pfxa": {
+   "chip": {
+    "9": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "S1.PA.B0": 9,
+    "S1.PA.B1": 6,
+    "S1.PA.Bnp": 7,
+    "S1.PA.Bd": 7,
+    "S1.PA.Ball": 6,
+    "S1.Pall.B0": 9,
+    "S1.Pall.B1": 6,
+    "S1.Pall.Bnp": 7,
+    "S1.Pall.Bd": 7,
+    "S1.Pall.Ball": 6,
+    "S2.PA.B0": 9,
+    "S2.PA.B1": 6,
+    "S2.PA.Bnp": 7,
+    "S2.PA.Bd": 7,
+    "S2.PA.Ball": 6,
+    "S2.Pall.B0": 9,
+    "S2.Pall.B1": 6,
+    "S2.Pall.Bnp": 7,
+    "S2.Pall.Bd": 7,
+    "S2.Pall.Ball": 6
+   },
+   "chip_unique": true,
+   "chip_off": 9,
+   "core_unique": true,
+   "core_off": 9,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "P1",
+   "probe": "v_pfxa",
+   "separates": true
+  },
+  "I0_v_pfxa": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "S1.PA.B0": 6,
+    "S1.PA.B1": 3,
+    "S1.PA.Bnp": 4,
+    "S1.PA.Bd": 4,
+    "S1.PA.Ball": 3,
+    "S1.Pall.B0": 6,
+    "S1.Pall.B1": 3,
+    "S1.Pall.Bnp": 4,
+    "S1.Pall.Bd": 4,
+    "S1.Pall.Ball": 3,
+    "S2.PA.B0": 6,
+    "S2.PA.B1": 6,
+    "S2.PA.Bnp": 6,
+    "S2.PA.Bd": 6,
+    "S2.PA.Ball": 6,
+    "S2.Pall.B0": 6,
+    "S2.Pall.B1": 6,
+    "S2.Pall.Bnp": 4,
+    "S2.Pall.Bd": 4,
+    "S2.Pall.Ball": 4
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_unique": true,
+   "core_off": 6,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "I0",
+   "probe": "v_pfxa",
+   "separates": true
+  },
+  "P1_v_pfxb": {
+   "chip": {
+    "10": 96
+   },
+   "core": {
+    "10": 96
+   },
+   "pred": {
+    "S1.PA.B0": 10,
+    "S1.PA.B1": 6,
+    "S1.PA.Bnp": 8,
+    "S1.PA.Bd": 8,
+    "S1.PA.Ball": 6,
+    "S1.Pall.B0": 10,
+    "S1.Pall.B1": 6,
+    "S1.Pall.Bnp": 8,
+    "S1.Pall.Bd": 8,
+    "S1.Pall.Ball": 6,
+    "S2.PA.B0": 10,
+    "S2.PA.B1": 6,
+    "S2.PA.Bnp": 8,
+    "S2.PA.Bd": 8,
+    "S2.PA.Ball": 6,
+    "S2.Pall.B0": 10,
+    "S2.Pall.B1": 6,
+    "S2.Pall.Bnp": 8,
+    "S2.Pall.Bd": 8,
+    "S2.Pall.Ball": 6
+   },
+   "chip_unique": true,
+   "chip_off": 10,
+   "core_unique": true,
+   "core_off": 10,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "P1",
+   "probe": "v_pfxb",
+   "separates": true
+  },
+  "I0_v_pfxb": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "S1.PA.B0": 7,
+    "S1.PA.B1": 3,
+    "S1.PA.Bnp": 5,
+    "S1.PA.Bd": 5,
+    "S1.PA.Ball": 3,
+    "S1.Pall.B0": 7,
+    "S1.Pall.B1": 3,
+    "S1.Pall.Bnp": 5,
+    "S1.Pall.Bd": 5,
+    "S1.Pall.Ball": 3,
+    "S2.PA.B0": 7,
+    "S2.PA.B1": 7,
+    "S2.PA.Bnp": 7,
+    "S2.PA.Bd": 7,
+    "S2.PA.Ball": 7,
+    "S2.Pall.B0": 7,
+    "S2.Pall.B1": 7,
+    "S2.Pall.Bnp": 5,
+    "S2.Pall.Bd": 5,
+    "S2.Pall.Ball": 4
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_unique": true,
+   "core_off": 7,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "I0",
+   "probe": "v_pfxb",
+   "separates": true
+  },
+  "P1_v_z13": {
+   "chip": {
+    "9": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "S1.PA.B0": 9,
+    "S1.PA.B1": 6,
+    "S1.PA.Bnp": 6,
+    "S1.PA.Bd": 7,
+    "S1.PA.Ball": 6,
+    "S1.Pall.B0": 9,
+    "S1.Pall.B1": 6,
+    "S1.Pall.Bnp": 6,
+    "S1.Pall.Bd": 7,
+    "S1.Pall.Ball": 6,
+    "S2.PA.B0": 9,
+    "S2.PA.B1": 6,
+    "S2.PA.Bnp": 6,
+    "S2.PA.Bd": 7,
+    "S2.PA.Ball": 6,
+    "S2.Pall.B0": 9,
+    "S2.Pall.B1": 6,
+    "S2.Pall.Bnp": 6,
+    "S2.Pall.Bd": 7,
+    "S2.Pall.Ball": 6
+   },
+   "chip_unique": true,
+   "chip_off": 9,
+   "core_unique": true,
+   "core_off": 9,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "P1",
+   "probe": "v_z13",
+   "separates": true
+  },
+  "I0_v_z13": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "S1.PA.B0": 6,
+    "S1.PA.B1": 3,
+    "S1.PA.Bnp": 3,
+    "S1.PA.Bd": 4,
+    "S1.PA.Ball": 3,
+    "S1.Pall.B0": 6,
+    "S1.Pall.B1": 3,
+    "S1.Pall.Bnp": 3,
+    "S1.Pall.Bd": 4,
+    "S1.Pall.Ball": 3,
+    "S2.PA.B0": 6,
+    "S2.PA.B1": 6,
+    "S2.PA.Bnp": 6,
+    "S2.PA.Bd": 6,
+    "S2.PA.Ball": 6,
+    "S2.Pall.B0": 6,
+    "S2.Pall.B1": 6,
+    "S2.Pall.Bnp": 6,
+    "S2.Pall.Bd": 4,
+    "S2.Pall.Ball": 4
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_unique": true,
+   "core_off": 6,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "I0",
+   "probe": "v_z13",
+   "separates": true
+  },
+  "P1_v_p3x": {
+   "chip": {
+    "11": 96
+   },
+   "core": {
+    "11": 96
+   },
+   "pred": {
+    "S1.PA.B0": 11,
+    "S1.PA.B1": 6,
+    "S1.PA.Bnp": 8,
+    "S1.PA.Bd": 9,
+    "S1.PA.Ball": 6,
+    "S1.Pall.B0": 11,
+    "S1.Pall.B1": 6,
+    "S1.Pall.Bnp": 8,
+    "S1.Pall.Bd": 9,
+    "S1.Pall.Ball": 6,
+    "S2.PA.B0": 11,
+    "S2.PA.B1": 6,
+    "S2.PA.Bnp": 8,
+    "S2.PA.Bd": 9,
+    "S2.PA.Ball": 6,
+    "S2.Pall.B0": 11,
+    "S2.Pall.B1": 6,
+    "S2.Pall.Bnp": 8,
+    "S2.Pall.Bd": 9,
+    "S2.Pall.Ball": 6
+   },
+   "chip_unique": true,
+   "chip_off": 11,
+   "core_unique": true,
+   "core_off": 11,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "P1",
+   "probe": "v_p3x",
+   "separates": true
+  },
+  "I0_v_p3x": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "S1.PA.B0": 8,
+    "S1.PA.B1": 3,
+    "S1.PA.Bnp": 5,
+    "S1.PA.Bd": 6,
+    "S1.PA.Ball": 3,
+    "S1.Pall.B0": 8,
+    "S1.Pall.B1": 3,
+    "S1.Pall.Bnp": 5,
+    "S1.Pall.Bd": 6,
+    "S1.Pall.Ball": 3,
+    "S2.PA.B0": 8,
+    "S2.PA.B1": 8,
+    "S2.PA.Bnp": 8,
+    "S2.PA.Bd": 8,
+    "S2.PA.Ball": 8,
+    "S2.Pall.B0": 8,
+    "S2.Pall.B1": 8,
+    "S2.Pall.Bnp": 5,
+    "S2.Pall.Bd": 6,
+    "S2.Pall.Ball": 4
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_unique": true,
+   "core_off": 8,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "I0",
+   "probe": "v_p3x",
+   "separates": true
+  },
+  "P1_v_x2a": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "S1.PA.B0": 8,
+    "S1.PA.B1": 6,
+    "S1.PA.Bnp": 8,
+    "S1.PA.Bd": 6,
+    "S1.PA.Ball": 6,
+    "S1.Pall.B0": 8,
+    "S1.Pall.B1": 6,
+    "S1.Pall.Bnp": 8,
+    "S1.Pall.Bd": 6,
+    "S1.Pall.Ball": 6,
+    "S2.PA.B0": 8,
+    "S2.PA.B1": 6,
+    "S2.PA.Bnp": 8,
+    "S2.PA.Bd": 6,
+    "S2.PA.Ball": 6,
+    "S2.Pall.B0": 8,
+    "S2.Pall.B1": 6,
+    "S2.Pall.Bnp": 8,
+    "S2.Pall.Bd": 6,
+    "S2.Pall.Ball": 6
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_unique": true,
+   "core_off": 8,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "P1",
+   "probe": "v_x2a",
+   "separates": true
+  },
+  "I0_v_x2a": {
+   "chip": {
+    "5": 96
+   },
+   "core": {
+    "5": 96
+   },
+   "pred": {
+    "S1.PA.B0": 5,
+    "S1.PA.B1": 3,
+    "S1.PA.Bnp": 5,
+    "S1.PA.Bd": 3,
+    "S1.PA.Ball": 3,
+    "S1.Pall.B0": 5,
+    "S1.Pall.B1": 3,
+    "S1.Pall.Bnp": 5,
+    "S1.Pall.Bd": 3,
+    "S1.Pall.Ball": 3,
+    "S2.PA.B0": 5,
+    "S2.PA.B1": 5,
+    "S2.PA.Bnp": 5,
+    "S2.PA.Bd": 5,
+    "S2.PA.Ball": 5,
+    "S2.Pall.B0": 5,
+    "S2.Pall.B1": 5,
+    "S2.Pall.Bnp": 5,
+    "S2.Pall.Bd": 5,
+    "S2.Pall.Ball": 5
+   },
+   "chip_unique": true,
+   "chip_off": 5,
+   "core_unique": true,
+   "core_off": 5,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "I0",
+   "probe": "v_x2a",
+   "separates": true
+  },
+  "P1_v_lock": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "S1.PA.B0": 8,
+    "S1.PA.B1": 6,
+    "S1.PA.Bnp": 6,
+    "S1.PA.Bd": 6,
+    "S1.PA.Ball": 6,
+    "S1.Pall.B0": 8,
+    "S1.Pall.B1": 6,
+    "S1.Pall.Bnp": 6,
+    "S1.Pall.Bd": 6,
+    "S1.Pall.Ball": 6,
+    "S2.PA.B0": 8,
+    "S2.PA.B1": 6,
+    "S2.PA.Bnp": 6,
+    "S2.PA.Bd": 6,
+    "S2.PA.Ball": 6,
+    "S2.Pall.B0": 8,
+    "S2.Pall.B1": 6,
+    "S2.Pall.Bnp": 6,
+    "S2.Pall.Bd": 6,
+    "S2.Pall.Ball": 6
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_unique": true,
+   "core_off": 8,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "P1",
+   "probe": "v_lock",
+   "separates": true
+  },
+  "I0_v_lock": {
+   "chip": {
+    "5": 96
+   },
+   "core": {
+    "5": 96
+   },
+   "pred": {
+    "S1.PA.B0": 5,
+    "S1.PA.B1": 3,
+    "S1.PA.Bnp": 3,
+    "S1.PA.Bd": 3,
+    "S1.PA.Ball": 3,
+    "S1.Pall.B0": 5,
+    "S1.Pall.B1": 3,
+    "S1.Pall.Bnp": 3,
+    "S1.Pall.Bd": 3,
+    "S1.Pall.Ball": 3,
+    "S2.PA.B0": 5,
+    "S2.PA.B1": 5,
+    "S2.PA.Bnp": 5,
+    "S2.PA.Bd": 5,
+    "S2.PA.Ball": 5,
+    "S2.Pall.B0": 5,
+    "S2.Pall.B1": 5,
+    "S2.Pall.Bnp": 5,
+    "S2.Pall.Bd": 5,
+    "S2.Pall.Ball": 5
+   },
+   "chip_unique": true,
+   "chip_off": 5,
+   "core_unique": true,
+   "core_off": 5,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "I0",
+   "probe": "v_lock",
+   "separates": true
+  },
+  "P1_v_xchg": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "S1.PA.B0": 6,
+    "S1.PA.B1": 6,
+    "S1.PA.Bnp": 6,
+    "S1.PA.Bd": 6,
+    "S1.PA.Ball": 6,
+    "S1.Pall.B0": 6,
+    "S1.Pall.B1": 6,
+    "S1.Pall.Bnp": 6,
+    "S1.Pall.Bd": 6,
+    "S1.Pall.Ball": 6,
+    "S2.PA.B0": 6,
+    "S2.PA.B1": 6,
+    "S2.PA.Bnp": 6,
+    "S2.PA.Bd": 6,
+    "S2.PA.Ball": 6,
+    "S2.Pall.B0": 6,
+    "S2.Pall.B1": 6,
+    "S2.Pall.Bnp": 6,
+    "S2.Pall.Bd": 6,
+    "S2.Pall.Ball": 6
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_unique": true,
+   "core_off": 6,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "P1",
+   "probe": "v_xchg",
+   "separates": false
+  },
+  "I0_v_xchg": {
+   "chip": {
+    "3": 96
+   },
+   "core": {
+    "3": 96
+   },
+   "pred": {
+    "S1.PA.B0": 3,
+    "S1.PA.B1": 3,
+    "S1.PA.Bnp": 3,
+    "S1.PA.Bd": 3,
+    "S1.PA.Ball": 3,
+    "S1.Pall.B0": 3,
+    "S1.Pall.B1": 3,
+    "S1.Pall.Bnp": 3,
+    "S1.Pall.Bd": 3,
+    "S1.Pall.Ball": 3,
+    "S2.PA.B0": 4,
+    "S2.PA.B1": 4,
+    "S2.PA.Bnp": 4,
+    "S2.PA.Bd": 4,
+    "S2.PA.Ball": 4,
+    "S2.Pall.B0": 4,
+    "S2.Pall.B1": 4,
+    "S2.Pall.Bnp": 4,
+    "S2.Pall.Bd": 4,
+    "S2.Pall.Ball": 4
+   },
+   "chip_unique": true,
+   "chip_off": 3,
+   "core_unique": true,
+   "core_off": 3,
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val",
+   "geom": "I0",
+   "probe": "v_xchg",
+   "separates": true
+  }
+ },
+ "rules": {
+  "S1.PA.B0": {
+   "chip": {
+    "agree": 14,
+    "of": 14,
+    "misses": []
+   },
+   "core": {
+    "agree": 14,
+    "of": 14,
+    "misses": []
+   }
+  },
+  "S1.PA.B1": {
+   "chip": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   },
+   "core": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   }
+  },
+  "S1.PA.Bnp": {
+   "chip": {
+    "agree": 4,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   },
+   "core": {
+    "agree": 4,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   }
+  },
+  "S1.PA.Bd": {
+   "chip": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   },
+   "core": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   }
+  },
+  "S1.PA.Ball": {
+   "chip": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   },
+   "core": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   }
+  },
+  "S1.Pall.B0": {
+   "chip": {
+    "agree": 14,
+    "of": 14,
+    "misses": []
+   },
+   "core": {
+    "agree": 14,
+    "of": 14,
+    "misses": []
+   }
+  },
+  "S1.Pall.B1": {
+   "chip": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   },
+   "core": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   }
+  },
+  "S1.Pall.Bnp": {
+   "chip": {
+    "agree": 4,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   },
+   "core": {
+    "agree": 4,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   }
+  },
+  "S1.Pall.Bd": {
+   "chip": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   },
+   "core": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   }
+  },
+  "S1.Pall.Ball": {
+   "chip": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   },
+   "core": {
+    "agree": 2,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "I0_v_x2a",
+     "P1_v_lock",
+     "I0_v_lock"
+    ]
+   }
+  },
+  "S2.PA.B0": {
+   "chip": {
+    "agree": 13,
+    "of": 14,
+    "misses": [
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 13,
+    "of": 14,
+    "misses": [
+     "I0_v_xchg"
+    ]
+   }
+  },
+  "S2.PA.B1": {
+   "chip": {
+    "agree": 7,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 7,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   }
+  },
+  "S2.PA.Bnp": {
+   "chip": {
+    "agree": 8,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 8,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   }
+  },
+  "S2.PA.Bd": {
+   "chip": {
+    "agree": 7,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 7,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   }
+  },
+  "S2.PA.Ball": {
+   "chip": {
+    "agree": 7,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 7,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   }
+  },
+  "S2.Pall.B0": {
+   "chip": {
+    "agree": 13,
+    "of": 14,
+    "misses": [
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 13,
+    "of": 14,
+    "misses": [
+     "I0_v_xchg"
+    ]
+   }
+  },
+  "S2.Pall.B1": {
+   "chip": {
+    "agree": 7,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 7,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "P1_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   }
+  },
+  "S2.Pall.Bnp": {
+   "chip": {
+    "agree": 5,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 5,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   }
+  },
+  "S2.Pall.Bd": {
+   "chip": {
+    "agree": 3,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 3,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   }
+  },
+  "S2.Pall.Ball": {
+   "chip": {
+    "agree": 3,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   },
+   "core": {
+    "agree": 3,
+    "of": 14,
+    "misses": [
+     "P1_v_pfxa",
+     "I0_v_pfxa",
+     "P1_v_pfxb",
+     "I0_v_pfxb",
+     "P1_v_z13",
+     "I0_v_z13",
+     "P1_v_p3x",
+     "I0_v_p3x",
+     "P1_v_x2a",
+     "P1_v_lock",
+     "I0_v_xchg"
+    ]
+   }
+  }
+ },
+ "diff": [],
+ "columns": {
+  "n_entries": {
+   "diff": 0,
+   "compared": 240
+  },
+  "pushed_off": {
+   "diff": 0,
+   "compared": 240
+  },
+  "pushed_off_set": {
+   "diff": 0,
+   "compared": 240
+  },
+  "lastcode_off_set": {
+   "diff": 0,
+   "compared": 240
+  },
+  "uniform": {
+   "diff": 0,
+   "compared": 240
+  },
+  "term_done": {
+   "diff": 0,
+   "compared": 240
+  }
+ },
+ "confirm": {
+  "invalid": [],
+  "repeated": 30,
+  "of": 240,
+  "take_unstable": [],
+  "stream_distinct": []
+ },
+ "repro": {
+  "RP_nop": {
+   "want": 6,
+   "got": [
+    6
+   ],
+   "cells": 16,
+   "images_identical": true,
+   "pass": true
+  },
+  "RP_x1b": {
+   "want": 8,
+   "got": [
+    8
+   ],
+   "cells": 16,
+   "images_identical": true,
+   "pass": true
+  },
+  "RP_z1b": {
+   "want": 9,
+   "got": [
+    9
+   ],
+   "cells": 16,
+   "images_identical": true,
+   "pass": true
+  }
+ }
+}
