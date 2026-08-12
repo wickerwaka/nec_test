@@ -1054,11 +1054,27 @@ def _flash_pin():
 
 
 def cmd_run(a):
+    """The BOARD leg.  Two positions, and they are NOT interchangeable.
+
+    Default (`use_core=False`) is the SOCKETED CHIP -- silicon, the reference,
+    and the position every banked `board/` cell was taken in.
+
+    `--fabric` (`use_core=True`) is the **ucore INSIDE THE FPGA**, on the
+    identical images, the identical divider and the identical driver.  It
+    exists because the offline `core` leg (`tb_sys ret`, Verilator) is not
+    fabric: a landing that has never been synthesised into a bitstream has no
+    fabric evidence, whatever its offline column says.  It writes to its OWN
+    directory (`ghost-pred/fabric/`) and CANNOT overwrite the banked socket
+    column.  Added for FLASH #20 (`fz2_flash20_prereg_2026-08-12.md` sec.3),
+    committed BEFORE the build and BEFORE board contact."""
     v30run, HOST, div_guard, pin_div, DIV = _board()
     cal = _cal()
-    d = OUT / "board"
+    fabric = bool(getattr(a, "fabric", False))
+    d = OUT / ("fabric" if fabric else "board")
     d.mkdir(parents=True, exist_ok=True)
-    man = {"tool": "ghost_pred_cell run", "host": HOST, "use_core": False,
+    man = {"tool": "ghost_pred_cell run" + (" --fabric" if fabric else ""),
+           "host": HOST, "use_core": fabric,
+           "position": "ucore in FPGA fabric" if fabric else "socketed chip",
            "div": DIV, "git": _git_head(),
            "spec": "docs/notes/ghost_pred_cell_prereg_2026-08-11.md",
            "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -1082,7 +1098,7 @@ def cmd_run(a):
         for _attempt in (1, 2, 3):
             try:
                 _recs, _fired, words = v30run.run_image(
-                    img, HOST, tag="ghostpred", waits=w, use_core=False,
+                    img, HOST, tag="ghostpred", waits=w, use_core=fabric,
                     div=DIV, want_raw=True, cap=ncap)
                 errs["run"] = 0
                 return words, {}
@@ -1125,7 +1141,8 @@ def cmd_run(a):
                                   if g["state"] != "PINNED"]
     (d / "manifest.json").write_text(json.dumps(man, indent=1) + "\n")
     (d / "table.json").write_text(json.dumps(out, indent=1) + "\n")
-    print(f"\n  board: {len(table)} cells in {secs:.0f}s, "
+    print(f"\n  {'fabric' if fabric else 'board'}: {len(table)} cells in "
+          f"{secs:.0f}s, "
           f"{errs['n']} transport errors, {len(unstable)} GHOST-unstable")
     print(f"  SHA256SUMS: {_sha_dir(d)} files")
     if man["div_guards_unpinned"]:
@@ -1399,6 +1416,11 @@ def main():
     c.add_argument("--reps", type=int, default=3)
     c.add_argument("--force", action="store_true",
                    help="proceed past a failed single-writer check (recorded)")
+    c.add_argument("--fabric", action="store_true",
+                   help="capture the ucore INSIDE THE FPGA (use_core=True) "
+                        "into ghost-pred/fabric/ instead of the socketed "
+                        "chip into ghost-pred/board/.  The banked socket "
+                        "column is never written by this flag.")
     c.set_defaults(fn=cmd_run)
     a = ap.parse_args()
     return a.fn(a)
