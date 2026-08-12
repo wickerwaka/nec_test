@@ -159,6 +159,13 @@ module v30u_biu (
     output            eu_ghost_full,
     output            eu_ghost_idle,
     output            eu_ghost_stack_first,
+    // THE 8F GHOST READ IS DECORATED AT **LAUNCH**.  The EU hands over the two
+    // drivers' composed addresses and the currency of its own micro-row; the
+    // age and the pick are here, at `g_age` and the commit mux.
+    input             eu_ghost_row,
+    input             eu_ghost_acc,
+    input      [19:0] eu_ghost_sp,
+    input      [19:0] eu_ghost_bare,
     input             eu_pair,     // pair write data into the reserved cycle
     input             eu_pair2,    // ...and it fills TWO of them (a split)
     input      [15:0] eu_wdata,
@@ -331,6 +338,21 @@ reg        rq_wr   [0:1];
 reg        rq_need [0:1];
 reg        rq_last [0:1];
 reg        rq_late [0:1];
+// THE 8F GHOST READ'S LAUNCH DECORATION.  `dGR` is the clocks from the ghost
+// micro-row going current to the BIU launching its cycle, and the law
+// (`ghost_launch_law_results_2026-08-11.md`, 200/200) is
+//     dGR == 0 -> SS:SP     dGR == 1 -> stale & SP     dGR >= 2 -> stale
+// -- two drivers whose windows overlap for exactly one clock.  `g_age` IS
+// `dGR`, saturating at 2 because the law needs no more; `g_row_q` makes the
+// arm the ROW'S RISING EDGE, which is the law's own anchor; `g_sp`/`g_bare`
+// are the two drivers' composed addresses, captured at that arm.  The AND is
+// not carried: it is `rq_addr[]`, the value the EU posts.
+reg        rq_ghost [0:1];
+reg        cmt_ghost;
+reg [19:0] g_sp;
+reg [19:0] g_bare;
+reg  [1:0] g_age;
+reg        g_row_q;
 reg        slot_busy;
 reg        slot_accept;
 reg  [1:0] opr_held;
@@ -456,6 +478,12 @@ reg r_rq_wr [0:1];
 reg r_rq_need [0:1];
 reg r_rq_last [0:1];
 reg r_rq_late [0:1];
+reg r_rq_ghost [0:1];
+reg r_cmt_ghost;
+reg [19:0] r_g_sp;
+reg [19:0] r_g_bare;
+reg [1:0] r_g_age;
+reg r_g_row_q;
 
 integer ri;   // the always_comb's array copy-in
 integer rj;   // the always_ff's array commit
@@ -1179,6 +1207,12 @@ reg            rq_wr_rst [0:1];
 reg            rq_need_rst [0:1];
 reg            rq_last_rst [0:1];
 reg            rq_late_rst [0:1];
+reg            rq_ghost_rst [0:1];
+reg            cmt_ghost_rst;
+reg     [19:0] g_sp_rst;
+reg     [19:0] g_bare_rst;
+reg      [1:0] g_age_rst;
+reg            g_row_q_rst;
 
 integer i_rst;        // the reset function's own working values --
 reg [15:0] lfa_p_rst;  // block-local, so the run function keeps its own
@@ -1267,6 +1301,12 @@ always_comb begin
     for (i_rst = 0; i_rst < $size(r_rq_need); i_rst = i_rst + 1) rq_need_rst[i_rst] = r_rq_need[i_rst];
     for (i_rst = 0; i_rst < $size(r_rq_last); i_rst = i_rst + 1) rq_last_rst[i_rst] = r_rq_last[i_rst];
     for (i_rst = 0; i_rst < $size(r_rq_late); i_rst = i_rst + 1) rq_late_rst[i_rst] = r_rq_late[i_rst];
+    for (i_rst = 0; i_rst < $size(r_rq_ghost); i_rst = i_rst + 1) rq_ghost_rst[i_rst] = r_rq_ghost[i_rst];
+    cmt_ghost_rst = r_cmt_ghost;
+    g_sp_rst = r_g_sp;
+    g_bare_rst = r_g_bare;
+    g_age_rst = r_g_age;
+    g_row_q_rst = r_g_row_q;
 
         //--------------------------------------------------------------------
         // RESET == the model's begin_case(), plus the backdoor injection.
@@ -1295,7 +1335,11 @@ always_comb begin
             rq_odd_rst[i_rst]  = 1'b0;
             rq_wr_rst[i_rst]  = 1'b0; rq_need_rst[i_rst]  = 1'b0; rq_last_rst[i_rst]  = 1'b1;
             rq_late_rst[i_rst] = 1'b0;
+            rq_ghost_rst[i_rst] = 1'b0;
         end
+        cmt_ghost_rst = 1'b0;
+        g_sp_rst = 20'd0; g_bare_rst = 20'd0;
+        g_age_rst = 2'd2; g_row_q_rst = 1'b0;
         slot_busy_rst  = 1'b0; slot_accept_rst  = 1'b0;
         opr_held_rst  = 2'd0; done_ctr_rst  = 2'd0; done_wr_rst  = 1'b0;
         rd_first_hi_rst = 8'd0; rd_was_split_rst = 1'b0;
@@ -1430,7 +1474,13 @@ always_comb begin
         rq_need[ri] = r_rq_need[ri];
         rq_last[ri] = r_rq_last[ri];
         rq_late[ri] = r_rq_late[ri];
+        rq_ghost[ri] = r_rq_ghost[ri];
     end
+    cmt_ghost = r_cmt_ghost;
+    g_sp = r_g_sp;
+    g_bare = r_g_bare;
+    g_age = r_g_age;
+    g_row_q = r_g_row_q;
     // the per-edge working temporaries (no latches in always_comb)
     ne_now = 1'b0; kill_l = 1'b0; evi_l = 1'b0;
     hfree_l = 1'b0; pop_l = 1'b0; qse_l = 1'b0; sev_now = 2'd0;
@@ -1554,6 +1604,18 @@ always_comb begin
             SSA_B_OPR_FREE_P:   opr_free_p    = ss_wdata[0];
             SSA_B_RD_VAL:       rd_val        = ss_wdata;
             SSA_B_READY_PREV:   ready_prev    = ss_wdata[0];
+            // the 8F ghost read's LAUNCH decoration (v14)
+            SSA_B_GHOST_SP_LO:   g_sp[15:0]    = ss_wdata;
+            SSA_B_GHOST_SP_HI:   g_sp[19:16]   = ss_wdata[3:0];
+            SSA_B_GHOST_BARE_LO: g_bare[15:0]  = ss_wdata;
+            SSA_B_GHOST_BARE_HI: g_bare[19:16] = ss_wdata[3:0];
+            SSA_B_GHOST_AGE:     g_age         = ss_wdata[1:0];
+            SSA_B_GHOST_TAG: begin
+                rq_ghost[0] = ss_wdata[0];
+                rq_ghost[1] = ss_wdata[1];
+                cmt_ghost   = ss_wdata[2];
+                g_row_q     = ss_wdata[3];
+            end
             default: ;
         endcase
     end else begin   // <- was `else if (srst)` then `else if (ce)`:
@@ -1561,6 +1623,23 @@ always_comb begin
         //====================================================================
         // (a) CAPTURE the clock-c predicates
         //====================================================================
+        // THE GHOST READ'S AGE.  This runs FIRST, before the post and before
+        // the eval, so that a request posted and granted on the SAME clock
+        // (`dGR == 0`) reads the age this line just wrote.  That is the module's
+        // own blocking-assignment discipline, the one `rq_*` already relies on.
+        // The arm is the ROW'S RISING EDGE -- `upc_opc == 8'h8f &&
+        // upc_loc == 4'd4` going current -- which is the law's own anchor and
+        // not a re-derived one.  The counter free-runs afterwards and saturates
+        // at 2; it is harmless when no ghost is outstanding, because only a
+        // TAGGED request reads it.
+        g_row_q = eu_ghost_row;
+        if (eu_ghost_row && !r_g_row_q) begin
+            g_age  = 2'd0;
+            g_sp   = eu_ghost_sp;
+            g_bare = eu_ghost_bare;
+        end else if (g_age != 2'd2) begin
+            g_age = g_age + 2'd1;
+        end
         ne_now     = no_eval;
         kill_l     = ann_kill;
         evi_l      = eval_inst;
@@ -1658,6 +1737,11 @@ always_comb begin
             // next arbitration point as early as the BCD/string controls do.
             rq_late[rq_n[0]]   = run && !cur_fetch && !cur_wr &&
                                   (ts >= TS_T3);
+            // ...and WHETHER THIS IS THE 8F GHOST READ.  Only the request the
+            // EU posts is tagged; the split partner the BIU manufactures below
+            // is not, and keeps its posted address (the residue is named in
+            // `ghost_launch_landing_prereg_2026-08-12.md` §7(b)).
+            rq_ghost[rq_n[0]]  = eu_ghost_acc;
             rq_n            = rq_n + 2'd1;
             if (eu_split) begin
                 rq_bs[1]     = eu_bs;
@@ -1672,6 +1756,7 @@ always_comb begin
                 rq_last[1]   = 1'b1;
                 rq_late[1]   = run && !cur_fetch && !cur_wr &&
                                (ts >= TS_T3);
+                rq_ghost[1]  = 1'b0;
                 rq_n         = 2'd2;
             end
             slot_busy       = 1'b1;
@@ -1989,6 +2074,15 @@ always_comb begin
                 // M4: an EU access never preempts an in-flight cycle; it wins
                 // the next eval.
                 cmt_bs = rq_bs[0]; cmt_addr = rq_addr[0];
+                // THE LAUNCH DECORATION, AND IT IS THE ONLY THING THAT MOVES.
+                // `rq_addr[0]` IS the `dGR == 1` answer -- the wired AND the EU
+                // posted -- so the mux has three inputs and only two of them
+                // are new registers.  `cmt_ube_n`/`cmt_odd` stay the posted
+                // ones (§7(c) of the pre-registration; every BARE value in the
+                // measured population is even and nothing here tests it).
+                cmt_ghost = rq_ghost[0];
+                if (rq_ghost[0] && (g_age != 2'd1))
+                    cmt_addr = (g_age == 2'd0) ? g_sp : g_bare;
                 cmt_data = rq_data[0]; cmt_ube_n = rq_ube[0];
                 cmt_odd = rq_odd[0];
                 cmt_seg = rq_seg[0]; cmt_noaddr = rq_noaddr[0];
@@ -2002,6 +2096,7 @@ always_comb begin
                 rq_wr[0] = rq_wr[1]; rq_need[0] = rq_need[1];
                 rq_last[0] = rq_last[1];
                 rq_late[0] = rq_late[1];
+                rq_ghost[0] = rq_ghost[1];
                 rq_n = rq_n - 2'd1;
                 // M10: the slot's occupant now has the T1 that frees it -- the
                 // LAST cycle of the access, so a split holds it across both.
@@ -2025,6 +2120,7 @@ always_comb begin
                     // a second BIU-only copy instead leaked the old segment.
                     fetch_lin = {flush_cs, 4'd0} + {4'd0, fetch_ptr};
                     cmt_bs = BS_CODE; cmt_addr = fetch_lin; cmt_data = 16'd0;
+                    cmt_ghost = 1'b0;
                     cmt_ube_n = 1'b0; cmt_seg = 2'd2; cmt_noaddr = 1'b0;
                     cmt_odd = 1'b0;
                     cmt_wr = 1'b0; cmt_need = 1'b0; cmt_rd_last = 1'b1;
@@ -2061,12 +2157,14 @@ always_comb begin
             rq_noaddr[1] = rq_noaddr[0]; rq_wr[1] = rq_wr[0];
             rq_need[1] = rq_need[0]; rq_last[1] = rq_last[0];
             rq_late[1] = rq_late[0];
+            rq_ghost[1] = rq_ghost[0];
             rq_bs[0] = cmt_bs; rq_addr[0] = cmt_addr;
             rq_data[0] = cmt_data; rq_ube[0] = cmt_ube_n;
             rq_odd[0] = cmt_odd; rq_seg[0] = cmt_seg;
             rq_noaddr[0] = cmt_noaddr; rq_wr[0] = cmt_wr;
             rq_need[0] = cmt_need; rq_last[0] = cmt_rd_last;
             rq_late[0] = 1'b0;
+            rq_ghost[0] = cmt_ghost;
             rq_n = rq_n + 2'd1;
             slot_accept = 1'b0;
             cmt_valid = 1'b0;
@@ -2105,6 +2203,7 @@ always_comb begin
                 rq_wr[1] = rq_wr[0]; rq_need[1] = rq_need[0];
                 rq_last[1] = rq_last[0];
                 rq_late[1] = rq_late[0];
+                rq_ghost[1] = rq_ghost[0];
                 rq_bs[0] = cmt_bs; rq_addr[0] = cmt_addr;
                 rq_data[0] = cmt_data; rq_ube[0] = cmt_ube_n;
                 rq_odd[0] = cmt_odd;
@@ -2115,6 +2214,14 @@ always_comb begin
                 // later announcement expiry must not manufacture a second H3
                 // yield from the original post phase.
                 rq_late[0] = 1'b0;
+                // AN UN-GRANTED GHOST IS STILL A GHOST.  Its `rq_addr[0]`
+                // is now the DECORATED value, and that is harmless by
+                // arithmetic: this path fires at `cdage >= 3`, so the
+                // re-launch is at `g_age == 2` and the mux takes `g_bare`
+                // without reading `rq_addr[0]` at all.  Losing the TAG
+                // would not be harmless -- it would launch the decorated
+                // address as if it were the AND.
+                rq_ghost[0] = cmt_ghost;
                 rq_n = rq_n + 2'd1;
                 slot_accept = 1'b0;
             end
@@ -2187,7 +2294,7 @@ always_comb begin
         // pipeline.  A term added to the existing test; nothing new is stored.
         if (halt_pending && !run && !cmt_valid && !set_noeval &&
             !eu_unhalt_disp) begin
-            cmt_bs = BS_HALT;
+            cmt_bs = BS_HALT; cmt_ghost = 1'b0;
             // S9b: the HALT display drives the address latch AS IT STANDS when
             // the cycle takes the register.  M10(T4): the upper nibble is a
             // LIVE PS, not a constant -- the chip carries IE on it.
@@ -2319,7 +2426,13 @@ always_ff @(posedge clk) if (ss_we || srst || ce) begin
         r_rq_need[rj] <= (srst && !ss_we) ? rq_need_rst[rj] : rq_need[rj];
         r_rq_last[rj] <= (srst && !ss_we) ? rq_last_rst[rj] : rq_last[rj];
         r_rq_late[rj] <= (srst && !ss_we) ? rq_late_rst[rj] : rq_late[rj];
+        r_rq_ghost[rj] <= (srst && !ss_we) ? rq_ghost_rst[rj] : rq_ghost[rj];
     end
+    r_cmt_ghost <= (srst && !ss_we) ? cmt_ghost_rst : cmt_ghost;
+    r_g_sp <= (srst && !ss_we) ? g_sp_rst : g_sp;
+    r_g_bare <= (srst && !ss_we) ? g_bare_rst : g_bare;
+    r_g_age <= (srst && !ss_we) ? g_age_rst : g_age;
+    r_g_row_q <= (srst && !ss_we) ? g_row_q_rst : g_row_q;
 end
 
 `ifndef SYNTHESIS
@@ -2469,6 +2582,13 @@ always @(posedge clk) begin
         SSA_B_T1_HALF2:     ss_rdata <= {15'b0, t1_half2};
         SSA_B_LAST_AD_HI:   ss_rdata <= {12'b0, last_ad_hi};
         SSA_B_LAST_AD_LO:   ss_rdata <= last_ad_lo;
+        SSA_B_GHOST_SP_LO:  ss_rdata <= r_g_sp[15:0];
+        SSA_B_GHOST_SP_HI:  ss_rdata <= {12'b0, r_g_sp[19:16]};
+        SSA_B_GHOST_BARE_LO:ss_rdata <= r_g_bare[15:0];
+        SSA_B_GHOST_BARE_HI:ss_rdata <= {12'b0, r_g_bare[19:16]};
+        SSA_B_GHOST_AGE:    ss_rdata <= {14'b0, r_g_age};
+        SSA_B_GHOST_TAG:    ss_rdata <= {12'b0, r_g_row_q, r_cmt_ghost,
+                                         r_rq_ghost[1], r_rq_ghost[0]};
         default:            ss_rdata <= 16'h0000;
     endcase
 end

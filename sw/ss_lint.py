@@ -120,11 +120,21 @@ CORES = {
             # SSA_B_LAST_AD_HI/LO at 9'h06B/9'h06C) past the BIU region's top.
             # Nothing is renumbered; the dense map's existing hole terms carry
             # them.  v12 was 0x8C / 101 / 122 / 224 / 0x8CE0.
-            "SS_VERSION": 0x8D,   # ucore map v13 (0x80 family: never an FSM stream)
-            "SS_BIU_COUNT": 103,
+            # v14 APPENDS THE 8F GHOST READ'S LAUNCH DECORATION -- six BIU
+            # addresses at 9'h06D-9'h072 past the region's top, so nothing is
+            # renumbered and no field is widened.  The read is decorated at the
+            # clock the BIU LAUNCHES it, not at the clock the EU posts it
+            # (`ghost_launch_law_results_2026-08-11.md`, 200/200), so the two
+            # drivers' composed addresses (`g_sp`, `g_bare`), the request's AGE
+            # (`g_age` = dGR, saturating at 2), the two slot tags, the commit's
+            # tag and the row's own currency are BIU state a frozen stream must
+            # carry.  ONE appended group, ONE bump.  v13 was 0x8D / 103 / 122 /
+            # 226 / 0x8DE2.
+            "SS_VERSION": 0x8E,   # ucore map v14 (0x80 family: never an FSM stream)
+            "SS_BIU_COUNT": 109,
             "SS_EU_COUNT": 122,
-            "SS_COUNT": 226,
-            "SS_TAG": 0x8DE2,     # (0x8D << 8) | 226
+            "SS_COUNT": 232,
+            "SS_TAG": 0x8EE8,     # (0x8E << 8) | 232
         },
     },
 }

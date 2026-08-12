@@ -96,6 +96,14 @@ module v30u_eu (
     output      [1:0] eu_seg,
     output      [1:0] eu_seg2,
     output            eu_word,
+    // THE 8F GHOST READ IS DECORATED AT **LAUNCH**, NOT AT POST.  The EU
+    // publishes the two DRIVERS' own composed addresses and the fact that its
+    // micro-row is standing; the BIU ages that and picks at the T1.  See the
+    // block at `ghost_bus_off` below and `v30u_biu.sv`'s `g_age`.
+    output            eu_ghost_row,   // the ghost read's micro-row is current
+    output            eu_ghost_acc,   // ...and THIS clock's access is its own
+    output     [19:0] eu_ghost_sp,    // driver 1: SS:SP, the row's stack drive
+    output     [19:0] eu_ghost_bare,  // driver 2: SS:stale, the retained rail
     input             eu_slot_busy,
     input             eu_slot_busy_n,
     input             eu_access_active,
@@ -1537,8 +1545,45 @@ wire ghost_next_byte = q_ripe &&
 // and `fz2e/526054` forking on the SEGMENT with identical offsets.  The two
 // free choices left standing are WHICH RAIL and WHETHER THE AND HAPPENS; only
 // the second is settled here, and only in the direction "not by a mask".
+//
+// -- THE DECORATION IS TAKEN AT **LAUNCH**, SO WAVE-4'S V2 ARM IS DELETED. --
+//
+// `(eu_ghost_idle && !q_ripe) ? gpr[R_SP]` used to sit between the two arms
+// below.  It was a FITTED approximation of the one case the die decides at the
+// T1 and not here, and it fires in the wrong cells:
+// `ghost_pred_cell_results_2026-08-11.md` §5 measures it taking `SP` on 2 of
+// the 16 cells of every `D3` leg with no dependence on byte parity at all,
+// while M10-SYS §4.5 has it silent on `524030` and `529067`, *"where that
+// arm's answer is the right one and the arm did not fire"*.
+//
+// `ghost_launch_law_results_2026-08-11.md` names the mechanism it was
+// approximating.  With `dGR` = the clocks from THIS row going current to the
+// BIU launching the cycle,
+//
+//     dGR == 0  ->  SS:SP         the posting micro-row's own stack drive
+//     dGR == 1  ->  stale & SP    BOTH drivers on the rail -- the wired AND
+//     dGR >= 2  ->  stale         the row has released; only the stale rail
+//
+// -- 200/200 on the directed board cells, derivation 112, DISJOINT validation
+// 56, multiply 32, with the map frozen before the last two were scored.  TWO
+// DRIVERS, one monotone quantity: the `SP` driver is on for the row's own
+// clock and the next, the stale rail re-asserts one clock after the row goes
+// current, and the AND is their one-clock overlap.  No modulus, no mask table,
+// no opcode named.
+//
+// WHAT STAYS HERE IS WAVE-4'S V1 -- the UNCONDITIONAL AND -- and it stays as
+// the POSTED value on purpose: `acc_phys`, `acc_phys2`, `acc_split`,
+// `eu_split`, `rq_ube`, `rq_odd`, `eu_word` and `eu_bs` are all computed from
+// this expression, and a relocation that also moved THEM would be two
+// behavioural changes measured as one.  Only the ADDRESS THE BUS LAUNCHES
+// moves, and it moves in the BIU, at the clock the die takes it.
+//
+// `ghost_uses_mul_hi` IS NOT TOUCHED.  That arm substitutes a different VALUE
+// (`tmpa & opr`), not a decoration; its deletion is a second mechanism to be
+// measured as one (`ghost_launch_law_results` §5.3).  It is excluded from
+// `eu_ghost_row` below, so where it fires the request is never tagged and the
+// cycle keeps this value and every bit derived from it.
 wire [15:0] ghost_bus_off = ghost_uses_mul_hi ? (tmpa & opr)
-                            : (eu_ghost_idle && !q_ripe) ? gpr[R_SP]
                             : (ghost_off & gpr[R_SP]);
 wire [15:0] acc_off  = ghost_read_stale_alu ? ghost_bus_off
                        : row_is_wb          ? wb_ea : ind_now;
@@ -1582,6 +1627,15 @@ wire [15:0] acc_off_nog  = row_is_wb ? wb_ea : ind_now;
 wire [19:0] acc_phys_nog = acc_io ? {4'd0, acc_off_nog}
                                   : ({acc_segv, 4'd0} + {4'd0, acc_off_nog});
 wire       acc_split_wr  = !acc_byte && acc_phys_nog[0];
+
+// THE TWO DRIVERS' OWN COMPOSED ADDRESSES, for the BIU to pick between at the
+// launch.  Both are formed HERE, at the clock the ghost's micro-row is
+// current, because that is when the rails are the row's own -- and both are
+// formed BEFORE the launch so that NO ADDER enters the launch cone.  The
+// segment is `SS` by construction: `ghost_read_stale_alu` requires
+// `row_seg == 3'd2` and the row is not a write-back, so `acc_segv` is `SS`.
+wire [19:0] ghost_phys_sp   = {acc_segv, 4'd0} + {4'd0, gpr[R_SP]};
+wire [19:0] ghost_phys_bare = {acc_segv, 4'd0} + {4'd0, ghost_off};
 
 //============================================================================
 // COMBINATIONAL OUTPUTS -- what the BIU samples during THIS clock
@@ -2044,6 +2098,17 @@ assign eu_bs   = vector_early ? BS_MEMR
                              : (acc_io ? BS_IOW : BS_MEMW);
 assign eu_addr = vector_early ? vector_phys_early
                : pr_active ? pr_phys : (row_is_inta ? 20'd0 : acc_phys);
+// The launch-law's two publications.  `eu_ghost_row` is the ROW's currency and
+// nothing else -- the BIU takes its RISING EDGE as the age's arm, which is the
+// law's own anchor, `upc_opc == 8'h8f && upc_loc == 4'd4` going current.
+// `eu_ghost_acc` is the narrower fact that the access published THIS clock is
+// the ghost's own, which is what tags the BIU's request slot; the pre-decode
+// read and the vector's early post use the same wires for their own addresses
+// and must not be tagged.
+assign eu_ghost_row  = ghost_read_stale_alu && !ghost_uses_mul_hi;
+assign eu_ghost_acc  = eu_ghost_row && !vector_early && !pr_active;
+assign eu_ghost_sp   = ghost_phys_sp;
+assign eu_ghost_bare = ghost_phys_bare;
 assign eu_addr2= vector_early ? (vector_phys_early + 20'd1)
                : pr_active ? pr_phys2 : acc_phys2;
 assign eu_split= vector_early ? 1'b0
