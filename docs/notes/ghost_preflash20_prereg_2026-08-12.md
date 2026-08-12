@@ -188,6 +188,82 @@ driver the law already names.
 
 ---
 
+## §2A AMENDMENT A-1 — F-B AS REGISTERED IS **MISSED**, AND ITS SUCCESSOR IS
+## REGISTERED HERE BEFORE IT IS SCORED
+
+**F-B was built and measured exactly as §2 registered it. Reported as
+registered, not restated:**
+
+| bar | registered | measured | verdict |
+|---|---|---|---|
+| **B-1** | `fz2e/528010` `bad` **4** · `flick` **0** · `first` **1,383** | `bad` **7** · `flick` **0** · `first` **1,383** | **MISSED by +3 rows** |
+| **B-2** | `fz2c/406063` unmoved 3,165 / 249 | unmoved 3,165 / 249 | **MET** |
+| **B-3** | 0 LOST, 0 first_bad EARLIER over 264 | 0 and 0 | **MET** |
+
+and **THREE seeds moved, two of them unregistered**, net **−4,712** rows:
+
+| seed | HEAD | F-B | |
+|---|---:|---:|---|
+| `fz2e/518067` | 3,278 | **45** | **−3,233, UNREGISTERED** |
+| `fz2e/528010` | 2,067 | **7** | −2,060, the registered seat, value missed |
+| `fz2e/520066` | 8 | **589** | **+581, UNREGISTERED AND WORSE** |
+
+### 2A.1 THE DISCRIMINATOR IS THE GHOST'S OWN WIDTH, AND IT IS MEASURED
+
+The EU probe on the two unregistered movers, each of which has exactly ONE
+ghost event in its window:
+
+```
+518067  bus_off=5800 sp=d819 uses_ea=1 accbase=56230 stackphys=5e249 word=1
+520066  bus_off=0000 sp=4657 uses_ea=1 accbase=28f40 stackphys=2d597 word=0
+```
+
+Both have an EVEN `acc_phys_base` and an ODD `ghost_stack_phys`, so F-B splits
+both. On `518067` that is right (−3,233 rows). On `520066` it is wrong, and the
+reason is in the trace: **`eu_word` is 0 — it is a BYTE ghost, and a byte access
+cannot split.**
+
+`acc_split` guards on `!acc_byte`. For every non-ghost path `eu_word` IS
+`!acc_byte` (its own default arm). **For a ghost it is not**: `eu_word` has the
+ghost's own width arm, `ghost_next_byte || (eu_ghost_full && modrm_reg == 0 &&
+m_idx == 0)`, so the lane mux and the split decision were reading two different
+widths. That is the misunderstanding, and it is one wire deep.
+
+### 2A.2 F-B′ — THE EDIT ACTUALLY TAKEN
+
+```systemverilog
+wire       acc_split = ghost_read_stale_alu
+                       ? (eu_word && ghost_stack_phys[0])
+                       : (!acc_byte && acc_phys[0]);
+```
+
+**An access splits iff it transfers a WORD across an ODD boundary.** The ghost
+uses ITS OWN width (`eu_word`, the width its own lane mux uses) and ITS OWN
+`dGR == 0` driver (`ghost_stack_phys`). Two cases, exactly as before; neither is
+per-opcode; the `ghost_uses_ea` rail case is still deleted. The non-ghost arm is
+byte-for-byte what it was, so the write side (`row_wr_add`) and `pr_active` are
+untouched.
+
+⚠ **`fz2e/520066` SELECTED THE `eu_word` TERM AND ITS OWN RECOVERY IS THEREFORE
+NOT EVIDENCE** (CLAUDE.md's standing rule). What is not fitted is everything
+else: `518067`, `528010`, the 261 unmoved seeds, the golden ladder and the
+directed cell.
+
+### 2A.3 REGISTERED BARS FOR F-B′
+
+| # | bar | falsifier |
+|---|---|---|
+| **B′-1** | `fz2e/520066` returns to **8** — its HEAD value. *(selecting seed; not evidence)* | any other value |
+| **B′-2** | `fz2e/518067` keeps F-B's **45**. | any other value |
+| **B′-3** | `fz2e/528010` keeps F-B's **7**. **The §2 registered 4 IS NOT RE-REGISTERED** — it is reported as missed, and the residual +3 is diagnosed, not absorbed. | any other value |
+| **B′-4** | `fz2c/406063` UNMOVED at 3,165 / 249. | any move |
+| **B′-5** | Over the 264: **0 LOST**, **0 first_bad EARLIER**, and **NO seed worse than its HEAD value**. | any |
+| **B′-6** | The golden ladder unmoved: `check_core 8F.0` 500/500, `all` 169,000/169,000, `ulockstep` 17,350/17,350, sweeps 279/283. **HARD STOP** on the first two. | any |
+| **B′-7** | `ghost_pred_cell score` and `ghost_launch_law score` unmoved from whatever F-A leaves them at (this edit changes no address). | any move, itemised |
+| **B′-8** | `ss_lint` 0x8E / 232 / 220 unmoved; `r7_lint` PASS; `test_artifact` 45/45. | any |
+
+---
+
 ## §3 EDIT F-A — THE `imul` FALSIFIER (`ghost_uses_mul_hi` DELETED)
 
 **Pre-registered by the relocation landing itself** (`093efbcfc2`'s message and
