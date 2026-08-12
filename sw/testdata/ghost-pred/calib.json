@@ -1,0 +1,40 @@
+{
+ "tool": "ghost_pred_cell calib",
+ "leg": "tb_sys ret",
+ "worst": "mem3",
+ "block": 32,
+ "R": 5,
+ "ncap": {
+  "0": 1400,
+  "1": 2100,
+  "2": 2800,
+  "3": 3500
+ },
+ "measured": {
+  "0": {
+   "ok": true,
+   "why": null,
+   "n_memr": 20,
+   "last_ghost_row": 618
+  },
+  "1": {
+   "ok": true,
+   "why": null,
+   "n_memr": 20,
+   "last_ghost_row": 781
+  },
+  "2": {
+   "ok": true,
+   "why": null,
+   "n_memr": 20,
+   "last_ghost_row": 898
+  },
+  "3": {
+   "ok": true,
+   "why": null,
+   "n_memr": 20,
+   "last_ghost_row": 1025
+  }
+ },
+ "ts": "2026-08-12T03:10:20Z"
+}
