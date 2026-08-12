@@ -3,9 +3,9 @@
  "host": "root@mister-nec",
  "use_core": false,
  "div": 8,
- "git": "cf5defee5f",
+ "git": "b70dbb32f0",
  "spec": "docs/notes/ghost_pred_cell_prereg_2026-08-11.md",
- "ts": "2026-08-12T03:26:25Z",
+ "ts": "2026-08-12T03:31:24Z",
  "flash": {
   "entries": 21,
   "tail": {
@@ -126,7 +126,31 @@
   "sl7_a0": "aa14ca476b50edc73fd3b4822f5eb04487167603491859c6cb183c50703f4fa8",
   "sl7_a1": "b6937eaf1ad25e6aa8171cf2fd0d6aa1d7c4e02a3ee40f46f9f0689a5afb144e",
   "sl7_a2": "d1beca9a2de660b8b8a747abca1082f89af0d2d626afdd0f18698902b7f36fe9",
-  "sl7_a3": "867f1be8480de4534155a3d6767137fa94aaf9163143b2bf9d80e4dbe5e6ea9e"
+  "sl7_a3": "867f1be8480de4534155a3d6767137fa94aaf9163143b2bf9d80e4dbe5e6ea9e",
+  "v_sub_a0": "310cf4550e60bd979207c0f910fc922f6bfcd07468aff250b6397389897fcbfe",
+  "v_sub_a1": "fb77b5b4afe2ad81904ac8e6fe1750044a6d008e0b567f0b439cfb7241c94078",
+  "v_sub_a2": "ed5682304ce7686b669b303c4e111d97725ca365563ca5ddfee1ebfb93450538",
+  "v_sub_a3": "773ce1f39a2e97eaaad3d007656b1973f960515162cb299d8056242cf7e25254",
+  "v_or_a0": "d449a4d9fc89a43192b6066c50aadb10fb2e2e515bb9b7a0829a53b5f265a142",
+  "v_or_a1": "742448a68a16069c677f0006d6038dd846cb8a5bc61944d161b6d52821de94ff",
+  "v_or_a2": "4baee9baedd6dc4100929e2f0d1c2d03503f1af8994317e1f4f4a4d8c5b74427",
+  "v_or_a3": "0d4831270727e62cc293a31f98c28c4f8440cca7b2e862c2476e34594d0afeef",
+  "v_inc_a0": "fb81e74bf333f954b6727c4e9f76b202acc53df6292b4f8b02dd6e590629904f",
+  "v_inc_a1": "b97f05f0606859f0abd6534e23fd658ab82dc32ba1e43b4403c47905f589e1da",
+  "v_inc_a2": "bb6bfc39dfa45168673c0fd31d81e9e6f86ac9c5662ae9599897b41bdbe7b7f0",
+  "v_inc_a3": "18dca0ab7ffd42a790559a3fdeb17cda3386ef6be982d122f32dd9b606c4e164",
+  "v_shl_a0": "074852851c2b3c92138c9fbac7737e98608d1607e0910c82da55c70649e3be3b",
+  "v_shl_a1": "d46b6609844edd2b39912a73cf52f93f8519e8b88e2d0b5c8008753da86fa9d5",
+  "v_shl_a2": "1fb44ad4a07cbf34abde312b233997cd4047d074c1015cd821144a72322166cd",
+  "v_shl_a3": "69d0a93531428a9c58d1f5c179964fc0a68bd41e7d311ee4c497974615b71e4f",
+  "v_neg_a0": "43dfa51104af6585c03a6062465936f3539860afc0a8387c951779d5036f6ede",
+  "v_neg_a1": "48b5f57910b53df0b414cf77f61076ad5ad0e85241741d141aeb94c61a22d051",
+  "v_neg_a2": "6f1a1b394bbe24ad76e06d5646c29ca423bfcfb1116f179227314a5e4860682f",
+  "v_neg_a3": "1692be1d86cc72914c9d170d1ed33d0f98b27235f8e9a1a3f988a2bfb4512e43",
+  "v_lea_a0": "3b9e95f56f9e16b5240d6770c7a01e200861c24c6c3fb09728d4beec9e62183d",
+  "v_lea_a1": "abf586a8434f0619affdf4158e8712868a66222818133aab1529d7ffe0eecea8",
+  "v_lea_a2": "3abc7c5c4b91c89e4e21746f4afc27d68b6a680809211d198526c627cc3854a2",
+  "v_lea_a3": "22749b19a324e26765ecdd25bf6e126770b0c5b7ae0affbcff507475b8d3dbe4"
  },
  "div_guards": [
   [
@@ -137,56 +161,42 @@
    }
   ],
   [
-   "sl0",
+   "v_sub",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "sl1",
+   "v_or",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "sl2",
+   "v_inc",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "sl3",
+   "v_shl",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "sl4",
+   "v_neg",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
    }
   ],
   [
-   "sl5",
-   {
-    "readback": "div=8 (4 MHz), commanded by this connection",
-    "state": "PINNED"
-   }
-  ],
-  [
-   "sl6",
-   {
-    "readback": "div=8 (4 MHz), commanded by this connection",
-    "state": "PINNED"
-   }
-  ],
-  [
-   "sl7",
+   "v_lea",
    {
     "readback": "div=8 (4 MHz), commanded by this connection",
     "state": "PINNED"
@@ -201,13 +211,13 @@
   ]
  ],
  "preflight": {
-  "uptime": "03:26:25  up 30 days  7:52,  0 users,  load average: 0.01, 0.00, 0.03",
+  "uptime": "03:31:25  up 30 days  7:57,  0 users,  load average: 0.00, 0.00, 0.02",
   "board_procs": [],
   "single_writer": "OK",
   "local_serve_procs": []
  },
- "cells": 432,
- "seconds": 5.0,
+ "cells": 528,
+ "seconds": 3.6,
  "transport_errors": 0,
  "unstable": [],
  "div_guards_unpinned": []

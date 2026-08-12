@@ -1283,12 +1283,99 @@ def cmd_score(a):
     return 0
 
 
+# --------------------------------------------------------------------------- #
+# THE KEY'S OWN SCORER -- derivation set and disjoint validation set, separately
+# --------------------------------------------------------------------------- #
+# THE RAIL each leg's CHIP puts on the bus, read off the pins (the value with a
+# bit OUTSIDE `SP`'s mask, whose `&SP` image is the other value observed).  It
+# is a MEASURED property of the capture, listed here so the scorer is a pure
+# function of the retained words.  `v_lea` is the one leg where it DISAGREES
+# with the core's, and that disagreement is the wave's second finding.
+CHIP_RAIL = {"alu88": 0x8800, "alu44": 0x4400, "alu08": 0x0088,
+             "mul": 0x1100, "imul": 0x1100, "memw": 0xFC40,
+             "pfxpro": 0xEB50, "mempop": 0xCB40, "mov8e": 0x0022,
+             "v_sub": 0x8810, "v_or": 0x8800, "v_inc": 0x0FFF,
+             "v_lea": 0x8800}
+
+
+def _blocks(legs):
+    """[(leg, cell, block, offset, dQS)] straight off the RETAINED raw words --
+    the whole reason the words are kept is that the scorer can be revised
+    without going back to the board."""
+    tab = {r["cell"]: r for r in _load("board")}
+    out = []
+    for leg in legs:
+        for w in WAITS:
+            f = OUT / "board" / f"{stratum_key(leg, w)}.raw.json.gz"
+            if not f.exists():
+                continue
+            with gzip.open(f, "rt") as fh:
+                sh = json.load(fh)
+            for ck, ws in sh.items():
+                r = tab[ck]
+                if not r.get("ok"):
+                    continue
+                rows = _rows_from_words([int(x, 16) for x in ws])
+                for n, g in enumerate(r["ghost"]):
+                    if n == 0:            # the COLD block; excluded, and said so
+                        continue
+                    out.append((leg, ck, n, g["addr"] - SEG_BASE["SS"],
+                                dqs_of(rows, g["row"])))
+    return out
+
+
+def _classify(X, off):
+    if off == X:
+        return "BARE"
+    if off == (X & A_SP):
+        return "AND"
+    if off == A_SP:
+        return "SP"
+    return None
+
+
+def cmd_key(a):
+    rails = _rails()
+    deriv = ["alu88", "alu44", "alu08", "mul", "imul", "memw", "pfxpro",
+             "mempop", "mov8e"]
+    for name, legs, rail in (
+            ("DERIVATION (the set that SELECTED the key -- NOT evidence)",
+             deriv, CHIP_RAIL),
+            ("VALIDATION as registered (core rail, K-4 in force)",
+             ["v_sub", "v_or", "v_inc", "v_lea"], None),
+            ("VALIDATION secondary, LABELLED (the CHIP's own rail)",
+             ["v_sub", "v_or", "v_inc", "v_lea"], CHIP_RAIL)):
+        c = Counter()
+        bins = defaultdict(Counter)
+        for leg, ck, n, off, d in _blocks(legs):
+            X = (CHIP_RAIL[leg] if rail is CHIP_RAIL
+                 else ghost_off_of(rails[leg]["terms"], leg))
+            obs = _classify(X, off)
+            pred = key_of(d)
+            if pred is None:
+                c["NOT_PREDICTED"] += 1
+                continue
+            if obs is None:
+                c["RAIL_DISAGREES"] += 1
+            else:
+                c["HIT" if pred == obs else "MISS"] += 1
+                bins[d][obs] += 1
+        tot = c["HIT"] + c["MISS"] + c["RAIL_DISAGREES"]
+        print("")
+        print(f"== {name}")
+        print(f"   {dict(c)}   -> {c['HIT']}/{tot} = "
+              f"{100 * c['HIT'] / tot if tot else 0:.1f} %")
+        for d in sorted(bins):
+            print(f"     dQS {d}: key={key_of(d):<5} {dict(bins[d])}")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     s = ap.add_subparsers(dest="cmd", required=True)
     for nm, fn in (("show", cmd_show), ("predict", cmd_predict),
                    ("calib", cmd_calib), ("score", cmd_score),
-                   ("idle", cmd_idle)):
+                   ("key", cmd_key), ("idle", cmd_idle)):
         c = s.add_parser(nm)
         c.set_defaults(fn=fn)
     c = s.add_parser("core")
