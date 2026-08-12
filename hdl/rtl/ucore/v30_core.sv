@@ -86,6 +86,9 @@ wire  [7:0] q_byte;
 wire        q_ripe, q_ripe_lead_n;
 wire  [3:0] q_cnt;
 wire        eu_ghost_full, eu_ghost_idle, eu_ghost_stack_first;
+// the launch-law's publications (the 8F ghost read's two drivers)
+wire        eu_ghost_row, eu_ghost_acc;
+wire [19:0] eu_ghost_sp, eu_ghost_bare;
 wire        eu_pop, eu_first, eu_flush;
 wire        eu_flush_pre, eu_flush_rep, eu_flush_stage, eu_flush_pend;
 wire        eu_flush_nmi, eu_flush_int_live;
@@ -210,6 +213,10 @@ v30u_biu u_biu (
     .eu_ghost_full(eu_ghost_full),
     .eu_ghost_idle(eu_ghost_idle),
     .eu_ghost_stack_first(eu_ghost_stack_first),
+    .eu_ghost_row(eu_ghost_row),
+    .eu_ghost_acc(eu_ghost_acc),
+    .eu_ghost_sp(eu_ghost_sp),
+    .eu_ghost_bare(eu_ghost_bare),
     .eu_pair    (scr_en ? 1'b0 : eu_pair),
     .eu_pair2   (eu_pair2),
     .eu_wdata   (eu_wdata),
@@ -280,6 +287,10 @@ v30u_eu u_eu (
     .eu_ghost_full(eu_ghost_full),
     .eu_ghost_idle(eu_ghost_idle),
     .eu_ghost_stack_first(eu_ghost_stack_first),
+    .eu_ghost_row(eu_ghost_row),
+    .eu_ghost_acc(eu_ghost_acc),
+    .eu_ghost_sp(eu_ghost_sp),
+    .eu_ghost_bare(eu_ghost_bare),
     .eu_pair    (eu_pair),
     .eu_pair2   (eu_pair2),
     .eu_wdata   (eu_wdata),

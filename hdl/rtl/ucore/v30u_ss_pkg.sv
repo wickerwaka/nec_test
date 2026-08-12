@@ -123,11 +123,15 @@ package v30_ss_pkg;
   // 0x17A-0x17B and the PF_LOST decoder hold at 0x17C-0x17D.  Neither is in
   // this tree and neither address is; they are named at the end of the EU
   // region so a later landing reuses the same codes for the same meanings.
-  localparam int          SS_VERSION   = 8'h8D;   // ucore map v13 (F58 AD latch)
+  // 8F GHOST LAUNCH LAW: 0x8D -> 0x8E.  SIX addresses APPENDED (9'h06D-9'h072)
+  // for the launch decoration's own state.  ONE appended group, ONE bump; no
+  // symbol is renumbered and no field is widened.
+  localparam int          SS_VERSION   = 8'h8E;   // ucore map v14 (8F launch law)
   localparam logic [8:0]  SSA_TAG      = 9'h000;
   localparam logic [8:0]  SS_BIU_BASE  = 9'h001;
-  localparam int          SS_BIU_COUNT = 103;  // U4 F49 (+5); s11 (-4); s21 (-1); H3 (+1);
-                                              // F58 (+2, the AD output latch)
+  localparam int          SS_BIU_COUNT = 109;  // U4 F49 (+5); s11 (-4); s21 (-1); H3 (+1);
+                                              // F58 (+2, the AD output latch);
+                                              // 8F launch law (+6)
   localparam logic [8:0]  SS_EU_BASE   = 9'h100;
   localparam int          SS_EU_COUNT  = 122;  // U2 p5 (+2 recog); U4 F49 (+1);
                                               // SM3 s25 / §86 (+1, the BRK arm);
@@ -246,6 +250,25 @@ package v30_ss_pkg;
   // runs before the edit and not after it.
   localparam logic [8:0] SSA_B_LAST_AD_HI       = 9'h06B;
   localparam logic [8:0] SSA_B_LAST_AD_LO       = 9'h06C;
+
+  // THE 8F GHOST READ'S LAUNCH DECORATION (v14).  The read is decorated at the
+  // clock the BIU LAUNCHES it, not at the clock the EU posts it, so the two
+  // drivers' composed addresses and the request's AGE are BIU state and a
+  // stream frozen between the post and the T1 must carry them.  SIX addresses,
+  // APPENDED past the region's top (9'h06C), so nothing is renumbered and the
+  // map's one hole (9'h038) and the 9'h066-069 retirement are untouched:
+  // i = 104 -> 9'h06D ... i = 109 -> 9'h072.
+  //   `_SP` / `_BARE`  the two drivers, 20 bits each, LO+HI as `cur_addr` is
+  //   `_AGE`           `dGR`, saturating at 2 -- the law needs no more
+  //   `_TAG`           the two slot tags, the commit's tag, and the row's own
+  //                    currency one clock ago (the age's arm is its RISING
+  //                    EDGE), packed as `SSA_B_RQ_LATE` packs its pair
+  localparam logic [8:0] SSA_B_GHOST_SP_LO      = 9'h06D;
+  localparam logic [8:0] SSA_B_GHOST_SP_HI      = 9'h06E;
+  localparam logic [8:0] SSA_B_GHOST_BARE_LO    = 9'h06F;
+  localparam logic [8:0] SSA_B_GHOST_BARE_HI    = 9'h070;
+  localparam logic [8:0] SSA_B_GHOST_AGE        = 9'h071;
+  localparam logic [8:0] SSA_B_GHOST_TAG        = 9'h072;
 
   // dense-iteration helper (TB/harness): stream index -> address
   // SM3 s21 / F56: the BIU region carries ONE RETIRED CODE, 9'h038, and the
@@ -614,6 +637,12 @@ package v30_ss_pkg;
       SSA_B_LAST_UBE:        ss_field_width = 1;
       SSA_B_LAST_AD_HI:      ss_field_width = 4;
       SSA_B_LAST_AD_LO:      ss_field_width = 16;
+      SSA_B_GHOST_SP_LO:     ss_field_width = 16;
+      SSA_B_GHOST_SP_HI:     ss_field_width = 4;
+      SSA_B_GHOST_BARE_LO:   ss_field_width = 16;
+      SSA_B_GHOST_BARE_HI:   ss_field_width = 4;
+      SSA_B_GHOST_AGE:       ss_field_width = 2;
+      SSA_B_GHOST_TAG:       ss_field_width = 4;
       // U2 pass 6 -- the two BIU fields declared AFTER this function used to
       // fall through to `default: 0` for the same reason the whole EU region
       // did: the function was placed before their localparams.  It now sits
