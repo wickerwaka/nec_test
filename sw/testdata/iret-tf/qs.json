@@ -1,0 +1,214 @@
+{
+ "stream_diff": [],
+ "compared": 832,
+ "per_leg": {
+  "P1_nop": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_nop": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_nop": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_addrr": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_addrr": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_addrr": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_movi": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_movi": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_movi": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_pfx1": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_pfx1": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_pfx1": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_pfx2": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_pfx2": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_pfx2": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_pfx3": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_pfx3": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_pfx3": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_pfx4": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_pfx4": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_pfx4": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_x1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_x1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_x1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_x13": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_x13": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_x13": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_z1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_z1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_z1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_p2x": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_p2x": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_p2x": {
+   "diff": 0,
+   "of": 16
+  },
+  "P1_p4x": {
+   "diff": 0,
+   "of": 16
+  },
+  "I0_p4x": {
+   "diff": 0,
+   "of": 16
+  },
+  "I1_p4x": {
+   "diff": 0,
+   "of": 16
+  },
+  "P0_nop": {
+   "diff": 0,
+   "of": 16
+  },
+  "P0_addrr": {
+   "diff": 0,
+   "of": 16
+  },
+  "P0_pfx2": {
+   "diff": 0,
+   "of": 16
+  },
+  "P0_pfx4": {
+   "diff": 0,
+   "of": 16
+  },
+  "P0_x1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "P0_z1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "P2_nop": {
+   "diff": 0,
+   "of": 16
+  },
+  "P2_pfx4": {
+   "diff": 0,
+   "of": 16
+  },
+  "P2_z1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "P2_p4x": {
+   "diff": 0,
+   "of": 16
+  },
+  "RP_nop": {
+   "diff": 0,
+   "of": 16
+  },
+  "RP_x1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "RP_z1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "N_p1_z1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "N_i0_z1b": {
+   "diff": 0,
+   "of": 16
+  },
+  "N_i0_p4x": {
+   "diff": 0,
+   "of": 16
+  }
+ }
+}
