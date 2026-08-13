@@ -84,6 +84,77 @@ pattern one level down).
 
 ### THE QUARTUS LEG (G6) — **NEW, SM3 SITTING 13.  IT IS TRIGGERED, NOT ALWAYS-ON.**
 
+⚠⚠⚠ **READ THIS BEFORE QUOTING ANY *CEILING* OR *HEADROOM* FIGURE ANYWHERE IN
+THE timing50 CAMPAIGN — ERRATUM, 2026-08-13, `docs/notes/t1_half2_results_2026-08-13.md`.**
+
+**G6's own Fmax has never been wrong and no bar below moves.**  What is wrong
+is every *derived* ceiling computed outside Quartus as `Fmax = 1/(T0 − slack)`.
+That formula is **only correct for a path whose launch-to-latch distance is one
+period**, and `nec_test.sdc` defines **five** classes on `divclk` of which only
+one has `k = 1`:
+
+| class | exception | `k` |
+|---|---|---:|
+| default | — | **1.0** |
+| `$v30u_ce → $v30u_ce` | `-setup 4` | **4.0** |
+| `$v30u_ce → t1_half2` | `-setup 2`, negedge dest | **1.5** |
+| `t1_half2 → $v30u_ce` | `-setup 3`, negedge source | **2.5** |
+| anything else `→ t1_half2` | none, deliberately | **0.5** |
+
+> **THE RULE: `T_min = T0 − slack / k`.  A ceiling quoted without naming `k` is
+> not quotable.  And `get_timing_paths -npaths N` is sorted by SLACK, so it
+> CANNOT find the binding path — rank by `slack / k`, per class.**
+> Instrument: **`sw/sta_truefmax_probe.tcl`** (walks the five classes) and
+> **`sw/sta_halfarc_probe.tcl`** (measures `d(slack)/dT` by re-analysing the
+> same fitted netlist at three periods).  Neither is a standing gate — both
+> need a fitted `db` — but a ceiling claim made without them is not evidence.
+
+**MEASURED, on both configurations at `41a60bd42c`, to four decimal places:**
+`d(slack)/dT` = **0.4920** for `div_cnt → t1_half2` (`k = 0.5`), **0.9920** for
+the binding observation cone (`k = 1`), **1.4920** for the worst
+`$v30u_ce → t1_half2` arc (`k = 1.5`).  The prediction was committed at
+`0e05e2153a` before the script had ever run.  **Quartus's own `Fmax Summary`
+note says it scales the rising and falling edges along with FMAX**, and on both
+builds the corrected true ceiling equals Quartus's reported Fmax **to the
+digit** (42.09 CONTROL, 39.99 RETENTION).
+
+**WHAT THIS STRIKES** (full list, `t1_half2_results_2026-08-13.md` §9):
+
+* **`div_cnt → t1_half2` IS NOT A WALL AND IS STRUCK FROM EVERY LEVER RANKING.**
+  It measures **90.91 MHz (CTL) / 83.43 MHz (RET)** — **FOURTH**-ranked on each,
+  48.8 / 43.4 MHz clear of binding.  The `44.10 / 45.17` and `44.15 / 44.00`
+  ceilings in `timing50_e1_rederivation` §6.3 and `timing50_chainmax_results`
+  §7.3-§7.5 are **WRONG ARITHMETIC**, as are the `+1.82 / +3.99` and
+  `+0.39 / +4.21` headroom figures derived from them.
+* **`timing50_e1_rederivation` §6.2's *"closing `c_int_q` completely would move
+  Fmax by ZERO"* is WITHDRAWN.**  `c_int_q → v30u_eu|row_posted` is the first
+  rung behind the observation class on **both** configurations
+  (**43.59 CTL / 49.51 RET**), so that class is worth **+1.50 / +9.52 MHz**.
+* **The *"50 MHz is not reachable by any constraint work"* verdict is
+  WITHDRAWN, not overturned** — behind observation and `c_int_q` the next class
+  is the EU's own 4-period cone at **59.51 / 60.29 MHz**.  Whether the two
+  rig↔core single-cycle crossings can be closed is undecided and needs
+  evidence; only the *ceiling argument* that closed the door is retracted.
+* **`nec_test.sdc:98` and `timing50_census` §6.6's *"it is the #2 cone in both
+  configurations"* is false AS A CEILING STATEMENT** (it is #2 by raw slack,
+  4th by ceiling).  **The exception's DISPOSITION — deliberately not relaxed,
+  because relaxing it would be a false PASS — STANDS and is untouched.**
+
+⚠⚠ **AND A DRAW-SPREAD FINDING THAT BEARS ON EVERY BAND BELOW.**  On the
+**byte-identical** 88-file input manifest `c23e63aa4cf19684…`, 2026-08-13 drew
+**CONTROL 42.09** where the CHAIN_MAX wave drew **39.79 on three agreeing
+draws**, and **RETENTION 39.99** where it drew **43.76 on two**.  The
+configurations' order flipped as well.  `timing50_chainmax_results` §7.1's
+*"three agreeing CONTROL draws… so the CONTROL loss is a property of the tree,
+not of a draw"* is **REFUTED**: **three agreeing draws are not evidence that a
+number is a property of the tree.**  Nothing is explained; §A's *"one green
+build is not closure"* governs and is now sharper.
+
+*(The band and the bars registered below are unchanged and still gate.  Only
+derived ceilings and inter-draw claims are affected.)*
+
+---
+
 ⚠⚠ **CURRENT BAND, RE-REGISTERED 2026-08-12 AT `a1c63e78e4` — E-1 IS DELETED
 AND THE BAND FELL: CONTROL 41.18 MHz / +6.964 ns / 12,271 ALMs (29 %) ·
 RETENTION 42.28 MHz / +7.600 ns / 12,317 ALMs (29 %)**, worst-of-2 from a clean
@@ -578,7 +649,7 @@ entry. Figures are `ucore_provenance.md` §54.4's, re-run 2026-08-04.
 | save-state map | `python3 sw/ss_lint.py` | rc=0; ⚠ **CURRENT ON `fuzz-v2-on-relanding` AT `cc26b45882` AND UNMOVED BY `D1` — 226 addresses, 214 flops, 0 UNMAPPED, `SS_VERSION` 0x8D, `SS_TAG` 0x8DE2** (`SS_BIU_COUNT` **103**, `SS_EU_COUNT` 122; BIU **85** flops → 85 mapped, EU 129 → 127 mapped + 2 whitelisted, 0 UNMAPPED, 1 sim-only exempt).  Measured 2026-08-10 against `v30u_ss_pkg.sv`, whose own comment names the version *"ucore map v13 (F58 AD latch)"*; the `0x8C`/224/212 text below was `399ba6729d`'s and **F58 / C1 / C2 have landed since**.  `D1` adds no flop and no address.  *The superseded text follows.*  **224 addresses, 212 flops, `SS_VERSION` 0x8C, `SS_TAG` 0x8CE0** (`SS_BIU_COUNT` 101; BIU 83 flops → 83 mapped).  **RE-MEASURED 2026-08-10 at `399ba6729d`**, and this cell had been **STALE BY THREE LANDINGS** — `ghost8f_read_results_2026-08-09.md` §10.3 named it rather than editing it, on the coordinator-territory precedent, and this re-registration is the edit.  The map reached `0x8C`/224 at the **8F ghost READ** (`d1d9f168d4`, `SSA` `0x176` and the `ss_addr_of` hole removal; `0x8B`/223/211 → `0x8C`/224/212), and `9c98117a03`'s `INT.F3AA` repair left `v30u_ss_pkg.sv` **untouched**.  *The superseded text follows, because a ratchet is only readable against its own history:* **219 addresses, 205 flops, 0 UNMAPPED, `SS_VERSION` 0x87** (SM3 **s26 / §87.A**: the illegal-form stall APPENDS ONE address, `SSA_E_OPR_LOADED` at `0x175` — ONE BIT, the OPR-valid interlock that decides whether an `F` row sourcing OPR has anything to wait for.  `SS_COUNT` 218 → 219, `SS_EU_COUNT` 117 → 118, `SS_TAG` 0x86DA → **0x87DB**.  A freeze taken inside a PARKED machine that did not carry the bit would restore a part that resumes an instruction silicon never finishes).  *The superseded text:* **218 addresses, 204 flops, 0 UNMAPPED, `SS_VERSION` 0x86** (SM3 **s25 / §86**: the BRK/TF single-step arm APPENDS ONE address, `SSA_E_BRK` at `0x174` — seven bits carrying `brk_p[3:0]`, `brk_arm`, `brk_smp` and `irq_sel_brk`.  `SS_COUNT` 217 → 218, `SS_EU_COUNT` 116 → 117, `SS_TAG` 0x85D9 → **0x86DA**.  A first form that borrowed spare bits in `SSA_E_PIN_PIPE` and `SSA_E_IRQ_LATCH` to avoid the address was abandoned before it was scored).  *The superseded text:* **217 addresses, 200 flops, 0 UNMAPPED, `SS_VERSION` 0x85** (SM3 **s21 / F56**: `pf_land` is DELETED — M6 is refuted by its own firing census — and `SSA_B_PF_LAND` / `9'h038` leaves the map.  **It is the FIRST MID-REGION RETIREMENT**: the code becomes a HOLE `ss_addr_of` steps over, NO symbol is renumbered, and `SS_COUNT` 218 → 217 / `SS_TAG` 0x84DA → 0x85D9.  A SECOND hole would need a second term in `ss_addr_of`, and the package says that is the signal to re-think the region rather than add one.  It was 218 / 201 / 0x84 through SM3 s11 (SM3 **s11**: H1's four `bnd_*` BIU flops are DELETED and 0x066-0x069 RETIRED, not reused — the recognition floor is one term on the EU's IE gate now.  It was 222 / 205 / 0x83 at SM3 s3 / F52, and 218 / 201 / 0x82 before that; the address COUNT coincides with the pre-F52 one and the MAP does not — 0x066-0x069 are vacant, so a v3 stream can never be read as a v4 one) |
 | save-state sweeps | `check_core.py --ss-sweep …` modes 1 / 2 / 5 | 80/80 · 24/24 · width PASS |
 | CE hold | `check_core.py --ce-div 4 --ce-hold-check` | `CE_HOLD_VIOL 0` |
-| the core inside the real integration ⧉ | `python3 sw/check_ab_sim.py` | 187 rows MATCH |
+| the core inside the real integration ⧉ | `python3 sw/check_ab_sim.py` | 187 rows MATCH — ⚠ **IT COULD NOT BUILD EITHER LEG from the M10-SYS probe's landing until `b5d8a6bfd4` (2026-08-13)**: `system_large.sv:476` references `v30_ss_pkg::SS_COUNT` and the package file sat AFTER `_PLATFORM` in the RTL list, so Verilator refused with `%Error-PKGNODECL`. Fixed in `sw/` (no RTL); **both legs then MATCH over 187 rows**, the registered value recovered. **SECOND death of this gate by its own file list** — the TENTH vacuous-gate incarnation, §Meta-finding |
 | the MODEL, unmoved | `python3 sw/timed_gate.py --suite tests/v30/v0.1 --forms all` | 169,000 / 169,000, row-diffs 0 |
 | the MODEL's fuzz bank | `python3 sw/timed_fuzz.py --core sim --evt-replay` | REGISTERED **1,343 / 1,702**; EVT **802 / 1,008**; COMBINED **2,145 / 2,710** (**RAISED at wrfuzz W3.4 by THE RETIRE LEAD** -- `wrfuzz_provenance.md` **§7**: `wait_retire_lead()` leads the SUCCESSOR'S POP, and a BRK/TF boundary that fires cancels that pop, so it returns at once when the arm is set.  It was 1,339 / 799 / 2,138.  **17 seeds gained, ZERO lost over all 3,242, checked seed by seed against a baseline re-measured on this tree with the change reverted**; 0 first divergences moved earlier.  On `wr1` the same landing is 73 -> 84.  ⚠ The WAIT ITSELF IS KEPT: the sitting's first candidate deleted the `q_.empty()` disjunct outright, scored the same 84 on `wr1`, and moved `FA` (74), `FB` (68) and `INT.FB` (39) -- **181 row-diffs on `v0.1` where this ladder is 0** -- because the odd-`ip` half of `loader_impl.h`'s 250/250 golden says the FLAG WRITE does wait for the byte to arrive.  Two laws, one call.  The `ucore` leg is NOT taken: its 1BL boundary is `bnd_opc`, the successor's POP STATE, so the gate alone leaves it 2 clocks late -- §7.8.  Before that: **RAISED at wrfuzz W3.1 by the RECOGNITION SHADOW** -- `wrfuzz_provenance.md` **§4**, the same law as the ucore's leg, one term in `exec_impl.h`.  It was 1,338 / 798 / 2,136.  **2 seeds gained, ZERO lost over all 3,242**; on `wr1` the same landing is 48 -> 73.  Before that: **RAISED at SM3 SITTING 26 by the ILLEGAL-FORM STALL** -- `ucore_provenance.md` **§87.A**: `F` is the OPR interlock and at `mod == 3` it has nothing to wait for, so the EU parks; ONE predicate, no opcode named, swept exact over 8,192 forms.  It was 1,282 / 789 / 2,071.  **65 seeds gained, ZERO lost over all 3,242, checked seed by seed**: the whole `TAIL_EXTRA` family (30 REG + 3 EVT, the 29 shared seats §86.F named plus `mc2/640`) AND 32 unpredicted `PF_LOST` seeds, which is the same defect classified by a different first divergence.  The registered bar was 1,312 / 792 / 2,104 and is the FLOOR, not the claim.  Before that: **RAISED at SM3 SITTING 23 by the BRK/TF SINGLE-STEP TRAP** -- `ucore_provenance.md` **§84**: the arm is one bit sampled at every retire boundary through the SAME three-clock pipeline the IE gate already uses, and neither `POPF` nor `IRET` is named anywhere in it.  ELEVEN seeds gained, **ZERO lost, checked seed-by-seed**, and one of them is `mc2/1718`, one of §83.2's three sharp seeds.  It was 1,272 / 788 / 2,060; EVT/COMBINED had been RAISED by FIVE seeds at **SM3 sitting 21** by **F57** — the same five the ucore gained, §82.3; it was 783 / 2,055 (EVT/COMBINED RAISED by ONE seed at **SM3 sitting 19** by the model's F53 leg — `mc2/672`, whose first-divergence `kind` was `ube`, `ucore_provenance.md` §80.A.4); `INVALIDATED` **0**.  Same INV-1 closure; it was `EVT 709/1,008` as banked (STRUCK), then `144/248` interim.  **RAISED 2026-08-04 by SM3 sitting 2's H1 landing: EVT 363 -> 780, COMBINED 1,635 -> 2,052, +417 seeds, REGISTERED unchanged to the seed (`ucore_provenance.md` §61), and again by SM3 sitting 11's re-arm onto the IE rise: EVT 780 -> 782, COMBINED 2,052 -> 2,054, REGISTERED still 1,272 to the seed (§72).  The ucore leg WAS TAKEN at sitting 3 (§62) and the ucore now LEADS this column: EVT 906 vs 780, COMBINED 2,389 vs 2,052 — on a bank where the ucore PREDICTS and the model REPLAYS.**  Before H1 the rebuilt column read 363 and the ucore led by 105; as banked it appeared to trail by 517.  The 248 never-poisoned seeds are unchanged at 170 / 144, which is the control that says the re-capture moved nothing it did not touch  **⚠ SUP-1, 2026-08-09 — AND THIS FIGURE IS NOT MEASURABLE ON BRANCH `fuzz-v2-on-relanding` AT ALL, WITH OR WITHOUT A FLAG.**  Two separate things, and only the first is SUP-1's: (a) the four v1 banks carry `status: SUPERSEDED` (`docs/notes/invalidation_ledger.md` § SUP-1) and `timed_fuzz.seeds_of` honours it, so the command above WITHOUT `--include-superseded` selects **0 seeds** and says so on stderr; (b) **WITH the flag it selects all 3,242 and every one of them categorises `GEN_DRIFT`** — MEASURED, `--bank mc1 --limit 40` gives `GEN_DRIFT=40  SCORED 0`.  The cause is **fuzz-v2 plan D9** in `sw/fuzz_campaign.py` (landed `e45772e4e0`…`b155b6166b`, well before SUP-1): the `0F` scrub is now unconditional, so every v1 image regenerates to a different sha256, and `brkem_high` is REFUSED outright, so `t30-brkem` raises.  **The v1 corpus stopped being replayable on this branch when D9 landed, not when SUP-1 was written**, and the figures in this cell are re-derivable only on a tree whose generator predates fuzz-v2 (merge-base `7e949925b7` or `master`).  Retirement did not cost this ratchet anything D9 had not already taken. |
 | **the `wr1` offline guard** ⧉ **(NEW — wrfuzz W6, 2026-08-06)** | `python3 sw/wrfuzz_wr1_guard.py` | rc=0.  **model ≥ 84 / 184, `ucore` ≥ 91 / 184, ZERO previously-exact seeds lost, ZERO first divergences moved earlier**, denominator still 184.  ⚠ **AN IMPLEMENTATION GUARD, AND EVERY WORD OF THAT MATTERS** — see the wrfuzz section below.  It is **not a silicon-match rate, not a new sample, not a ranking of the two engines, and not a re-claim of W4's 90.0170 %** |
@@ -2215,3 +2286,21 @@ nothing until you have looked at its DENOMINATOR.* **A cross-check that reports
 zero disagreements over zero common cells is a FAILED cross-check, not a passing
 one**, and any scorer that can silently write its own reference has an
 empty-denominator failure mode until it is proved otherwise.
+
+### The TENTH incarnation — **A GATE THAT CANNOT BUILD** (2026-08-13)
+
+| # | where | what it was | what closed it |
+|---|---|---|---|
+| **10** | `sw/check_ab_sim.py` | **NEITHER LEG COULD ELABORATE at `41a60bd42c`.** `_CORE_RTL` puts the save-state package first *within the core list*, and that list is appended **after** `_PLATFORM` — but `system_large.sv` acquired a `v30_ss_pkg::SS_COUNT` reference of its own when the **M10-SYS save-state freeze probe** landed (`:476`, inside `ifndef SYNTHESIS`). Verilator refused both cores with `%Error-PKGNODECL: … 'v30_ss_pkg' not found, and needs to be predeclared`. The gate is registered at *"both legs MATCH over 187 rows"* and had been dead since that landing. | **`b5d8a6bfd4`** — the package file moves to the head of the WHOLE list, `sw/` only, **no RTL**. Both legs then **MATCH over 187 rows**, their registered value, recovered and not restated. |
+
+**This is the SECOND death of this same gate by its own file list** — the first
+is the 2026-07-13 drift (`v30_ss_pkg.sv`, `wvec_buf.sv`, `iords_buf.sv`),
+recorded in the file's own comment — **and both times nothing saw it.**
+
+**The rule the TENTH produced**: *a gate that cannot BUILD reports no failures,
+and a ladder that does not run it cannot tell that apart from a gate that
+passes.*  It is the mirror of the SM2 `want_raw` finding (*verify a flag exists
+AND that the callee accepts it*): **verify a gate BUILDS.**  Every gate whose
+artifact is compiled from a file LIST inherits this failure mode the moment any
+file in that list acquires a new dependency — and the only falsifier is running
+it.

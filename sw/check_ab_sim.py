@@ -70,8 +70,30 @@ _CORE_RTL = {
 
 
 def core_rtl(core):
+    """The package FIRST, then the platform, then the rest of the core.
+
+    ⚠ THE PACKAGE MUST PRECEDE `_PLATFORM`, NOT MERELY THE REST OF THE CORE,
+    AND IT DID NOT UNTIL 2026-08-13.  `_CORE_RTL` already listed the package
+    first *within the core list*, but that list was appended AFTER `_PLATFORM`
+    -- and `system_large.sv` acquired a `v30_ss_pkg::SS_COUNT` reference of its
+    own when the M10-SYS save-state freeze probe landed (`system_large.sv:476`,
+    inside the `ifndef SYNTHESIS` arm).  Verilator requires a package to be
+    predeclared, so from that landing onwards BOTH legs failed elaboration with
+
+        %Error-PKGNODECL: rtl/system_large.sv:476:29: Package/class
+        'v30_ss_pkg' not found, and needs to be predeclared
+
+    and the gate registered at "both legs MATCH over 187 rows" could not build
+    at all.  MEASURED: moving the package file to the head of the list and
+    changing NOTHING else makes it elaborate and link.
+
+    This is the SECOND time this gate has died of its own file list (the first
+    is the 2026-07-13 drift recorded above), and both times nothing saw it,
+    because a gate that cannot build reports no failures.  The falsifier is the
+    gate itself: run it."""
     d = _CORE_DIR[core]
-    return _PLATFORM + [d / f for f in _CORE_RTL[core]]
+    pkg, rest = _CORE_RTL[core][0], _CORE_RTL[core][1:]
+    return [d / pkg] + _PLATFORM + [d / f for f in rest]
 
 
 def core_obj(core):
