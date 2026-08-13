@@ -86,11 +86,15 @@ end
 // seeds do not share a stream.  Every environment decision in this file comes
 // out of one of them and out of nothing else.
 //
-//   L_MEM    memory initialisation
+//   stream 0 memory initialisation -- consumed by the `initial` that fills
+//            `mem`, off its own local `seed_of(seed_cfg, 0)`.  It is a
+//            one-shot at time 0, so it needs no persistent register.
 //   L_CE     the CE train's gap
 //   L_RDY    READY
 //   L_PIN    INT / NMI / POLL_N
-//   L_AUX    (spare; kept so the four above are never re-tapped)
+//   L_MEM, L_AUX  declared, seeded, and DELIBERATELY UNUSED -- spare streams,
+//            so that adding a new environment decision later never has to
+//            re-tap one of the three above and silently move every signature.
 //---------------------------------------------------------------------------
 localparam logic [31:0] LFSR_POLY = 32'hA3000000;
 
