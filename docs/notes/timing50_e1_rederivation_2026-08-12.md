@@ -6,10 +6,27 @@ command issued, no Codex consulted, no nested task spawned.  No RTL is edited
 in this wave (a parallel worktree owns the `c_int_q` cone), so the only
 functional file this document changes is `hdl/nec_test.sdc`.
 
-**§1-§4 of this document are written BEFORE the deletion is made and BEFORE any
-build is taken.**  That is the point: a removal with the failed re-derivation
-written down beats a silent deletion, and a band quoted against predictions
-registered afterwards is not a measurement.
+**§1-§4 and §7-§8 of this document were committed BEFORE the deletion
+(`1b4b3d3f67`) and BEFORE any build that scores it (`5825412dff`).**  That is
+the point: a removal with the failed re-derivation written down beats a silent
+deletion, a band quoted against predictions registered afterwards is not a
+measurement, and a recommendation chosen after seeing the band is not a
+recommendation.
+
+---
+
+## §HEADLINE
+
+| | |
+|---|---|
+| **The re-derivation** | **FAILS, by exactly one fabric clock.** `-setup 2` needs a guaranteed `ce → ce_half` gap of **≥ 3**; the contract guarantees **2**. Four escapes worked and closed (§2.4). |
+| **The disposition** | **E-1 DELETED** (`a1c63e78e4`). A-1 permanently withdrawn — the deletion is strictly tighter. |
+| **THE HONEST BAND** | **CONTROL 41.18 MHz · RETENTION 42.28 MHz**, worst-of-2, both draws identical, TNS 0.000 setup AND hold. **Cost −4.36 / −3.29 MHz.** |
+| **What binds now** | `v30u_eu\|upc_opc[*] → nec_bus\|ad_in_q[*]`, 29-40 levels, single-cycle, **60 of the top 60 in both configurations** — F-2's class, restored to visibility |
+| **⚠ `c_int_q` no longer binds** | **+9.233 / +9.374** against the binding +6.964 / +7.600. A Phase-2 wave scoped to it would measure **0.00 MHz**. |
+| **The ceiling** | a *perfect* fix of the whole observation class reaches **45.17 / 44.10 MHz** and stops at `div_cnt → t1_half2`, a half-period ENABLE arc. **50 MHz is not reachable by any constraint work.** |
+| **Zero-behaviour ladder** | **every row MET** — an SDC edit that moved a behaviour row would have been a STOP |
+| **Recommendation** | **(c), PAIRED** — report whole-design Fmax (unchanged as the promotion gate) *and* core-domain Fmax, with the RTL item on the core's `ucrom → assign ad_o` cone named beside it. **(a) rejected; (b) does not exist.** |
 
 ---
 
@@ -278,15 +295,159 @@ checked.
 
 ---
 
-## §5 THE MEASUREMENT
+## §5 THE MEASUREMENT — **THE HONEST BAND IS CONTROL 41.18 / RETENTION 42.28**
 
-*(filled in after the builds — see §5.1)*
+All draws from a clean `db` through `sw/quartus_gate.py`, Quartus 17.1.0 Lite,
+5CSEBA6U23I7, `divclk` constrained at 31.250 ns (32.0 MHz), corner **Slow
+1100 mV 100 C**, on the committed tree `a1c63e78e4`, **88-file input manifest
+`837b0c700ac2138b…`** (the baseline's is `81d833748e3a1c18…` — they differ by
+`nec_test.sdc` and nothing else, which is the check that the deletion reached
+the compiler).
+
+| # | configuration | Fmax | worst setup | TNS setup/hold | ALMs | `.rbf` | receipt |
+|---|---|---:|---:|---|---:|---|---|
+| 1 | CONTROL | **41.18** | +6.964 | 0.000 / 0.000 | 12,271 (29 %) | `ebae5fbfeb280ab8…` | `f57235437d33ae02…` |
+| 2 | CONTROL | **41.18** | +6.964 | 0.000 / 0.000 | 12,271 (29 %) | `ebae5fbfeb280ab8…` | `e0ddd68d0aaf7b38…` |
+| 1 | RETENTION | **42.28** | +7.600 | 0.000 / 0.000 | 12,317 (29 %) | `65f10e13d23379cb…` | `f26ea5ae09317125…` |
+| 2 | RETENTION | **42.28** | +7.600 | 0.000 / 0.000 | 12,317 (29 %) | `65f10e13d23379cb…` | `f6a5a77611f22e8f…` |
+
+**WORST-OF-2: CONTROL 41.18 MHz · RETENTION 42.28 MHz.**  Both draws in each
+configuration are identical in Fmax, worst setup, ALMs **and `.rbf` hash**.
+**Every draw PASSED G6** — E1 `gen_ucore_qsf --check` PASS, 0 compile errors,
+every stage Successful, 0 latches, 0 `lpm_divide`, and **TNS 0.000 on all four
+clock domains, setup AND hold**.  The retention receipts **self-label
+`RETENTION (X1_AD_RETENTION=1)`, DERIVED from the reports**, and their `.rbf`
+**differs** from the control's — E-6/E-9's check that `--verilog_macro` reached
+the compiler.
+
+### 5.1 THE COST, STATED WITHOUT SOFTENING
+
+| | with E-1 (`1e554257b6`) | **E-1 deleted (`a1c63e78e4`)** | Δ |
+|---|---:|---:|---:|
+| CONTROL worst-of-2 | 45.54 | **41.18** | **−4.36 MHz** |
+| RETENTION worst-of-2 | 45.57 | **42.28** | **−3.29 MHz** |
+| ALMs (CTL / RET) | 12,253 / 12,213 | 12,271 / 12,317 | +18 / +104 |
+
+**THIS IS THE NUMBER THE 50 MHz CAMPAIGN NOW STARTS FROM, and it is 8.8 MHz
+short of its target.**  The gap was always there; E-1 was covering it with a
+constraint whose premise could not be derived.
+
+### 5.2 THE PREDICTIONS, SCORED AS REGISTERED
+
+| id | registered | measured | |
+|---|---|---|---|
+| **R-1** | CONTROL worst-of-2 ∈ [38.0, 42.0] | **41.18** | **MET** |
+| **R-2** | RETENTION worst-of-2 ∈ [36.5, 41.0] | **42.28** | ⚠ **MISSED — ABOVE the band by 1.28 MHz.** Reported as registered, not restated. The band was set from the pre-E-1 baseline (38.82 at `98bef5844ced`, `timing_recovery_results_2026-08-11.md` §2); the tree has moved since, and **the 38.0 STOP is not approached in either configuration** (nearest margin +3.18 MHz). |
+| **R-3** | binding class returns to `CORE→ANY`, `v30u_eu\|upc_opc[*]` → `nec_bus\|ad_in_q[*]` | **`upc_opc[3]~DUPLICATE → ad_in_q[8]`, 28-40 logic levels, +7.600 (RET) / +6.964 (CTL)** — and it owns **60 of the top 60** | **MET** |
+| **R-4** | TNS 0.000 setup AND hold, 0 errors / latches / `lpm_divide`, every stage Successful, all four draws | **as registered on all four** | **MET** |
+| **R-5** | `core_ad_hold` NOT on the retention binding cone | **`core_ad_hold` worst incoming +8.145 against `ad_in_q`'s +7.600** — 0.545 ns of slack ABOVE the binding path | **MET.** §3's booked narrowing stays booked and is measured worth **zero**. |
+| **R-6** | the zero-behaviour ladder unmoved, every row | **every row** (§5.3) | **MET** |
+
+### 5.3 THE ZERO-BEHAVIOUR-CHANGE LADDER — EVERY ROW MET
+
+Run once at the end, as Phase 1 registered the schedule.  `hdl/nec_test.sdc` is
+read by Quartus and by no engine, so **any delta would have been a STOP**.
+
+| gate | registered | measured | |
+|---|---|---|---|
+| `check_core --core ucore --opcodes all --cases 0` | 169,000/169,000 | **169,000/169,000** | ✓ |
+| `check_core --core ucore --opcodes 8F.0 --cases 0` | 500/500 | **500/500** | ✓ |
+| HLT sweeps `s10-w0/w1`, `s13-w2/w3` (⚠ `--waits 0/1/2/3`) | 97 · 93 · 45 · 44 = 279/283 | **97 · 93 · 45 · 44 = 279/283** | ✓ |
+| `ulockstep --golden all --cases 50` | 17,350/17,350 | **17,350/17,350 ALL LOCKSTEP** | ✓ |
+| `ghost_launch_law.py score` | 200/200, exit 0 | **200/200 = 100.0 %**, exit 0 | ✓ |
+| `r7_lint.py` | PASS, 0 violations | **PASS** — 0 undeclared carriers, 0 undeclared unresolved, 51 `stop` sites clean | ✓ |
+| `ss_lint.py --core ucore` | `SS_VERSION` 0x8E / 232 / 220 flops / 0 UNMAPPED | **PASS** — 0x8E, 109×2 + 122×2 + tag = **232**, **220** flops, **0 UNMAPPED** | ✓ |
+| `test_artifact.py` | 45/45 | **45/45** | ✓ |
+| `gen_ucore_qsf.py --check` | PASS | **PASS** on every build (it is G6's E1) | ✓ |
+| `test_quartus_gate.py` | 75/75 | **75/75** | ✓ |
+
+⚠ **`fz2_replay`, `fz2_immaterial falsify` and every leg reading
+`sw/testdata/campaigns/fz2*/captures/` COULD NOT RUN** — that corpus is
+untracked and lives only in the main checkout.  **Owed, not claimed**, exactly
+as `timing_recovery_results_2026-08-11.md` §4 and Phase 1 §5 booked them.
+Nothing in this wave changes a byte any of them reads.
 
 ---
 
-## §6 WHAT BINDS NOW
+## §6 WHAT BINDS NOW — AND THE CEILING BEHIND IT
 
-*(filled in after the builds)*
+`sw/sta_census.tcl`, `sw/sta_e1_probe.tcl` and `sw/sta_probe.tcl` on each
+build's **own** fitted `db`, corner Slow 1100 mV 100 C.
+
+### 6.1 RETENTION — the class table
+
+| class | with E-1 (Phase 1) | **E-1 deleted** | |
+|---|---:|---:|---|
+| `CORE→CORE` | +36.355 → +26.976 | **+30.789** (`upc_opc[3] → t1_half2`) | not binding |
+| `CORE→ANY` | +25.579 | **+7.600** (`upc_opc[3]~DUPLICATE → ad_in_q[8]`) | **BINDS** |
+| `ANY→CORE` | **+8.689** (`c_int_q → row_posted`) — *was the binding cone* | **+8.573** (`div_cnt[4] → t1_half2`, the enable arc) | not binding |
+| `ANY→ANY` | +8.689 | **+7.600** | = `CORE→ANY` |
+
+**Top-60 population: `CORE→OUT` 60 of 60**, launch histogram `v30u_eu` **60**,
+latch histogram `nec_bus` **60**, slacks +7.600 … +7.820 at **33-40 logic
+levels**.  It is one cone, and it is the cone
+`timing_recovery_census_2026-08-11.md` F-2 named before E-1 existed.
+
+### 6.1a CONTROL — the same cone, on its own fitted `db`
+
+A **third CONTROL draw** was taken for the census (`d89edb0c6f805abd…`) because
+a census needs a fitted `db` and each build deletes the last one.  **It read
+41.18 / +6.964 / 12,271 again — three agreeing CONTROL draws.**
+
+| class | with E-1 (Phase 1 / census §4.1) | **E-1 deleted** | |
+|---|---:|---:|---|
+| `CORE→CORE` | +38.626 | **+30.696** (`upc_opc[4] → t1_half2`) | not binding |
+| `CORE→ANY` | +27.751 | **+6.964** (`upc_opc[0]~DUPLICATE → ad_in_q[13]`, 29 levels) | **BINDS** |
+| `ANY→CORE` | +8.996 (`div_cnt[4] → t1_half2`) | **+9.114** (same arc) | not binding |
+| `ANY→ANY` | +8.892 (the JTAG hub) | **+6.964** | = `CORE→ANY` |
+
+**Top-60 population: `CORE→OUT` 60 of 60**, launch `v30u_eu` **60**, latch
+`nec_bus` **60** — identical in kind to RETENTION.  `core_ad_hold` is **absent**
+in this configuration, as it must be.
+
+**AND THE CONFIGURATION GAP INVERTED AGAIN**: RETENTION (42.28) is **+1.10 MHz
+ABOVE** CONTROL (41.18).  Recorded, **not explained** — the same sign inversion
+`standing_gates.md` §A has recorded and declined to explain at FLASH #13
+(+0.46), #14, and Phase 1 (+0.03).  The mechanism visible here is *which cone
+happens to bind*: with E-1 gone both configurations bind on the same cone, and
+the CONTROL fit simply placed it 0.636 ns worse.
+
+### 6.2 ⚠ THE FINDING THAT MATTERS TO PHASE 2: **`c_int_q` NO LONGER BINDS**
+
+Measured on the E-1-less builds, `c_int_q`'s worst path is **+9.374 ns**
+(RETENTION, 38 levels, → `v30u_eu|row_posted`) and **+9.233 ns** (CONTROL, 37
+levels, same destination); the JTAG hub sits at **+8.739** / **+9.522**.  All
+four are **above** the observation cone (+7.600 / +6.964) **and above** the
+`div_cnt → t1_half2` enable arc (+8.573 / +9.114).
+
+**So on this tree, closing `c_int_q` completely would move Fmax by ZERO.**  It
+was the binding cone *with E-1 in force* (+8.689, 60 of RETENTION's top 60),
+which is the basis on which
+`timing50_phase1_results_2026-08-12.md` §8 recommended it for Phase 2 —
+**that recommendation was correct for the tree it was made on and is not
+correct for this one.**  Stated here because a Phase-2 wave scoped to `c_int_q`
+would measure a benefit of 0.00 MHz and could easily read that as a failed fix
+rather than as a fix of a non-binding cone.
+
+### 6.3 THE CEILING — what the whole observation class is worth
+
+`sta_probe`'s ceiling leg, all observation endpoints excluded — **48** in
+RETENTION (28 `nec_bus` + 20 `core_ad_hold`, complement 15,157) and **28** in
+CONTROL (complement 15,170).  **Both configurations return the same surviving
+path:**
+
+> **`nec_bus|div_cnt[4] → v30u_biu|t1_half2`, at +8.573 ns (RETENTION) and
+> +9.114 ns (CONTROL) — the ENABLE arc, a true half period, which no
+> constraint can relax (`nec_test.sdc`'s own note) and which is RTL-only.**
+
+**In frequency: a PERFECT fix of the entire observation class takes RETENTION
+from 42.28 to 44.10 MHz and CONTROL from 41.18 to 45.17 MHz, and no
+further.**  Two consequences, both registered here rather than argued later:
+
+1. **§8(a) is capped at +1.82 MHz** even if its equivalence problem were free.
+2. **50 MHz is not reachable by any work on the observation path**, and it is
+   not reachable by `c_int_q` either. The next wall after the samplers is a
+   half-period enable arc into the core's one negedge flop.
 
 ---
 
@@ -418,9 +579,16 @@ measured against are silicon captures that this wave may not re-take:
 corpus is untracked and is not present in this worktree, so these are quoted
 from the registry and not re-counted here.)*
 
+**AND IT IS CAPPED AT +1.82 MHz (RETENTION) / +3.99 MHz (CONTROL), MEASURED
+(§6.3).**  With every observation endpoint excluded, the worst surviving path in
+BOTH configurations is `div_cnt[4] → t1_half2` at **+8.573 / +9.114 ns**, so a
+*perfect* fix of the entire class takes the band to **44.10 / 45.17 MHz** and
+stops there, against a wall no constraint can move.
+
 **VERDICT: it trades a constraint whose premise was unprovable for an
 instrument change whose equivalence is unprovable offline, against an 11.3
-million-row silicon corpus and a board this wave may not touch.  That is the
+million-row silicon corpus and a board this wave may not touch — for a measured
+ceiling of +1.82 MHz that still leaves the campaign 5.9 MHz short.  That is the
 wrong direction of trade.**
 
 ### 8.2 (b) A SYNCHRONIZER CHAIN WITH A CONTRACT-ONLY JUSTIFICATION — **UNAVAILABLE**
@@ -473,4 +641,22 @@ its own campaign with a silicon-match bar, not a phase of this one.
 **RECOMMENDATION: (c), paired.**  It costs nothing, hides nothing as long as
 both numbers are printed with their cones, and it is the only one of the three
 that does not spend a silicon corpus or assert something unprovable.  **(a) is
-rejected on the re-goldening cost; (b) does not exist.**
+rejected on the re-goldening cost AND on a measured ceiling of +1.82 / +3.99 MHz;
+(b) does not exist.**
+
+**AND THE MEASUREMENT MADE THE PAIRING NON-OPTIONAL.**  §6.3's ceiling says the
+observation class is worth **1.82 MHz in total** and the next wall behind it —
+`div_cnt → t1_half2`, a half-period *enable* arc — is RTL-only as well.  So:
+
+* **50 MHz is not reachable by ANY constraint work, and now that is MEASURED
+  rather than argued**: the ceiling behind the whole observation class is
+  44.10 / 45.17 MHz.  It was not reachable before this wave either; E-1 made
+  the tree *look* 3-4 MHz closer to it.
+* **Nor is it reachable by `c_int_q`** (§6.2: +9.374, not binding).
+* **The only levers left are the three RTL ones**, in the order the measurement
+  ranks them: the core's `ucrom → assign ad_o` cone (worth up to 1.82 RET /
+  3.99 CTL before the next wall), then `div_cnt → t1_half2` (register `ce_half`, or retime
+  `t1_half2` to a posedge flop — both **behaviour-visible**), then the ucrom as
+  an M10K (**a cycle of latency**, banned by the zero-behaviour terms *by their
+  terms*).  **Each needs its own campaign with a silicon-match bar, and none is
+  opened here.**
