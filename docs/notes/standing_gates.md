@@ -155,7 +155,44 @@ derived ceilings and inter-draw claims are affected.)*
 
 ---
 
-### ⚠⚠⚠⚠ **CURRENT BAND — L1 LANDED 2026-08-13.  CONTROL `worst-of-5` 41.71 · RETENTION 43.50**
+### ⚠⚠⚠⚠ **CURRENT BAND — RE-MEASURED 2026-08-13 AS A PAIR, AND IT IS THE FIRST PAIRED REGISTRATION**
+
+`docs/notes/intcone_results_2026-08-13.md` §3.  **No RTL changed** since L1, so
+`hdl/` is byte-identical to L1's and the input manifest is the same
+**`d47c1d003d64c4c5…`**.
+
+| | **whole-design** `worst-of-5@seeds{1..5}` | binding cone (k) | **core-domain** `worst-of-5` ⚠ upper bound | binding cone (k) |
+|---|---:|---|---:|---|
+| **CONTROL** | **41.71** (seed 1) | `opc_from_modrm → ad_in_q[14]` (**1.0**) | **60.67** (seed 3) | `ucdecode M10K → v30u_eu\|wb_kind[0]` (**4.0**) |
+| **RETENTION** | **43.50** (seed 2) | `ucdecode M10K → ad_in_q[11]` (**1.0**) | **59.52** (seed 4) | `ucdecode M10K → v30u_eu\|Mux73~0` (**4.0**) |
+
+Records `ad7dc5db6e6a6002…` / `c487a9ae7bbd4f3c…`; both `verdict PASS` on
+E7-E10, **TNS 0.000 setup AND hold on every domain of all ten draws**, ALMs
+**24 %** (10,085-10,194), spreads **2.65 / 1.71**.
+
+⚠ **THE BANDS OVERLAP** ([41.71, 44.36] vs [43.50, 45.21]) — **no
+control-vs-retention delta may be computed.**
+⚠ **THREE OF THE TEN CORE-DOMAIN ROWS ARE OFF-CLASS** (CTL 1, 2; RET 5).  On
+both configurations the contamination went **upward**, so it did not set either
+minimum; both quoted core figures come from clean `k = 4.0` rows.
+✅ **TEN OF TEN DRAWS REPRODUCE L1 TO THE DIGIT** — Fmax, worst setup and ALMs,
+on independently produced maps, with both spreads identical.  **Fifth
+confirmation of §7's determinism finding.**
+✅ **THE CORE-DOMAIN HALF CLEARS 50 MHz ON BOTH CONFIGURATIONS (+10.67 /
++9.52); THE WHOLE-DESIGN HALF DOES NOT, and is short by 8.29 / 6.50 MHz.**
+⚠ **`c_int_q` IS BOOKED, NOT LANDED** (`intcone_results_2026-08-13.md` §1):
+with `c_int_q` excluded as a launch register the CONTROL worst draw's worst
+path is **+7.276 — its own binding path**, so a perfect fix of that cone is
+**+0.00 MHz** on `worst-of-5`.  Re-open **only** when the observation class no
+longer binds the worst draw of a configuration.
+⚠ **THE LADDER CANNOT NAME THE THIRD WALL**: `RUNG 2` returns the k=0.5 enable
+arc on RETENTION seed 2 (slack-ranked) and the `c_int_q` path it was meant to
+exclude on CONTROL seed 1 (the `~DUPLICATE` leak).  What is behind the two
+rig-crossing cones is **UNMEASURED**.
+
+*Superseded, kept because a ratchet is only readable against its own history:*
+
+### ⚠⚠⚠ **L1 LANDED 2026-08-13.  CONTROL `worst-of-5` 41.71 · RETENTION 43.50**
 
 `docs/notes/adcone_l1_results_2026-08-13.md`; anatomy first at `05bd462643` /
 `83c00e753f`, pre-registration `107c0e3877` **before the edit**, edit

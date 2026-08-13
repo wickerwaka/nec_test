@@ -70,11 +70,22 @@ and the rows are read past rather than deleted.
 > seed 1 is bound by the observation class, and a cone 0.673 ns behind the
 > binding cone on the draw that SETS the figure cannot move the figure.**
 
-**RETENTION reaches the same place from its own committed numbers**: its
-`worst-of-5` is **seed 2 at 43.50**, binding cone `ucdecode M10K → ad_in_q[11]`
-(observation), with `rung 1a` — the `c_int_q` class — at **47.42 (k = 1.0)**,
-**3.92 MHz clear**.  §3.3 re-measures it with this wave's own instrument on the
-final tree rather than leaving it quoted.
+**AND RETENTION IS MEASURED THE SAME WAY, NOT QUOTED.**  After the wave-end
+sweeps the same probe was run on the RETENTION worst draw (seed 2) on its own
+map (`intcone_anatomy_2026-08-13.md` §5.4):
+
+| RETENTION seed 2 — **the `worst-of-5` draw** | |
+|---|---|
+| worst setup | **+8.261**, the sweep's own figure to the digit |
+| `c_int_q` own-Fmax | **47.42 MHz**, `c_int_q → row_posted`, **60 of 60** paths latch there |
+| **§D: worst path with `c_int_q` excluded** | **+8.261**, `ucdecode M10K → ad_in_q[11]` — **the same path** |
+| **benefit of a PERFECT fix** | **+0.000 ns** |
+
+> **BOTH CONFIGURATIONS, EACH ON ITS OWN WORST DRAW, WITH THE SAME INSTRUMENT:
+> a perfect fix of `c_int_q` is worth +0.000 ns.**  RETENTION's 47.42 also
+> reproduces L1's committed `rung 1a` for seed 2 to the digit, and this wave's
+> retention sweep reports the same 47.42 in its own `RUNG 1a` row — three
+> independent readings of one number.
 
 ### 1.3 THE R7′ QUESTION, AND ITS ANSWER IS NEGATIVE
 

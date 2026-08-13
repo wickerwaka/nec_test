@@ -314,8 +314,41 @@ that sets `worst-of-5`.**
 
 ---
 
+## §5.4 RETENTION, SEED 2 — **THE CONFIGURATION THAT GETS FLASHED, AND ITS OWN WORST DRAW**
+
+Added after the wave-end sweeps (`sw/testdata/intcone/anat-ret/`), on its own
+map, at **the seed that binds the RETENTION `worst-of-5`**.
+
+| | measured |
+|---|---|
+| worst setup | **+8.261** — the sweep's own figure, reproduced to the digit |
+| `c_int_q` own-Fmax | **47.42 MHz**, `c_int_q → row_posted`, 30 levels |
+| endpoints over 60 paths | **`row_posted` 60 of 60** |
+| `ann_kill` on the path | **60 of 60** |
+| PREFIX / TAIL | 12.457 / **15.775** ns per path (**55.9 %** tail) |
+| **§D: worst path with `c_int_q` excluded** | **+8.261**, `ucdecode M10K → ad_in_q[11]` — **the draw's own binding path** |
+| **benefit of a PERFECT fix** | **+0.000 ns** |
+
+The worst path's segments (data **20.462 ns / 30 levels**) are the same four in
+the same order as CONTROL's:
+
+| segment | ns | cells |
+|---|---:|---:|
+| prefix — pin → `ann_kill` | **4.260** | 6 |
+| the M7 occupancy sum → `pf_arm` | **5.100** | 6 |
+| the eval/grant/slot → `slot_accept` | **5.863** | 11 |
+| the EU → `row_posted`'s `D` pin | **5.239** | 6 |
+
+> **SO THE VERDICT IS MEASURED ON BOTH CONFIGURATIONS WITH THE SAME
+> INSTRUMENT, ON EACH ONE'S OWN WORST DRAW: a perfect fix of `c_int_q` moves
+> the quotable figure by +0.000 ns on CONTROL and +0.000 ns on RETENTION.**
+
+---
+
 ## §6 WHAT IS *NOT* MEASURED HERE
 
+* ~~**RETENTION.**~~ **MEASURED — §5.4**, at that configuration's own worst
+  draw, after the wave-end sweeps.
 * **Anything about fabric.**  No board was touched and no bitstream was built.
 * **Whether a shorter cone would survive re-placement.**  Phase 2 measured that
   a 1.938 ns prefix saving was re-absorbed **98 %** by the fitter (+106 ALMs of
