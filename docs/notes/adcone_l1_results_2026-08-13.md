@@ -100,13 +100,39 @@ sweep's own clean build had just deleted `hdl/output_files_ucore/`.  It is a
 
 ## §2 THE MEASUREMENT — G6 `--seeds 5`, BOTH CONFIGURATIONS
 
-*(filled from the sweeps.)*
+### 2.0 HOW THE BEFORE FIGURE IS OBTAINED, AND WHY THAT IS LEGITIMATE
+
+The **before** leg is `timing50_distribution_2026-08-13.md` §4's seeds 1-5, i.e.
+`worst-of-5@seeds{1,2,3,4,5}` = **CONTROL 38.97** (seed 5) and **RETENTION
+39.74** (seed 5), re-derived from those receipts by `sw/adcone_g6_table.py`
+(which reproduces that document's two tables cell for cell — the check that it
+reads the artifacts the way the document did).
+
+**It is not re-built, and the reason is measured rather than assumed**: this
+wave's anatomy took three CONTROL draws on its OWN independently produced map
+and reproduced **38.97 / 39.79 / 41.28 to the digit** at seeds 5, 6 and 8
+(`adcone_anatomy_2026-08-13.md` §5.1).  So on the BEFORE side, map variance is
+measured at zero on 3 of 3 seeds tested.
+
+⚠ **The AFTER side carries a new map and that cannot be avoided** — an RTL edit
+re-maps by construction — so the residual exposure is one map draw on one side.
+`timing50_distribution_2026-08-13.md` §7 puts historical map variance at
+~2.3 MHz (CONTROL), **which is larger than P-1's 2.0 MHz floor**.  P-1 was
+registered knowing that.
+
+### 2.1 CONTROL
+
+*(filled from the sweep.)*
+
+### 2.2 RETENTION
+
+*(filled from the sweep.)*
 
 ---
 
 ## §3 THE CENSUS — WHAT BINDS NOW
 
-*(filled from the post-sweep probes.)*
+*(filled from the per-seed `truefmax` artifacts and a post-sweep anatomy probe.)*
 
 ---
 
