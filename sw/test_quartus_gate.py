@@ -704,6 +704,61 @@ def q16_paired_reporting():
     check("the core-domain worst-of-N is a MIN, not a mean or a max",
           "core_worst = min(core_ok)" in src)
 
+    # --- THE SUMMARY ITSELF, ON SYNTHETIC DRAWS ----------------------------- #
+    # ⚠ A SUMMARY THAT CAN ONLY BE EXERCISED BY A THIRTY-MINUTE COMPILE IS A
+    # SUMMARY WHOSE FIRST RUN IS ON THE DATA IT WAS WRITTEN TO REPORT.  That is
+    # why `paired_figures()` is a function; this is the run that is not.
+    def draw(seed, fmax, core, cls="k=4.0"):
+        return {"seed": seed, "fmax_mhz": fmax, "core_fmax_mhz": core,
+                "core_domain": {"fmax_mhz": core, "class": cls, "k": 4.0,
+                                "from": "u_eu|a", "to": "u_biu|b",
+                                "classes": {"k=4.0": core, "k=1.5": 86.1,
+                                            "k=2.5": 210.9}}}
+    ps = [draw(1, 41.71, 59.5), draw(2, 42.48, 58.0), draw(3, 42.57, 61.0),
+          draw(4, 42.50, 57.2), draw(5, 44.36, 60.1)]
+    bd = [{"seed": p["seed"], "from": "u_eu|upc", "to": "bus|ad_in_q[14]",
+           "k": 1.0, "fmax_mhz": p["fmax_mhz"]} for p in ps]
+    pr = qg.paired_figures(ps, bd, [1, 2, 3, 4, 5])
+    wd, cdw = pr["whole_design"], pr["core_domain"]
+    check("the whole-design half is the WORST draw (41.71 at seed 1)",
+          wd["fmax_mhz"] == 41.71 and wd["seed"] == 1, str(wd))
+    check("...with its own binding cone and k", wd["k"] == 1.0 and
+          wd["binding_to"] == "bus|ad_in_q[14]", str(wd))
+    # ⚠ THE HALVES BIND ON DIFFERENT DRAWS, AND THE PAIR MUST SAY SO.  Taking
+    # the core-domain number OFF THE WHOLE-DESIGN WORST DRAW would quote a
+    # figure that is not the worst of anything.
+    check("the core-domain half is the WORST core draw (57.2 at seed 4), "
+          "NOT the core figure of the whole-design worst draw",
+          cdw["fmax_mhz"] == 57.2 and cdw["seed"] == 4, str(cdw))
+    check("...and the two halves bind on DIFFERENT seeds here, by construction",
+          wd["seed"] != cdw["seed"])
+    check("the core-domain half names its class and k",
+          cdw["class"] == "k=4.0" and cdw["k"] == 4.0)
+    check("both quotable strings name N and the seed set",
+          "worst-of-5@seeds{1,2,3,4,5}" in wd["quotable_as"]
+          and "worst-of-5@seeds{1,2,3,4,5}" in cdw["quotable_as"],
+          f"{wd['quotable_as']} / {cdw['quotable_as']}")
+    check("the whole-design half declares itself the promotion gate",
+          wd["is_promotion_gate"] is True)
+    check("the core-domain half declares itself NOT one",
+          cdw["is_promotion_gate"] is False)
+    check("every core class carries its own worst-of-N",
+          cdw["per_class_worst_of_n"]["k=1.5"]["min"] == 86.1
+          and cdw["per_class_worst_of_n"]["k=4.0"]["min"] == 57.2)
+    check("derivable on all 5 draws", cdw["n_draws_derivable"] == 5)
+    # ...and a sweep in which the probe failed on one draw.
+    ps2 = list(ps)
+    ps2[2] = {"seed": 3, "fmax_mhz": 42.57, "core_fmax_mhz": None,
+              "core_domain": {"fmax_mhz": None, "class": None, "k": None,
+                              "from": None, "to": None, "classes": {}}}
+    pr2 = qg.paired_figures(ps2, bd, [1, 2, 3, 4, 5])
+    check("a draw with no core figure is DROPPED and COUNTED, not treated as 0",
+          pr2["core_domain"]["fmax_mhz"] == 57.2
+          and pr2["core_domain"]["n_draws_derivable"] == 4,
+          str(pr2["core_domain"]))
+    check("...and the whole-design half is untouched by it",
+          pr2["whole_design"]["fmax_mhz"] == 41.71)
+
     # --- and it survives a real invocation of the summary path -------------- #
     rc, out = run_gate(["--dry-run", "--seeds", "5"])
     check("--dry-run --seeds 5 still exits 0 with the pairing in the tool",

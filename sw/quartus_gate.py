@@ -1039,6 +1039,79 @@ def _stat(vals):
             "spread": round(s[-1] - s[0], 4), "sorted": s}
 
 
+def paired_figures(per_seed, binding, seeds):
+    """THE PAIR, over a completed sweep.  -> dict
+
+    Both halves are worst-of-N over the SAME N draws of the SAME map, so the
+    pair is a property of ONE measurement and not of two, and each half names
+    the draw that bound it and the cone that bound that draw.
+
+    It is a function rather than a block inside `run_sweep` for one reason:
+    a summary that can only be exercised by a thirty-minute compile is a
+    summary whose first run is on the data it was written to report.
+    `test_quartus_gate.py` Q16 calls it directly."""
+    n = len(seeds)
+    seedset = ",".join(map(str, seeds))
+    fmaxes = [p["fmax_mhz"] for p in per_seed]
+    ok_fm = [f for f in fmaxes if f is not None]
+    worst = min(ok_fm) if ok_fm else None
+    worst_seed = (min((p for p in per_seed if p["fmax_mhz"] is not None),
+                      key=lambda p: p["fmax_mhz"])["seed"] if ok_fm else None)
+    core_ok = [p["core_fmax_mhz"] for p in per_seed
+               if p["core_fmax_mhz"] is not None]
+    core_worst = min(core_ok) if core_ok else None
+    core_worst_seed = (min((p for p in per_seed
+                            if p["core_fmax_mhz"] is not None),
+                           key=lambda p: p["core_fmax_mhz"])["seed"]
+                       if core_ok else None)
+    core_binding = next((p["core_domain"] for p in per_seed
+                         if p["seed"] == core_worst_seed), None) or {}
+    wd_binding = next((b for b in binding
+                       if b["seed"] == worst_seed), None) or {}
+    return {
+        "contract": "G6 reports a PAIR, from the SAME --seeds N run: "
+                    "WHOLE-DESIGN worst-of-N (the PROMOTION gate, unchanged in "
+                    "role -- E3/E4/E5 score it and the board must satisfy it) "
+                    "and CORE-DOMAIN worst-of-N (what a downstream integration "
+                    "inherits).  Each is quoted with its BINDING CONE and its "
+                    "k.  NEITHER STANDS IN FOR THE OTHER, and the core-domain "
+                    "figure is NOT a gate: no bar reads it.",
+        "adopted": "2026-08-13, `standing_gates.md` §A; the precondition is "
+                   "timing50_e1_rederivation_2026-08-12.md §8.3's PAIRED RTL "
+                   "ITEM, discharged by L1 (adcone_l1_results_2026-08-13.md)",
+        "whole_design": {
+            "n": n, "seeds": seeds, "fmax_mhz": worst, "seed": worst_seed,
+            "k": wd_binding.get("k"),
+            "binding_from": wd_binding.get("from"),
+            "binding_to": wd_binding.get("to"),
+            "source": "Quartus's own Fmax Summary (E3), per draw",
+            "is_promotion_gate": True,
+            "quotable_as": (f"whole-design worst-of-{n}@seeds{{{seedset}}} "
+                            f"= {worst} MHz" if worst is not None else None)},
+        "core_domain": {
+            "n": n, "seeds": seeds, "fmax_mhz": core_worst,
+            "seed": core_worst_seed,
+            "class": core_binding.get("class"),
+            "k": core_binding.get("k"),
+            "binding_from": core_binding.get("from"),
+            "binding_to": core_binding.get("to"),
+            "per_class_worst_of_n": {
+                c: _stat([(p["core_domain"].get("classes") or {}).get(c)
+                          for p in per_seed])
+                for c in CORE_DOMAIN_CLASSES},
+            "definition": "min over " + ", ".join(CORE_DOMAIN_CLASSES) +
+                          " -- the three SDC classes whose BOTH endpoints are "
+                          "v30u_eu/v30u_biu registers",
+            "source": "sta_truefmax_probe.tcl, ranked by slack/k per class",
+            "is_promotion_gate": False,
+            "n_draws_derivable": len(core_ok),
+            "quotable_as": (f"core-domain worst-of-{n}@seeds{{{seedset}}} "
+                            f"= {core_worst} MHz ({core_binding.get('class')}, "
+                            f"k={core_binding.get('k')})"
+                            if core_worst is not None else None)},
+    }
+
+
 def run_sweep(a, tree, receipt_path, logpath):
     """THE G6 DISTRIBUTION GATE.  One mapped netlist, N fits, N receipts, one
     distribution record.  -> exit code
@@ -1290,65 +1363,7 @@ def run_sweep(a, tree, receipt_path, logpath):
                   if ok_fm else None)
     n = len(seeds)
 
-    # --- THE PAIRED FIGURE, OVER THE SWEEP ---------------------------------- #
-    # Both halves are worst-of-N over the SAME N draws of the SAME map, so the
-    # pair is a property of one measurement and not of two.  Each half names
-    # the draw that bound it and the cone that bound that draw.
-    core_vals = [p["core_fmax_mhz"] for p in per_seed]
-    core_ok = [v for v in core_vals if v is not None]
-    core_worst = min(core_ok) if core_ok else None
-    core_worst_seed = (min((p for p in per_seed
-                            if p["core_fmax_mhz"] is not None),
-                           key=lambda p: p["core_fmax_mhz"])["seed"]
-                       if core_ok else None)
-    core_binding = next((p["core_domain"] for p in per_seed
-                         if p["seed"] == core_worst_seed), None)
-    wd_binding = next((b for b in binding if b["seed"] == worst_seed), None)
-    seedset = ",".join(map(str, seeds))
-    paired = {
-        "contract": "G6 reports a PAIR, from the SAME --seeds N run: "
-                    "WHOLE-DESIGN worst-of-N (the PROMOTION gate, unchanged in "
-                    "role -- E3/E4/E5 score it and the board must satisfy it) "
-                    "and CORE-DOMAIN worst-of-N (what a downstream integration "
-                    "inherits).  Each is quoted with its BINDING CONE and its "
-                    "k.  NEITHER STANDS IN FOR THE OTHER, and the core-domain "
-                    "figure is NOT a gate: no bar reads it.",
-        "adopted": "2026-08-13, `standing_gates.md` §A; the precondition is "
-                   "timing50_e1_rederivation_2026-08-12.md §8.3's PAIRED RTL "
-                   "ITEM, discharged by L1 (adcone_l1_results_2026-08-13.md)",
-        "whole_design": {
-            "n": n, "seeds": seeds, "fmax_mhz": worst, "seed": worst_seed,
-            "k": (wd_binding or {}).get("k"),
-            "binding_from": (wd_binding or {}).get("from"),
-            "binding_to": (wd_binding or {}).get("to"),
-            "source": "Quartus's own Fmax Summary (E3), per draw",
-            "is_promotion_gate": True,
-            "quotable_as": (f"whole-design worst-of-{n}@seeds{{{seedset}}} "
-                            f"= {worst} MHz"
-                            if worst is not None else None)},
-        "core_domain": {
-            "n": n, "seeds": seeds, "fmax_mhz": core_worst,
-            "seed": core_worst_seed,
-            "class": (core_binding or {}).get("class"),
-            "k": (core_binding or {}).get("k"),
-            "binding_from": (core_binding or {}).get("from"),
-            "binding_to": (core_binding or {}).get("to"),
-            "per_class_worst_of_n": {
-                c: _stat([(p["core_domain"].get("classes") or {}).get(c)
-                          for p in per_seed])
-                for c in CORE_DOMAIN_CLASSES},
-            "definition": "min over " + ", ".join(CORE_DOMAIN_CLASSES) +
-                          " -- the three SDC classes whose BOTH endpoints are "
-                          "v30u_eu/v30u_biu registers",
-            "source": "sta_truefmax_probe.tcl, ranked by slack/k per class",
-            "is_promotion_gate": False,
-            "n_draws_derivable": len(core_ok),
-            "quotable_as": (f"core-domain worst-of-{n}@seeds{{{seedset}}} "
-                            f"= {core_worst} MHz "
-                            f"({(core_binding or {}).get('class')}, "
-                            f"k={(core_binding or {}).get('k')})"
-                            if core_worst is not None else None)},
-    }
+    paired = paired_figures(per_seed, binding, seeds)
     dist = {"schema": art.SCHEMA, "schema_version": art.SCHEMA_VERSION,
             "kind": "quartus_distribution",
             "name": art.relpath(art_dir / "distribution.json"),
