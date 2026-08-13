@@ -128,124 +128,78 @@ if {[get_collection_size $v30u_ce] > 0 && [get_collection_size $v30u_half] > 0} 
 }
 
 # ---------------------------------------------------------------------------
-# E-1 -- THE OBSERVATION PATH  (timing_recovery_census_2026-08-11.md F-2,
-#        timing_recovery_prereg_2026-08-11.md sec.2)
+# E-1 -- THE OBSERVATION PATH:  **DELETED 2026-08-12 UNDER READING B**
+#        (docs/notes/timing50_e1_rederivation_2026-08-12.md)
 # ---------------------------------------------------------------------------
-# THE MEASUREMENT THAT MOTIVATES THIS.  With only the exception above in place,
-# ALL 60 of the worst setup paths -- and all 4,000 the analyser will return --
-# launch from `v30u_eu|upc_opc[*]` / `upc_page[*]` at 34-39 logic levels and
-# latch on `nec_bus|ad_in_q[*]`.  The core's OWN worst path (`v30u_* ->
-# v30u_*`) has +39.594 ns of slack against a 31.250 ns period.  The ucore is
-# not the timing problem; this class is, and it is checked SINGLE-CYCLE
-# because the exception above covers only `v30u_* -> v30u_*`.
+# THE USER RULING OF 2026-08-12 HAS TWO PARTS.  Part 1 is the ce/ce_half
+# portability contract quoted at the top of this file.  Part 2 answered the
+# scope question `timing50_census_2026-08-12.md` sec.5.2 asked -- does the
+# contract govern only the core's portable surface, or every arc the SDC
+# writes? -- with **B: it is UNIVERSAL.  No constraint anywhere in this design,
+# RIG-SIDE INCLUDED, may assume the enable train's shape.**
 #
-# WHAT THESE REGISTERS ARE.  `nec_bus.sv:201-209` registers the bus pins with
-# NO clock enable -- they sample on every sys clock.  They are the harness's
-# OBSERVATION of a bus whose driver, with the core selected, only changes on
-# the divided CPU tick.  Nothing in the CPU reads them; they feed the capture
-# record, the address latch and the test memory.
+# E-1 WAS A `-setup 2 -hold 1` FROM $v30u_regs TO 28 OBSERVATION REGISTERS, AND
+# IT IS GONE.  Its derivation was `div/2 - 1 = 3 periods available` -- a
+# property of `nec_bus`'s divider, which is precisely what part 2 forbids as a
+# premise.  It was fabric-confirmed at FLASH #19 (`c59c2caf30`), and under
+# Reading B "currently true on this rig" is a RECORD, NOT A WARRANT.
 #
-# WHY 2 IS TRUE.  `div = cfg_clk_div` sys clocks per CPU cycle.  The core's CE
-# is `bus_tick_rise` (system_large.sv:497), so its registers update on the sys
-# edge E0 at which `div_cnt == div-1`.  `tick_fall` acts at E(div/2).  EVERY
-# large-mode consumer of these registers is gated by `tick_rise` or
-# `tick_fall` -- ad_early/bs_early/qs_early/ube_n_early (217-223), mem_addr and
-# mem_be (482-484), mem_addr_match (577), mem_wdata (467), cap_record (700-721)
-# and the sticky strobe accumulators (233-239).  The EARLIEST sample any of
-# them reads is the one taken at E(div/2 - 1), which has had `div/2 - 1` sys
-# periods to settle:
+# THE RE-DERIVATION FROM C-a/C-b/C-c ALONE, AND WHY IT FAILS BY EXACTLY ONE
+# FABRIC CLOCK.  The samplers (`nec_bus.sv:201-209`) are FREE-RUNNING -- no
+# clock enable, they re-capture every sys clock -- so `-setup 2` never claimed
+# a two-period path.  It claimed that the FIRST sample after the source
+# launches is never read.  Let the core launch at posedge L (its `ce` was
+# asserted the cycle before):
 #
-#       div = 8 (the divider of record)  ->  3 periods available
-#       div = 6                          ->  2
-#       div = 4                          ->  1   (no relaxation is legal)
+#   * the sampler writes the first post-launch value at posedge L+1;
+#   * `CE_HALF` IS `bus_tick_fall` (`system_large.sv:501`), so the
+#     `tick_fall`-gated consumers -- `ad_early`/`bs_early`/`qs_early`/
+#     `ube_n_early` (`nec_bus.sv:217-224`), `mem_addr`/`mem_be` (`:481-486`)
+#     and `mem_addr_match` (`:576-578`) -- are gated by the very signal the
+#     contract governs;
+#   * C-b puts the earliest `ce_half` TWO clocks after that `ce`, so the
+#     earliest such consumer captures at posedge L+2;
+#   * a posedge flop capturing at L+2 reads its input as it stood BEFORE L+2 --
+#     which is exactly the sample written at L+1.
 #
-# `-setup 2` claims TWO of the three the divider of record grants.  It is
-# deliberately one period short, so the constraint survives div = 6 and so a
-# future change to `tick_fall`'s phase has a whole sys clock of margin before
-# it makes this a lie.  `-hold 1` is the canonical `setup-1` companion, the
-# same pairing the 4/3 exception above uses.
+# THE SAMPLE THAT IS ACTUALLY READ HAD ONE PERIOD TO SETTLE.  `-setup 2` needs
+# the train to guarantee >= 3 idle clocks between a `ce` and the next
+# `ce_half`; THE CONTRACT GUARANTEES 2.  (This rig's `div = 8` supplies 3,
+# which is why the constraint has always measured true here and always will --
+# and is exactly the reasoning Reading B disallows.)
 #
-# `core_ad_hold[*]` (present only under `X1_AD_RETENTION`) is included on a
-# separate argument: it is a transparent-latch retainer that re-captures on
-# every sys clock its bit is DRIVEN, and only the LAST capture before the
-# driver turns off is ever read back.  `core_ad_drv` derives from the
-# CE-gated `ad_oe_*`, so a driven bit is driven for essentially the whole CPU
-# cycle and the surviving capture is at E(div-1).
+# ESCAPES WORKED AND CLOSED (full text in the note): a second free-running
+# stage (`ad_in_q2`) re-times METASTABILITY, not a wrong value; a carve-out for
+# `ce`-gated consumers would be worth `-setup 3` under C-c, but every sampler
+# has at least one `ce_half`-gated reader so no register qualifies; no consumer
+# gate is registered (`tick_fall` is combinational off `div_cnt`, `:176`).
 #
-# THE DECLARED OPERATING TRIPLE.  This exception is written for
+# ONE FRAGMENT SURVIVED THE CONTRACT AND IS DELIBERATELY NOT KEPT.
+# `core_ad_hold` (retention builds only) is a last-driven-value retainer whose
+# intermediate captures are UNOBSERVABLE -- only the last capture before the
+# driver turns off is ever read -- and since `core_ad_oe` changes only at
+# enable edges, C-b puts that survivor >= 2 periods after the data's launch.
+# It fails anyway for two independent reasons: `core_ad_drv` is
+# `core_ad_oe | c_addrv_q` and `c_addrv_q` is FREE-RUNNING
+# (`system_large.sv:381`), so the argument holds only on bits [19:16]; and the
+# register is one flop UPSTREAM of `ad_in_q` on the same combinational cone, so
+# `core -> ad_in_q` binds first whatever `core_ad_hold` is given.  A four-bit
+# exception in the RETENTION configuration -- the one that gets flashed -- for
+# a predicted zero is the dangerous direction for no return.  BOOKED, not
+# landed; it re-opens only if a build shows `core_ad_hold` binding.
 #
-#       cfg_use_core = 1,  cfg_small_mode = 0,  cfg_clk_div >= 6
+# AMENDMENT A-1 IS PERMANENTLY WITHDRAWN, AND THIS DELETION SUPERSEDES IT IN
+# BOTH DIRECTIONS.  A-1 scoped E-1's `-from` to $v30u_ce (measured -2.41 MHz,
+# `timing50_phase1_results_2026-08-12.md` sec.7.2) because E-1 also handed the
+# NEGEDGE `t1_half2 -> obs` arc two periods where the default is 0.5.  Deleting
+# E-1 fixes that arc AND the `ce` arcs, and STA computes the negedge launch
+# correctly without being told.
 #
-# and it is NOT claimed outside it.  In small mode `mem_addr`/`mem_wdata`
-# capture on the `sm_astb` LEVEL and a `sm_wr_n` EDGE rather than on a tick.
-# That combination is never commanded -- `sw/v30run.py`'s `cfg()` sends
-# `small = 0` on every rig run, with the comment "force large mode" -- and the
-# ucore has no small-mode pin behaviour at all (there is no ASTB anywhere in
-# `hdl/rtl/ucore/`), so with the core selected small mode decodes queue-status
-# bits as strobes and is meaningless independently of any constraint.  `div=4`
-# is likewise already a documented-broken capture configuration for an
-# unrelated reason (`sw/v30run.py:44`, two retracted S10 readings).
+# WHAT IT COST, MEASURED AND NOT SOFTENED: see sec.5 of the note.  The
+# observation crossing is the rig's honest Fmax bound and it is an RTL problem
+# now, not an SDC one.
 #
-# FALSIFIER, and it is checkable in the RTL rather than in fabric: a read of
-# any register in `$obs_regs` that is NOT gated by `tick_rise` or `tick_fall`,
-# in a path reachable with `cfg_use_core = 1` and `cfg_small_mode = 0`.  One
-# such read makes this exception false and it must come back out.
-#
-# ⚠ AND A FABRIC FALSIFIER THIS TREE CANNOT RUN: no offline gate models a
-# timing exception.  Verilator does not see it, `check_core` does not see it,
-# and G6 merely believes it.  The first bitstream carrying this owes
-# `check_ab_hw` first light (MATCH 800 x3) and `x1_fabric baseline`
-# reproducing its offline column -- the capture path is exactly what breaks if
-# this is wrong, and those are exactly the legs that read it.
-set obs_regs [add_to_collection \
-                  [get_registers -nowarn {*|nec_bus:*|ad_in_q[*]}] \
-                  [add_to_collection \
-                       [get_registers -nowarn {*|nec_bus:*|bs_q[*]}] \
-                       [add_to_collection \
-                            [get_registers -nowarn {*|nec_bus:*|qs_q[*]}] \
-                            [add_to_collection \
-                                 [get_registers -nowarn {*|nec_bus:*|rd_n_q}] \
-                                 [add_to_collection \
-                                      [get_registers -nowarn {*|nec_bus:*|ube_n_q}] \
-                                      [add_to_collection \
-                                           [get_registers -nowarn {*|nec_bus:*|buslock_n_q}] \
-                                           [get_registers -nowarn {*|core_ad_hold[*]}]]]]]]]
-# ⚠ AMENDMENT A-1 WAS BUILT, MEASURED AND **WITHDRAWN**, 2026-08-12.  THE
-# `-from` IS DELIBERATELY THE FULL `$v30u_regs`, AND THAT IS A BOOKED USER
-# DECISION, NOT AN OVERSIGHT.  Read this before "fixing" it.
-#
-# A-1 proposed scoping this `-from` to `$v30u_ce`, on the argument that E-1's
-# derivation is written entirely about registers that launch at a `ce` ("the
-# core launches its pins at E0"), while `t1_half2` launches at a `ce_half` and
-# does reach these registers, through `ad_oe_data` -> `ad_o` -> the pads ->
-# `ad_in_q`.  Under the sec.0 contract read strictly, that arc gets 0.5 periods
-# and this exception's 2 is optimistic.
-#
-# IT WAS BUILT BOTH WAYS.  CONTROL worst-of-2, clean db, two draws each:
-#     with A-1     43.13 MHz   (+8.063, 12,279 ALMs)
-#     without A-1  45.54 MHz   (+9.403, 12,253 ALMs)
-# **A-1 COSTS 2.41 MHz** -- and the CE-phase split above costs only 0.07
-# (45.61 -> 45.54), which is how we know the two are separable.
-#
-# WHY IT IS NOT LANDED.  The contract governs the CORE's portable surface;
-# every register in `$obs_regs` is in `nec_bus`/`system_large`, which IS this
-# rig's CE generator and is not shipped downstream (M72 replaces it wholesale).
-# On the rig's own divider this arc has 3.5 periods available, not 0.5 -- a
-# `ce_half` write at E3.5 is not read by the E4 `tick_fall` consumer at all
-# (that one reads the sample written at E3) but by the E8 `tick_rise` one,
-# reading the sample written at E7.  So E-1's `-setup 2` is CONSERVATIVE here
-# on the rig-local reading and optimistic on the strict one, the two readings
-# differ by 2.41 MHz, and CHOOSING BETWEEN THEM IS THE USER'S CALL.
-# `timing50_census_2026-08-12.md` sec.5.2 states the question; sec.7.3 of
-# `timing50_phase1_results_2026-08-12.md` carries this measurement.
-#
-# E-1 IS FABRIC-CONFIRMED (`c59c2caf30`, FLASH #19) and is left exactly as it
-# was landed.  To take A-1: change `$v30u_regs` to `$v30u_ce` on the three
-# lines below and expect ~2.4 MHz.
-if {[get_collection_size $v30u_regs] > 0 && [get_collection_size $obs_regs] > 0} {
-    set_multicycle_path -setup 2 -from $v30u_regs -to $obs_regs
-    set_multicycle_path -hold  1 -from $v30u_regs -to $obs_regs
-    post_message -type info \
-        "nec_test.sdc: E-1 observation multicycle 2/1 applied to\
-         [get_collection_size $obs_regs] nec_bus/system_large observation registers"
-}
+# ⚠ DO NOT RESTORE THIS EXCEPTION FROM `git show`.  Anything of this shape
+# needs a derivation from C-a/C-b/C-c that does not name a divider, and sec.2.3
+# of the note is the arithmetic it has to beat.
+
