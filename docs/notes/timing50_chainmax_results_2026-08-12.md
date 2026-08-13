@@ -171,11 +171,19 @@ Corner: 17.1.0 Lite, `5CSEBA6U23I7`, Slow 1100 mV 100 C, `divclk` 31.250 ns.
 |---|---|---:|---:|---|---|---|
 | 1 | CONTROL | **39.79** | +6.121 | 0.000 / 0.000 | PASS | `2b9667651e659f27…` |
 | 2 | CONTROL | **39.79** | +6.121 | 0.000 / 0.000 | PASS | `9abc042b915939e…` |
-| 1 | RETENTION | _pending_ | | | | |
+| 1 | RETENTION | **43.76** | +8.396 | 0.000 / 0.000 | PASS | `75ca561fb619da23…` |
 | 2 | RETENTION | _pending_ | | | | |
 
-Both CONTROL draws carry input manifest `c23e63aa4cf19684…`, distinct from the
-baseline tree's `837b0c700ac2138b…`, and both drew the same number.
+All draws carry input manifest `c23e63aa4cf19684…`, distinct from the baseline
+tree's `837b0c700ac2138b…`. Both CONTROL draws drew the same number.
+
+⚠ **THE TWO CONFIGURATIONS MOVED IN OPPOSITE DIRECTIONS** — CONTROL **−1.39
+MHz**, RETENTION **+1.48 MHz**. Recorded, **not explained**. It is the same
+sign instability `timing50_e1_rederivation_2026-08-12.md` §6.1a and
+`standing_gates.md` §A have recorded and declined to explain at FLASH #13
+(+0.46), #14, and Phase 1 (+0.03) — but this is the first time it has appeared
+as a *difference of deltas* rather than a difference of levels, and it is
+larger than any of those.
 
 ### 5.1 AGAINST THE HONEST BAND
 
@@ -188,10 +196,41 @@ baseline tree's `837b0c700ac2138b…`, and both drew the same number.
 
 | id | clause | result |
 |---|---|---|
-| **P-1** | ALMs fall | see §5.3 |
+| **P-1** | whole-design ALMs strictly below 12,271 (CTL) / 12,317 (RET) | **MET** — §5.3 |
 | **P-2** | `CORE→CORE` worst slack improves | §7 |
 | **P-3** | the binding class stays `CORE→ANY`, `upc_opc → ad_in_q` | §7 |
 | **P-4** | worst-of-2 improves ≥ 1.0 MHz on at least one configuration | **MISSED — and it was PRE-REGISTERED AS PREDICTED TO MISS** (prereg §4.1) |
+
+### 5.3 P-1 — AREA, THE THING THE LEVER ACTUALLY BOUGHT
+
+| | CHAIN_MAX 12 | CHAIN_MAX 7 | delta |
+|---|---:|---:|---|
+| whole design, ALMs (CONTROL) | **12,271 / 41,910 (29 %)** | **10,358 / 41,910 (25 %)** | **−1,913 (−15.6 %)** |
+| whole design, ALMs (RETENTION) | **12,317 (29 %)** | **10,355 (25 %)** (draw 1) | **−1,962 (−15.9 %)** |
+| `v30_core` total comb ALUTs (RET) | 13,503 | **10,673** | −2,830 (−21.0 %) |
+| `v30u_eu` own comb ALUTs (RET) | 11,270 | **8,424** | **−2,846 (−25.3 %)** |
+| `v30_core` total combinational ALUTs | 13,521 | **10,738** | **−2,783 (−20.6 %)** |
+| `v30u_eu` own combinational ALUTs | 11,282 | **8,480** | **−2,802 (−24.8 %)** |
+| `v30u_eu` total | 12,344 | 9,529 | −2,815 |
+| `v30u_biu` own | 1,176 | 1,208 | +32 |
+| `v30u_ucrom` own | 1,062 | 1,049 | −13 |
+| `v30u_eu` dedicated logic registers | **724** | **724** | **0** |
+| `v30u_biu` registers | **438** | **438** | **0** |
+| `v30_core` total registers | **1,162** | **1,162** | **0** |
+| whole design, fit registers | 6,053 | 5,982 | −71 |
+
+Both CONTROL draws returned the identical ALM count.
+
+**Five folded chain positions cost ~560 combinational ALUTs each.** §51.1
+measured **~2,200 logic cells** for an *unfolded* position; this is the fold's
+own factor of four, measured from the other side, and it is the first time the
+folded position's marginal cost has been put on the record.
+
+**The core's own register count did not move** — `v30_core` total 1,162 both
+ways, in agreement with `ss_lint`'s 220 architectural flops. The **−71**
+whole-design fit registers therefore sit **outside the core**; recorded as
+observed, **not explained**, and consistent with the fitter making different
+duplication decisions for a design 1,913 ALMs smaller.
 
 The rule, registered before the builds: *a **P-4** miss is a finding, not a
 failure — it reports that the chain was NOT the binding term here.* **NO REVERT
@@ -230,6 +269,12 @@ both stated as considerations and not as explanations:
 | `check_boot --core ucore` | 220 / 400 MATCH | **MATCH / MATCH** |
 | `ulockstep --golden all --cases 50` | 17,350 | **17,350/17,350** |
 | `ghost_launch_law score` | 200/200 | **200/200 = 100.0 %** |
+| `check_fuzz_bank` | PASS, 621 seeds | **PASS \| 621 \| stable 621 improved 0 worse 0 \| gen_drift 0 regen_err 0 \| new-sig TIMING 0** |
+| `sm3_s16_score --core ucore` | 1,320/1,371 | **1,320/1,371** |
+| `check_core --suite-dir f4a_boundary` | 160 | **160/160** |
+| `check_core --suite-dir f0lock_tranche` | 400 | **400/400** |
+| `fz2_w1 bars` | 11/11 MET | **11/11 MET** — `fz2_bars.json` byte-identical but for its timestamp, so the file was reverted rather than committed as noise |
+| `fz2_w1 lint` | PASS | **PASS / 0 hits / 48 stratum rows** (it cross-checks the campaign docs against the code; this wave's doc edits do not trip it) |
 | `fz2_replay` | byte-identical | **byte-identical**, §3 item 2 |
 | `chain_lfsr_gate` | depth ≤ 6, 0 overflows | **PASS**, §2 |
 | **G6** ×2 CONTROL, ×2 RETENTION | PASS every draw | §5 |
@@ -253,7 +298,31 @@ behaviour change rests on the three legs in §3, and this leg is reported as
 
 ## §7 POST-LAND CENSUS — WHAT BINDS NOW
 
-_pending the retention draw's fitted db._
+`sw/sta_census.tcl` on each configuration's **own** fitted `db`, corner Slow
+1100 mV 100 C.  Baseline column is
+`timing50_e1_rederivation_2026-08-12.md` §6.1 / §6.1a.
+
+### 7.1 CONTROL
+
+| class | CHAIN_MAX 12 | **CHAIN_MAX 7** | |
+|---|---:|---:|---|
+| `CORE→CORE` | +30.696 (`upc_opc[4] → t1_half2`) | _pending_ | |
+| `CORE→ANY` | **+6.964** (`upc_opc[0]~DUPLICATE → ad_in_q[13]`, 29 levels) | _pending_ | |
+| `ANY→CORE` | +9.114 (`div_cnt[4] → t1_half2`) | _pending_ | |
+| `ANY→ANY` | +6.964 | _pending_ | |
+
+### 7.2 RETENTION
+
+| class | CHAIN_MAX 12 | **CHAIN_MAX 7** | |
+|---|---:|---:|---|
+| `CORE→CORE` | +30.789 (`upc_opc[3] → t1_half2`) | _pending_ | |
+| `CORE→ANY` | **+7.600** (`upc_opc[3]~DUPLICATE → ad_in_q[8]`) | _pending_ | |
+| `ANY→CORE` | +8.573 (`div_cnt[4] → t1_half2`) | _pending_ | |
+| `ANY→ANY` | +7.600 | _pending_ | |
+
+### 7.3 HOW FAR TO 50, AND WHAT IS NEXT
+
+_pending._
 
 ---
 
