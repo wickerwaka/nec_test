@@ -197,8 +197,15 @@ Inside `v30u_biu.sv` the pin's route is four named steps and they line up with
 
 1. `flush_direct` / `flush_src_live` (`:629-633`) → `qs_e_now` (`:799`) →
    `ann_kill` (`:510`) — **the prefix**.
-2. `kill_l = ann_kill` is the next-state block's **first statement** (`:1644`),
-   and its body clears **`cmt_valid`** (`:1677`).
+2. `kill_l = ann_kill` (`:1644`) latches the pin into the next-state block in
+   its **opening prologue**, beside `ne_now`, `pop_l` and `qse_l` and **before
+   any of the clock's acts**; `kill_l`'s own body then clears **`cmt_valid`**
+   (`:1677`).
+   ⚠ *`timing50_phase2_results_2026-08-12.md` §3.1 calls `:1644` "the
+   next-state function's FIRST statement"; read literally that is not so —
+   `g_row_q`/`g_age` and `ne_now` precede it.  The load-bearing part of the
+   sentence is right and is what is written above: the pin is in before the
+   block does anything with it.*
 3. Section (c)'s M7 sample (`:1895-1899`) then reads that same `cmt_valid`:
 
    ```systemverilog
