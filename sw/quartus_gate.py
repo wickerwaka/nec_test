@@ -720,6 +720,21 @@ def parse_truefmax(path):
     return out
 
 
+# THE ONE DECLARED EXEMPTION, AND IT IS DECLARED RATHER THAN DISCOVERED.
+# Quartus REWRITES the revision `.qsf` it compiles (§70.7) -- that is the whole
+# reason E1 must run BEFORE the build and `gen_ucore_qsf.py` is re-run after
+# it.  So this file moves on EVERY build, by the compiler, and calling that a
+# mid-build input flip would make E7 fire on every green run: a bar that always
+# fails is a bar nobody reads.  It is the SAME single exemption the fabric era
+# guard already carries ("87/88, the `.qsf` the one §70.7 exemption").
+#
+# ⚠ IT IS A NAMED LIST OF ONE, NOT A PATTERN.  Anything else moving mid-build
+# is a RED, including the OTHER `.qsf` (`hdl/nec_test.qsf` is hand-maintained;
+# Quartus does not rewrite it, and if it moved during a compile that is exactly
+# the event this bar exists for).
+INPUT_FLIP_EXEMPT = ("hdl/nec_test_ucore.qsf",)
+
+
 def input_stability_bar(pre, post):
     """E7 -- THE INPUT-HASH ORDERING BAR.
 
@@ -730,14 +745,19 @@ def input_stability_bar(pre, post):
     under it would be attributed to the wrong tree.  The CHAIN_MAX wave found
     exactly this gap: nothing re-read the inputs, so a mid-build RTL flip was
     undetectable after the fact.  A DIFFERENCE IS A RED, not a warning."""
-    same = pre["sha256"] == post["sha256"]
     moved = sorted(k for k in set(pre["files"]) | set(post["files"])
                    if pre["files"].get(k) != post["files"].get(k))
-    return {"bar": "the input manifest is IDENTICAL before quartus_map and "
-                   "after the last stage (no mid-build input flip)",
+    exempt = [k for k in moved if k in INPUT_FLIP_EXEMPT]
+    offend = [k for k in moved if k not in INPUT_FLIP_EXEMPT]
+    return {"bar": "no input moved between the hash taken before quartus_map "
+                   "and the hash taken after the last stage, except the one "
+                   "DECLARED §70.7 exemption (Quartus rewrites the revision "
+                   f".qsf it compiles): {', '.join(INPUT_FLIP_EXEMPT)}",
             "value": {"pre_sha256": pre["sha256"], "post_sha256": post["sha256"],
-                      "n_moved": len(moved), "moved": moved[:20]},
-            "pass": same}
+                      "n_moved": len(moved), "moved": moved[:20],
+                      "moved_exempt": exempt, "moved_offending": offend[:20],
+                      "exemptions": list(INPUT_FLIP_EXEMPT)},
+            "pass": not offend}
 
 
 def seed_honoured_bar(asked, seen):
@@ -1102,8 +1122,9 @@ def run_sweep(a, tree, receipt_path, logpath):
     e7 = input_stability_bar(mf_pre, mf_post)
     print(f"\nquartus_gate: E7 input stability -> "
           f"{'PASS' if e7['pass'] else 'RED'}  "
-          f"({e7['value']['n_moved']} file(s) moved during the sweep)",
-          flush=True)
+          f"({e7['value']['n_moved']} file(s) moved during the sweep; "
+          f"exempt {e7['value']['moved_exempt']}, "
+          f"OFFENDING {e7['value']['moved_offending']})", flush=True)
 
     subprocess.run([sys.executable, str(ROOT / "sw" / "gen_ucore_qsf.py")],
                    capture_output=True, text=True)

@@ -377,6 +377,43 @@ def q11_e7_input_ordering():
     check("identical manifests PASS", b["pass"] is True, str(b["value"]))
     check("...and report 0 moved", b["value"]["n_moved"] == 0)
 
+    # --- THE ONE DECLARED EXEMPTION, AND ITS LIMITS ------------------------ #
+    # Quartus REWRITES the revision .qsf it compiles (§70.7), so that file
+    # moves on EVERY build.  Treating it as a flip would fire E7 on every green
+    # run, and a bar that always fails is a bar nobody reads.
+    check("the exemption list is exactly the revision .qsf",
+          qg.INPUT_FLIP_EXEMPT == ("hdl/nec_test_ucore.qsf",),
+          str(qg.INPUT_FLIP_EXEMPT))
+    base = {"sha256": "aaa", "files": {"hdl/nec_test_ucore.qsf": "1",
+                                       "hdl/nec_test.qsf": "1",
+                                       "hdl/rtl/ucore/v30u_eu.sv": "1"}}
+    qsf = {"sha256": "zzz", "files": dict(base["files"],
+                                          **{"hdl/nec_test_ucore.qsf": "REWRITTEN"})}
+    b = qg.input_stability_bar(base, qsf)
+    check("the revision .qsf moving alone is a PASS", b["pass"] is True,
+          str(b["value"]))
+    check("...and it is REPORTED as moved-but-exempt, not hidden",
+          b["value"]["moved_exempt"] == ["hdl/nec_test_ucore.qsf"]
+          and b["value"]["n_moved"] == 1, str(b["value"]))
+    # ⚠ THE EXEMPTION IS ONE NAME, NOT A PATTERN.  The hand-maintained
+    # nec_test.qsf is NOT exempt, and neither is any RTL file.
+    other = {"sha256": "yyy", "files": dict(base["files"],
+                                            **{"hdl/nec_test.qsf": "MOVED"})}
+    b = qg.input_stability_bar(base, other)
+    check("the OTHER .qsf moving is still a RED", b["pass"] is False)
+    check("...and is listed as OFFENDING",
+          b["value"]["moved_offending"] == ["hdl/nec_test.qsf"], str(b["value"]))
+    both = {"sha256": "xxx", "files": {"hdl/nec_test_ucore.qsf": "REWRITTEN",
+                                       "hdl/nec_test.qsf": "1",
+                                       "hdl/rtl/ucore/v30u_eu.sv": "MOVED"}}
+    b = qg.input_stability_bar(base, both)
+    check("an RTL flip ALONGSIDE the exempt rewrite is still a RED",
+          b["pass"] is False, str(b["value"]))
+    check("...and the two are separated, not merged",
+          b["value"]["moved_exempt"] == ["hdl/nec_test_ucore.qsf"]
+          and b["value"]["moved_offending"] == ["hdl/rtl/ucore/v30u_eu.sv"],
+          str(b["value"]))
+
     # THE MID-BUILD RTL FLIP, AS A UNIT TEST.
     moved = {"sha256": "bbb", "files": {"hdl/a.sv": "1", "hdl/b.sv": "CHANGED"}}
     b = qg.input_stability_bar(pre, moved)
