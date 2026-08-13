@@ -1,0 +1,125 @@
+npaths requested = 60
+observation collection size: 28
+paths returned: 60
+
+   #     slack   lvls  from                                                 to
+   1     7.023     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+   2     7.033     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
+   3     7.061     23  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+   4     7.076     25  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+   5     7.086     25  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
+   6     7.108     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[13]
+   7     7.114     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+   8     7.116     23  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+   9     7.161     25  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[13]
+  10     7.169     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+  11     7.221     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[4]
+  12     7.222     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[2]~DUPLICATE emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+
+=== A. REGION HISTOGRAM, averaged over 60 paths ===
+region      ns/path        % cells/path
+SYS          16.114    50.8%       16.8
+UCROM         9.223    29.1%        8.5
+OTHER         5.546    17.5%        5.0
+EU            0.569     1.8%        1.0
+NECBUS        0.262     0.8%        1.0
+TOTAL        31.713
+
+=== B. NET CENSUS -- nets on >= 25% of the 60 paths ===
+paths    ns/hit  net
+   60     3.442  emu|pll|pll_inst|altera_pll_i|general[0].gpll
+   60     1.343  emu|pll|pll_inst|altera_pll_i|outclk_wire[0]
+   60     0.639  emu|system_large|u_core|u_biu|ann_kill
+   60     0.095  emu|system_large|u_core|u_biu|display|combout
+   60     0.278  emu|system_large|u_core|u_biu|display|dataf
+   60     0.951  emu|system_large|u_core|u_biu|qs_e_now
+   60     4.382  emu|system_large|u_core|u_eu|u_ucrom|ucdecode
+   60     4.840  emu|system_large|u_core|u_eu|u_ucrom|ucrom
+   60     0.761  FPGA_CLK2_50
+   59     1.103  emu|system_large|u_core|u_eu|comb
+   59     0.850  emu|system_large|u_core|u_eu|e_have2
+   59     1.242  emu|system_large|u_core|u_eu|Equal5
+   59     1.137  emu|system_large|u_core|u_eu|LessThan10
+   55     0.732  emu|system_large|u_core|u_biu|pop_now
+   54     0.908  emu|system_large|u_core|u_eu|bnd_row
+   53     0.499  emu|system_large|u_core|u_eu|eu_bnd_take|combout
+   52     0.695  emu|system_large|u_core|u_eu|eu_bnd_take|datac
+   50     0.345  emu|system_large|u_core|u_biu|disp_inta|combout
+   50     0.267  emu|system_large|u_core|u_biu|disp_inta|datad
+   42     1.947  emu|system_large|u_core|u_biu|ad_o[9]
+   19     0.262  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+   19     0.000  emu|system_large|bus|ad_in_q[2]|d
+   19     2.485  emu|system_large|core_ad[2]
+   17     0.358  emu|system_large|u_core|AD_OE[0]|combout
+   16     0.576  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1]
+   16     2.262  emu|system_large|u_core|u_eu|upc_page[1]|clk
+   16     0.000  emu|system_large|u_core|u_eu|upc_page[1]|q
+
+=== C. THE WORST PATH, NODE BY NODE ===
+      incr      cum type   region node
+     0.000    0.000 clksrc OTHER  FPGA_CLK2_50
+     0.000    0.000 ic     OTHER  FPGA_CLK2_50~input|i
+     0.761    0.761 cell   OTHER  FPGA_CLK2_50~input|o
+     1.335    2.096 ic     OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT|clkin[0]
+     0.333    2.429 cell   OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT|clkout
+     0.000    2.429 ic     OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|refclkin
+     0.029    2.458 cell   OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]
+     0.000    2.458 ic     OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|vco0ph[0]
+     1.745    4.203 cell   OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk
+     1.039    5.242 ic     OTHER  emu|pll|pll_inst|altera_pll_i|outclk_wire[0]~CLKENA0|inclk
+     0.304    5.546 cell   OTHER  emu|pll|pll_inst|altera_pll_i|outclk_wire[0]~CLKENA0|outclk
+     2.262    7.808 ic     SYS    emu|system_large|u_core|u_eu|upc_page[1]|clk
+     0.576    8.384 cell   EU     emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1]
+     0.000    8.384 utco   EU     emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1]
+     0.000    8.384 cell   SYS    emu|system_large|u_core|u_eu|upc_page[1]|q
+     1.220    9.604 ic     UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucdecode~337|datad
+     0.510   10.114 cell   UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucdecode~337|combout
+     0.215   10.329 ic     UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucdecode~338|datac
+     0.508   10.837 cell   UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucdecode~338|combout
+     0.800   11.637 ic     UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucdecode~340|datad
+     0.510   12.147 cell   UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucdecode~340|combout
+     0.193   12.340 ic     UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucdecode~347|datab
+     0.567   12.907 cell   UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucdecode~347|combout
+     2.294   15.201 ic     UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucrom~729|datad
+     0.508   15.709 cell   UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucrom~729|combout
+     0.579   16.288 ic     UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucrom~348|dataf
+     0.082   16.370 cell   UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucrom~348|combout
+     0.207   16.577 ic     UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucrom~46|datab
+     0.560   17.137 cell   UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucrom~46|combout
+     0.242   17.379 ic     UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucrom~50|datad
+     0.385   17.764 cell   UCROM  emu|system_large|u_core|u_eu|u_ucrom|ucrom~50|combout
+     0.884   18.648 ic     SYS    emu|system_large|u_core|u_eu|Equal5~0|datad
+     0.358   19.006 cell   SYS    emu|system_large|u_core|u_eu|Equal5~0|combout
+     0.318   19.324 ic     SYS    emu|system_large|u_core|u_eu|e_have2~0|datab
+     0.532   19.856 cell   SYS    emu|system_large|u_core|u_eu|e_have2~0|combout
+     0.694   20.550 ic     SYS    emu|system_large|u_core|u_eu|LessThan10~0|datac
+     0.443   20.993 cell   SYS    emu|system_large|u_core|u_eu|LessThan10~0|combout
+     0.510   21.503 ic     SYS    emu|system_large|u_core|u_eu|comb~4|dataa
+     0.593   22.096 cell   SYS    emu|system_large|u_core|u_eu|comb~4|combout
+     0.373   22.469 ic     SYS    emu|system_large|u_core|u_eu|bnd_row~1|dataa
+     0.535   23.004 cell   SYS    emu|system_large|u_core|u_eu|bnd_row~1|combout
+     0.695   23.699 ic     SYS    emu|system_large|u_core|u_eu|eu_bnd_take|datac
+     0.507   24.206 cell   SYS    emu|system_large|u_core|u_eu|eu_bnd_take|combout
+     0.317   24.523 ic     SYS    emu|system_large|u_core|u_biu|pop_now~5|datac
+     0.377   24.900 cell   SYS    emu|system_large|u_core|u_biu|pop_now~5|combout
+     0.222   25.122 ic     SYS    emu|system_large|u_core|u_biu|qs_e_now~7|dataa
+     0.566   25.688 cell   SYS    emu|system_large|u_core|u_biu|qs_e_now~7|combout
+     0.224   25.912 ic     SYS    emu|system_large|u_core|u_biu|ann_kill~0|dataf
+     0.082   25.994 cell   SYS    emu|system_large|u_core|u_biu|ann_kill~0|combout
+     0.234   26.228 ic     SYS    emu|system_large|u_core|u_biu|ann_kill~1|dataf
+     0.097   26.325 cell   SYS    emu|system_large|u_core|u_biu|ann_kill~1|combout
+     0.279   26.604 ic     SYS    emu|system_large|u_core|u_biu|display|dataf
+     0.095   26.699 cell   SYS    emu|system_large|u_core|u_biu|display|combout
+     0.265   26.964 ic     SYS    emu|system_large|u_core|u_biu|disp_inta|datad
+     0.351   27.315 cell   SYS    emu|system_large|u_core|u_biu|disp_inta|combout
+     1.587   28.902 ic     SYS    emu|system_large|u_core|u_biu|ad_o[9]~16|datac
+     0.374   29.276 cell   SYS    emu|system_large|u_core|u_biu|ad_o[9]~16|combout
+     0.571   29.847 ic     SYS    emu|system_large|u_core|u_biu|ad_o[14]~109|datae
+     0.301   30.148 cell   SYS    emu|system_large|u_core|u_biu|ad_o[14]~109|combout
+     0.737   30.885 ic     SYS    emu|system_large|u_core|u_biu|ad_o[14]~111|datae
+     0.338   31.223 cell   SYS    emu|system_large|u_core|u_biu|ad_o[14]~111|combout
+     0.307   31.530 ic     SYS    emu|system_large|core_ad[14]~23|datae
+     0.204   31.734 cell   SYS    emu|system_large|core_ad[14]~23|combout
+     0.000   31.734 ic     SYS    emu|system_large|bus|ad_in_q[14]|d
+     0.262   31.996 cell   NECBUS emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+

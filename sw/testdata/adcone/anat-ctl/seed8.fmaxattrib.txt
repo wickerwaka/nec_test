@@ -1,0 +1,31 @@
+T0 = 31.250 ns   npaths = 400
+
+ Fmax_MHz      M    slack  relship   lvls  from -> to
+    41.28   1.00    7.023   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+    41.29   1.00    7.033   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
+    41.34   1.00    7.061   31.250     23  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+    41.37   1.00    7.076   31.250     25  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+    41.38   1.00    7.086   31.250     25  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
+    41.42   1.00    7.108   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[13]
+    41.43   1.00    7.114   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+    41.44   1.00    7.116   31.250     23  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+    41.51   1.00    7.161   31.250     25  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[13]
+    41.53   1.00    7.169   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+    41.62   1.00    7.221   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[4]
+    41.62   1.00    7.222   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[2]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+
+scanned 400 paths; the 12 with the LOWEST own-Fmax are above.
+
+CEILING -- lowest own-Fmax among paths NOT launched by c_int_q:
+    41.28   1.00    7.023   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+    41.29   1.00    7.033   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
+    41.34   1.00    7.061   31.250     23  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+    41.37   1.00    7.076   31.250     25  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+    41.38   1.00    7.086   31.250     25  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
+    41.42   1.00    7.108   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[13]
+    41.43   1.00    7.114   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+    41.44   1.00    7.116   31.250     23  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+    41.51   1.00    7.161   31.250     25  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[13]
+    41.53   1.00    7.169   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[4]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]
+    41.62   1.00    7.221   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[1] -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[4]
+    41.62   1.00    7.222   31.250     24  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_page[2]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]

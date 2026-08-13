@@ -220,14 +220,62 @@ member of it*.
 
 ---
 
-## §5 THE SECOND AND THIRD SEEDS
+## §5 SEEDS 6 AND 8 — THE STABILITY CHECK
 
-Seeds 6 and 8 were run on the same map by the same driver; their artifacts are
-`sw/testdata/adcone/anat-ctl/seed{6,8}.adcone.txt` and their findings are §6
-below.  The design in §4 is chosen from **seed 5 plus the distribution gate's
-own 16-draw class evidence**, and the later seeds are the check that the STABLE
-sub-structure is stable — not the source of the choice.
+Same map, same driver, `sw/testdata/adcone/anat-ctl/seed{6,8}.adcone.txt`.  The
+design in §4 is chosen from **seed 5 plus the distribution gate's own 16-draw
+class evidence**; these two are the check that the STABLE sub-structure is
+stable, not the source of the choice.
 
-## §6 SEEDS 6 AND 8 — THE STABILITY CHECK
+### 5.1 ALL THREE SEEDS REPRODUCE THEIR RECORDED DRAW TO THE DIGIT
 
-*(filled in when the two fits complete; see the same file's §6 in the tree.)*
+| seed | `timing50_distribution` §4.1 | measured here | binding cone here |
+|---|---:|---:|---|
+| 5 | **38.97** / +5.592 | **38.97** / +5.592 | `upc_opc[7]~DUP → ad_in_q[14]` |
+| 6 | **39.79** / +6.115 | **39.79** / +6.115 | `upc_opc[3]~DUP → ad_in_q[14]` |
+| 8 | **41.28** / +7.023 | **41.28** / +7.023 | `upc_page[1] → ad_in_q[14]` |
+
+**Three of three, on an independently produced map.**  That is a fourth
+independent confirmation of the distribution gate's §7 determinism finding —
+and, for this wave, it is the control that says **the BEFORE side of the
+before/after comparison is not exposed to map variance**.  Only the AFTER side
+carries a new map, and an RTL edit necessarily re-maps, so no map-matched A/B
+exists for it.
+
+### 5.2 THE TWO TABLES ARE ON 60 OF 60 PATHS ON EVERY SEED
+
+| | seed 5 | seed 6 | seed 8 |
+|---|---:|---:|---:|
+| `ucdecode` — paths / ns per hit | **60** / **4.691** | **60** / **4.461** | **60** / **4.382** |
+| `ucrom` — paths / ns per hit | **60** / **4.285** | **60** / **3.862** | **60** / **4.840** |
+| `UCROM` region, ns per path | **8.976** | **8.323** | **9.223** |
+| ...as a fraction of that seed's data path | **36 %** | **34 %** | **39 %** |
+
+**Nothing else in the design is on 60/60 of all three** except the clock
+network, `ann_kill`/`display` and `qs_e_now`, and those cost 0.6-1.6 ns each.
+
+### 5.3 THE CHAIN IS THE SAME CHAIN, AND THE ENDPOINT IS NOT
+
+The launch register differs per seed (`upc_opc[7]`, `upc_opc[3]`, `upc_page[1]`)
+and seed 8 latches on `ad_in_q[0]`, `[2]`, `[13]` and `[14]` where seeds 5 and 6
+latch only on `[14]` — **the distribution gate's "the class is the tree's, the
+path is the draw's", reproduced inside a single map at three seeds.**  What does
+NOT differ is the route: `ucdecode → ucrom → [EU row decode] → the queue/pop
+rails → qs_e_now → ann_kill → display → assign ad_o → core_ad → ad_in_q` on
+every seed.
+
+Seed 8 additionally puts `v30_core|AD_OE[0]` on 17 of its 60 paths — the pad
+output enable the retention configuration keys on — which is why the
+measurement is owed in **both** configurations and not just CONTROL.
+
+## §6 WHAT IS *NOT* MEASURED HERE
+
+* **RETENTION.**  All three anatomy draws are CONTROL. The distribution gate
+  says the class binds on 8 of 8 RETENTION draws too, and seed 8's `AD_OE`
+  appearances say the retention configuration's own cone touches the same
+  publication path — but no retention path list is in this document.
+* **The k=4 `CORE→CORE` class**, which is where the registered decode's D-pin
+  cone lands. It is registered as a prediction (`adcone_l1_prereg…` P-7) rather
+  than measured here.
+* **Anything about fabric.**  No board was touched and no bitstream was built
+  for this document.
