@@ -355,23 +355,40 @@ inside a figure whose whole claim is that both endpoints are the core's.
 **In practice `k=4.0` binds** — but that is a MEASUREMENT, re-taken every draw,
 not a definition.
 
-⚠⚠ **THE CORE-DOMAIN FIGURE IS AN UPPER BOUND, AND A DRAW HAS ALREADY PROVED
-IT.**  `sta_truefmax_probe.tcl` asks each class as a `-from`/`-to` collection
-and returns **that collection's worst path BY SLACK** — which is the probe's
-own doctrine (*rank by `slack/k`, not by slack*) failing one level down, inside
-a class.  The path it returns carries whatever exception the SDC gives it, and
-since the Phase-1 **enable-phase split** the SDC also has a `ce → ce_half` 2/1
-and a `ce_half → ce` 3/2 multicycle, so a `$v30u_ce → $v30u_ce` query can
-return a path measuring **k = 1.5**.  **MEASURED on the CONTROL seed 1 draw of
-2026-08-13**: the `k=4.0` row read `k = 1.5000, +31.616 → 98.30 MHz`, four rows
-above the `k=1.5` row's `+31.613`.  So the figure is flagged rather than
-trusted: `core_domain.off_class` lists every row whose **measured** `k`
-disagrees with its label's, `k_measured` carries all three, and the sweep
+⚠⚠ **THE CORE-DOMAIN FIGURE IS AN UPPER BOUND — AND FINDING OUT WHY REFUTES
+§6's "NEVER WRONG IN THE UNSAFE DIRECTION".**  On the **CONTROL seed 1** draw
+of 2026-08-13 the probe's `k=4.0  $v30u_ce → $v30u_ce` row returned
+
+```
+  to    : …|v30u_biu:u_biu|t1_half2~DUPLICATE
+  k = 1.5000   slack = +31.616   ->   98.30 MHz
+```
+
+— an arc **into the negedge register that class is defined by EXCLUDING**,
+measuring the `k=1.5` row's own `k` at a slack 0.003 ns from the `k=1.5` row's
+own (+31.613).  On **CONTROL seed 4**, which carries no `t1_half2~DUPLICATE` at
+all, the identical query is clean: **`k = 4.0000`, 60.99 MHz**.
+
+> **THE CONTAMINATED READING IS THE HIGHER ONE — 98.30 against 60.99 — i.e.
+> THE UNSAFE DIRECTION.**  The distribution gate's §6 says *"the five
+> exception-class rows are NOT affected … a missed duplicate can only make
+> those queries conservative, never wrong in the unsafe direction"*.  **That is
+> true of the three rows that use the collection as a destination they WANT,
+> and FALSE of `k=4.0`, whose collection is built by EXCLUDING an exact name on
+> BOTH ends** (`$v30u_ce = $v30u_regs − $v30u_half`).  It is struck for that
+> row.  ⚠ **The mechanism by which a duplicate lands in collections built from
+> `t1_half2` by exact name is NOT ESTABLISHED** — on seed 1 it appears in
+> `$v30u_half`'s answers *and* in `$v30u_ce`'s — and it is booked as an
+> instrument question rather than guessed at.
+
+So the figure is **flagged rather than trusted**: `core_domain.off_class` lists
+every row whose **measured** `k` disagrees with its label's, `k_measured`
+carries all three, `upper_bound: True` rides in the record, and the sweep
 prints the off-class draws.  **A core-domain number is quotable as an upper
-bound on the core-domain ceiling and as nothing tighter.**  Fixing it means
-ranking by `slack/k` *inside* each class — an instrument change, booked, not
-taken here, because it would silently re-base every figure taken with the
-current probe.
+bound on the core-domain ceiling and as nothing tighter.**  The repair —
+match the duplicate suffix in the SDC-mirroring collections, and rank by
+`slack/k` *inside* each class — is **booked, not taken here**: it would
+silently re-base every figure taken with the current probe.
 
 ⚠ **ABSENCE IS NOT DATA.**  If any of the three classes is missing from the
 probe's artifact, or present without a ceiling, `core_domain_fmax()` returns

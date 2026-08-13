@@ -815,20 +815,33 @@ def core_domain_fmax(tf):
                 "off_class": [], "upper_bound": True,
                 "note": "core-domain figure NOT derivable -- a class is absent "
                         "or carries no ceiling; absence must not read as data"}
-    # ⚠ THE QUERY IS NOT THE EXCEPTION, AND A DRAW CAN PROVE IT.
-    # `sta_truefmax_probe.tcl` asks each class as a `-from`/`-to` collection and
-    # returns the worst path IN THAT COLLECTION BY SLACK.  The path it returns
-    # carries whatever exception the SDC applies to it, which need not be the
-    # one the class LABEL names -- since the Phase-1 split the SDC has a
-    # `ce -> ce_half` 2/1 and a `ce_half -> ce` 3/2 multicycle as well, and a
-    # `$v30u_ce -> $v30u_ce` query can return a path measuring `k = 1.5`.
-    # MEASURED, on the CONTROL seed 1 draw of 2026-08-13: the `k=4.0` row read
-    # `k = 1.5000, +31.616 -> 98.30 MHz`, four rows above a `k=1.5` row at
-    # `+31.613`.  So this is the probe's own doctrine biting one level down --
-    # ranking by SLACK inside a class cannot find that class's worst by
-    # `slack/k` -- and the consequence is stated rather than papered over:
-    # **the core-domain figure is an UPPER BOUND on the core-domain ceiling.**
-    # It is flagged per row, never silently averaged away.
+    # ⚠ A CLASS ROW CAN RETURN A PATH FROM ANOTHER CLASS, AND A DRAW PROVES IT.
+    # MEASURED, CONTROL seed 1, 2026-08-13
+    # (`sw/testdata/intcone/fixtures/ctl_seed1_offclass.truefmax.txt`): the
+    # `k=4.0  $v30u_ce -> $v30u_ce` row returned
+    #     to    : ...|v30u_biu:u_biu|t1_half2~DUPLICATE
+    #     k = 1.5000   slack = +31.616  ->  98.30 MHz
+    # i.e. an arc INTO the negedge register the class is defined by EXCLUDING,
+    # measuring the k the `k=1.5` row measures, at a slack 0.003 ns from that
+    # row's own (+31.613).  On CONTROL seed 4, where the fitter left no
+    # `t1_half2~DUPLICATE` at all, the same query is clean: `k = 4.0000,
+    # 60.99 MHz`.
+    #
+    # **THE CONTAMINATED READING IS THE HIGHER ONE (98.30 against 60.99), i.e.
+    # the UNSAFE direction.**  That REFUTES
+    # `timing50_distribution_2026-08-13.md` §6's *"the five exception-class rows
+    # are NOT affected ... a missed duplicate can only make those queries
+    # conservative, never wrong in the unsafe direction"* -- true of the three
+    # rows that use the collection as a destination they WANT, false of
+    # `k=4.0`, whose collection is built by EXCLUDING an exact name on BOTH
+    # ends.  **The mechanism by which the duplicate lands in collections built
+    # from `t1_half2` by exact name is NOT established here** (it appears in
+    # `$v30u_half` and in `$v30u_ce` on the same draw) and is booked as an
+    # instrument question, not guessed at.
+    #
+    # CONSEQUENCE, stated rather than papered over: **the core-domain figure is
+    # an UPPER BOUND on the core-domain ceiling.**  Flagged per row, never
+    # silently averaged away.
     nominal = {"k=4.0": 4.0, "k=1.5": 1.5, "k=2.5": 2.5}
     off = [c for c, r in rows.items()
            if r.get("k") is not None and abs(r["k"] - nominal[c]) > 1e-6]
