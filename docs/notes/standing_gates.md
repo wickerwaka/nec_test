@@ -312,6 +312,66 @@ lever's own effect.**
 
 ---
 
+### ⚠⚠⚠ **PAIRED Fmax REPORTING — REGISTERED 2026-08-13.  G6's OUTPUT IS TWO NUMBERS, NOT ONE.**
+
+`timing50_e1_rederivation_2026-08-12.md` §8.3 recommended it and made the
+recommendation **conditional**: reporting a core-domain figure beside the
+whole-design one is honest *"only if it is paired with the RTL item"* —
+shortening the core's own AD publication cone — because on its own it would
+*"re-scope a real core problem into invisibility"*.  **That item is L1**
+(`adcone_l1_results_2026-08-13.md`), landed 2026-08-13, so the precondition is
+**discharged** and the pairing is adopted.
+
+> **THE REGISTERED FORM.**  A `python3 sw/quartus_gate.py --seeds N` run reports
+> a **PAIR**, both halves worst-of-N over the **same N draws of the same map**:
+>
+> * **`whole-design worst-of-N@seeds{…}`** — Quartus's own Fmax, **the
+>   PROMOTION GATE, unchanged in role**.  E3 (≥ 32 MHz), E4 (worst setup > 0)
+>   and E5 (TNS 0.000 setup AND hold) score this and nothing else.  It is the
+>   number **the board must satisfy**.
+> * **`core-domain worst-of-N@seeds{…}`** — the worst path with **both**
+>   endpoints inside `v30u_eu`/`v30u_biu`, i.e. **what a downstream integration
+>   inherits**.  **IT IS NOT A GATE.  No bar reads it**, and
+>   `test_quartus_gate.py` Q16 asserts that per bar by name.
+>
+> **EACH HALF IS QUOTED WITH ITS BINDING CONE AND ITS `k`, AND NEITHER STANDS
+> IN FOR THE OTHER.**  The quoting form is *"the ucore's own logic closes at X
+> MHz (class C, k); the nec_test RIG closes at Y MHz, bound by cone Z"*.  A
+> core-domain figure quoted alone, or quoted as a G6 PASS, is a
+> mis-registration.
+
+**WHY THE CORE-DOMAIN FIGURE IS THREE CLASSES AND NOT ONE.**  `nec_test.sdc`
+collects `$v30u_ce` as (every `v30u_eu` + `v30u_biu` register) MINUS
+`t1_half2`, and `t1_half2` is **itself a `v30u_biu` register**.  So **three** of
+`sta_truefmax_probe.tcl`'s five classes are core-internal on both ends —
+**`k=4.0`** (`$v30u_ce → $v30u_ce`, the CE multicycle), **`k=1.5`**
+(`$v30u_ce → t1_half2`) and **`k=2.5`** (`t1_half2 → $v30u_ce`) — and the other
+two are not: `DEFAULT` is the whole design and **`k=0.5` is
+`(not $v30u_ce) → t1_half2`, whose LAUNCH side is outside the core by
+construction**.  The figure is the **minimum over the three**, with the binding
+one named.  Taking `k=4.0` alone would quote a ceiling while leaving two
+core-internal classes unlooked-at; including `k=0.5` would put a rig register
+inside a figure whose whole claim is that both endpoints are the core's.
+**In practice `k=4.0` binds** — but that is a MEASUREMENT, re-taken every draw,
+not a definition.
+
+⚠ **ABSENCE IS NOT DATA.**  If any of the three classes is missing from the
+probe's artifact, or present without a ceiling, `core_domain_fmax()` returns
+**no figure** and lists what was missing — it does **not** compute a minimum
+over the survivors, because a minimum over a subset is a ceiling that has not
+looked everywhere it claims to have looked.  The sweep then prints
+*"derivable on only M of N draws"*.
+
+⚠ **WHAT THE PAIR DOES NOT DO.**  It does not make the whole-design number
+smaller or larger, it does not move any bar, and **it does not make 50 MHz
+easier to claim**.  It makes visible a fact the single number hid: on this tree
+**both** cones that bind the whole design have **one endpoint in the RIG**
+(`nec_bus|ad_in_q`, `system_large|c_int_q`), while the core's own logic sits
+tens of ns clear.  Falsifier: `python3 sw/test_quartus_gate.py`
+(**223/223**, no Quartus needed; Q16 is the pairing's own section).
+
+---
+
 ⚠⚠ **CURRENT BAND, RE-REGISTERED 2026-08-12 AT `a1c63e78e4` — E-1 IS DELETED
 AND THE BAND FELL: CONTROL 41.18 MHz / +6.964 ns / 12,271 ALMs (29 %) ·
 RETENTION 42.28 MHz / +7.600 ns / 12,317 ALMs (29 %)**, worst-of-2 from a clean

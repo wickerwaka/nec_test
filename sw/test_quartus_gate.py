@@ -36,6 +36,16 @@ comes back**.  So:
       CONTROL no matter what the flag said.
   Q8  (asked on EVERY subprocess, not as its own section) the append-only
       receipt history does not grow by a single byte.  See `_DISARM`.
+  Q16 THE PAIRED FIGURE (adopted 2026-08-13).  G6's registered output is a
+      PAIR -- whole-design worst-of-N (the promotion gate, unchanged) beside
+      core-domain worst-of-N (what an integration inherits) -- so the falsifier
+      has to hold BOTH halves: that core-domain is the min over exactly the
+      three core-INTERNAL SDC classes and not over `k=0.5` (whose launch side
+      is outside the core) or `DEFAULT` (which is the whole design); that a
+      missing class yields NO figure rather than a min over the survivors; and
+      **that no BAR reads the core-domain number** -- a pairing whose second
+      half quietly became the gate would re-scope the promotion onto the very
+      figure that excludes both binding cones.
 
 WHY NO COMPILE.  The RECIPE is already proved: FLASH #18's retention receipt
 `277d5ccf0f8b9398…` self-labels `RETENTION (X1_AD_RETENTION=1)` with an `.rbf`
@@ -619,6 +629,87 @@ def q15_summary_stats():
           "max(ok_fm)" not in src)
 
 
+def q16_paired_reporting():
+    print("\nQ16 THE PAIRED FIGURE: whole-design AND core-domain, from ONE run")
+    art_txt = ROOT / "docs" / "notes" / "t1half2" / "ctl_baseline.truefmax.txt"
+    if not art_txt.exists():
+        check("the committed truefmax artifact exists", False, str(art_txt))
+        return
+    tf = qg.parse_truefmax(art_txt)
+
+    # --- the definition itself, because it is the load-bearing choice ------- #
+    check("the core-domain class list is exactly the three core-INTERNAL SDC "
+          "classes", qg.CORE_DOMAIN_CLASSES == ("k=4.0", "k=1.5", "k=2.5"),
+          str(qg.CORE_DOMAIN_CLASSES))
+    check("...and it EXCLUDES DEFAULT (which is the whole design)",
+          "DEFAULT" not in qg.CORE_DOMAIN_CLASSES)
+    # ⚠ THE ONE THAT WOULD MAKE THE FIGURE A LIE.  `k=0.5` is
+    # `(not $v30u_ce) -> t1_half2`: its LAUNCH side is outside the core by
+    # construction, so counting it would put a rig register inside a figure
+    # whose whole claim is that both endpoints are the core's.
+    check("...and it EXCLUDES k=0.5, whose launch side is outside the core",
+          "k=0.5" not in qg.CORE_DOMAIN_CLASSES)
+
+    cd = qg.core_domain_fmax(tf)
+    check("the core-domain figure is the MINIMUM over the three",
+          cd["fmax_mhz"] == 59.51, str(cd))
+    check("...which on this artifact is the k=4.0 CE multicycle",
+          cd["class"] == "k=4.0" and cd["k"] == 4.0, str(cd))
+    check("...quoted WITH its binding cone, both endpoints named",
+          bool(cd["from"]) and bool(cd["to"]), str(cd))
+    check("...and it carries all three classes, not just the winner",
+          sorted(cd["classes"]) == ["k=1.5", "k=2.5", "k=4.0"],
+          str(cd["classes"]))
+    d = tf["DEFAULT (whole-design worst, expect k=1)"]
+    check("the two halves are DIFFERENT numbers on this tree "
+          "(42.09 whole-design vs 59.51 core-domain)",
+          d["fmax_mhz"] == 42.09 and cd["fmax_mhz"] != d["fmax_mhz"])
+
+    # --- ABSENCE IS NOT DATA ------------------------------------------------ #
+    for drop in qg.CORE_DOMAIN_CLASSES:
+        part = {k: v for k, v in tf.items() if not k.startswith(drop)}
+        got = qg.core_domain_fmax(part)
+        check(f"a missing {drop} class gives NO figure, not a min over the rest",
+              got["fmax_mhz"] is None and got["missing"] == [drop], str(got))
+    hollow = {k: (dict(v, fmax_mhz=None) if k.startswith("k=4.0") else v)
+              for k, v in tf.items()}
+    check("a class present but with NO ceiling gives no figure either",
+          qg.core_domain_fmax(hollow)["fmax_mhz"] is None)
+    check("an empty artifact gives no figure and does not crash",
+          qg.core_domain_fmax({})["fmax_mhz"] is None)
+    # NON-VACUITY: the minimum must actually track the data.
+    moved = {k: (dict(v, fmax_mhz=12.0) if k.startswith("k=1.5") else v)
+             for k, v in tf.items()}
+    got = qg.core_domain_fmax(moved)
+    check("the binding class FOLLOWS the numbers (k=1.5 at 12.0 MHz binds)",
+          got["fmax_mhz"] == 12.0 and got["class"] == "k=1.5", str(got))
+
+    # --- the contract, in the source ---------------------------------------- #
+    src = (SW / "quartus_gate.py").read_text()
+    check("the sweep records a `paired` block",
+          '"paired": paired' in src)
+    check("the whole-design half is still THE PROMOTION GATE",
+          '"is_promotion_gate": True' in src)
+    check("...and the core-domain half is NOT a gate",
+          '"is_promotion_gate": False' in src)
+    # ⚠ THE FAILURE MODE THE PAIRING EXISTS TO AVOID: a core-domain number
+    # that some bar starts reading would re-scope the promotion gate onto the
+    # figure that excludes both binding cones.
+    for bar in ("E3_fmax", "E5_tns", "E9_all_seeds_pass"):
+        seg = src.split(f'"{bar}"')[1][:600] if f'"{bar}"' in src else ""
+        check(f"no bar {bar} reads the core-domain figure",
+              "core_domain" not in seg and "core_fmax" not in seg)
+    check("both halves are worst-of-N over the SAME seed set",
+          '"seeds": seeds, "fmax_mhz": core_worst' in src)
+    check("the core-domain worst-of-N is a MIN, not a mean or a max",
+          "core_worst = min(core_ok)" in src)
+
+    # --- and it survives a real invocation of the summary path -------------- #
+    rc, out = run_gate(["--dry-run", "--seeds", "5"])
+    check("--dry-run --seeds 5 still exits 0 with the pairing in the tool",
+          rc == 0, out.strip()[-200:])
+
+
 def main():
     global VERBOSE
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -641,6 +732,7 @@ def main():
     q13_sweep_refusals()
     q14_truefmax_parse()
     q15_summary_stats()
+    q16_paired_reporting()
 
     print(f"\n{NCHECK - len(FAILS)} / {NCHECK} checks pass")
     for f in FAILS:
