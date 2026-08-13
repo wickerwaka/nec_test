@@ -24,7 +24,7 @@ document is written after the fact to stand in for it.**
 | **one mechanism found, NAMED, NOT TAKEN** | the pin rides the **M7 prefetch-eligibility occupancy adder** — `occ`'s `cmt_valid && cmt_fetch` term is read *after* `kill_l` clears it — **8 cells and 5.594 ns, 24.2 % of the cone**.  Registered with its predicted benefit (**+0.00 MHz**, by the same arithmetic) and therefore not built. |
 | **PART 2 — PAIRED REPORTING** | **ADOPTED AND REGISTERED** (`standing_gates.md` §A).  G6's `--seeds N` output is now a PAIR: whole-design worst-of-N (**the promotion gate, unchanged**) and core-domain worst-of-N (**not a gate; no bar reads it**), each with its binding cone and `k`.  Falsifier `test_quartus_gate.py` **240/240** (was 200/200). |
 | **and an ERRATUM IT FOUND BEFORE ITS FIRST USE** | the `k=4.0` class row is contaminated by the `t1_half2~DUPLICATE` leak **in the UNSAFE direction** (98.30 where a clean draw reads 60.99), which **refutes** `timing50_distribution_2026-08-13.md` §6's *"never wrong in the unsafe direction"* for that row.  The core-domain figure is therefore declared an **UPPER BOUND** and flags itself per draw. |
-| **PART 3 — the final band** | <!-- P3-HEADLINE --> |
+| **PART 3 — the final band** | **CONTROL whole-design `worst-of-5` 41.71 / core-domain 60.67; RETENTION 43.50 / 59.52.**  Both sweeps PASS, TNS 0.000 on all ten draws, and **all ten draws reproduce L1 to the digit** — the fifth confirmation that the fit is deterministic given netlist and seed.  **The core-domain half clears 50 MHz on both configurations; the whole-design half does not, and is short by 8.29 / 6.50 MHz.** |
 
 ---
 
@@ -56,7 +56,7 @@ behind"*, and it needs no model.
 |---|---:|---:|---|---:|
 | **seed 1 — THE `worst-of-5` DRAW** | **41.71 / +7.276** | 42.92 | **+7.276**, `opc_from_modrm → ad_in_q[14]` — **the same path** | **+0.000 ns** |
 | seed 4 | 42.50 / +7.722 | **42.50 — it BINDS** | +8.538, `modrm_reg[0] → ad_in_q[15]` ⁽¹⁾ | +0.816 ns → 44.03 MHz |
-| seed 5 | 44.36 / +8.708 | 47.34 | <!-- SEED5-D --> | <!-- SEED5-BENEFIT --> |
+| seed 5 | 44.36 / +8.708 | 47.34 | **+8.708**, `ucdecode M10K → ad_in_q[0]` — **the same path** | **+0.000 ns** |
 
 ⁽¹⁾ **read past two `sld_jtag_hub` rows at +8.272 / +8.498.**  They are
 cross-domain (`capture_buf` → JTAG hub) and Quartus computes Fmax only for
@@ -211,19 +211,232 @@ makes them a determinism control as well as a measurement.
 
 ### 3.1 THE PAIRED FIGURES, BOTH CONFIGURATIONS
 
-<!-- P3-TABLES -->
+**CONTROL** — record `ad7dc5db6e6a6002…`, `sw/testdata/g6dist/intcone-control-n5/`
+
+| seed | Fmax | worst setup | ALMs | **core-domain** | class | k | binding cone (whole design) |
+|---|---:|---:|---:|---:|---|---:|---|
+| **1** | **41.71** | **+7.276** | 10,154 | ⚠ 98.28 | k=1.5 | 1.5 | `opc_from_modrm → ad_in_q[14]` |
+| 2 | 42.48 | +7.710 | 10,105 | ⚠ 104.11 | k=4.0 | ⚠ 1.5 | `ucdecode M10K → ad_in_q[15]` |
+| **3** | 42.57 | +7.758 | 10,116 | **60.67** | k=4.0 | 4.0 | `ucdecode M10K → ad_in_q[17]` |
+| 4 | 42.50 | +7.722 | 10,115 | 60.99 | k=4.0 | 4.0 | **`c_int_q → row_posted`** |
+| 5 | 44.36 | +8.708 | 10,085 | 60.84 | k=4.0 | 4.0 | `ucdecode M10K → ad_in_q[0]` |
+
+> **WHOLE-DESIGN `worst-of-5@seeds{1,2,3,4,5}` = 41.71 MHz** (seed 1, **k = 1.0**),
+> bound by `v30u_eu|opc_from_modrm → nec_bus|ad_in_q[14]` · median 42.50 ·
+> spread **2.65**
+> **CORE-DOMAIN `worst-of-5@seeds{1,2,3,4,5}` = 60.67 MHz** (seed 3, **k = 4.0**),
+> bound by `ucdecode M10K → v30u_eu|wb_kind[0]` · per class **k=4.0 60.67 ·
+> k=1.5 94.80 · k=2.5 228.98**
+
+**RETENTION** — record `c487a9ae7bbd4f3c…`, `…/intcone-retention-n5/`
+
+| seed | Fmax | worst setup | ALMs | **core-domain** | class | k | binding cone (whole design) |
+|---|---:|---:|---:|---:|---|---:|---|
+| 1 | 45.21 | +8.988 | 10,194 | 62.91 | k=4.0 | 4.0 | ⚠ `cfg_clk_div[4] → t1_half2` (k=0.5 artifact) |
+| **2** | **43.50** | **+8.261** | 10,145 | 60.44 | k=4.0 | 4.0 | `ucdecode M10K → ad_in_q[11]` |
+| 3 | 44.33 | +6.758 | 10,178 | 59.55 | k=4.0 | 4.0 | ⚠ `div_cnt[1] → t1_half2` (k=0.5 artifact) |
+| **4** | 43.84 | +8.442 | 10,134 | **59.52** | k=4.0 | 4.0 | `opc_from_modrm → ad_in_q[18]` |
+| 5 | 44.80 | +8.929 | 10,166 | ⚠ 103.85 | k=1.5 | 1.5 | `ucdecode M10K → ad_in_q[3]` |
+
+> **WHOLE-DESIGN `worst-of-5@seeds{1,2,3,4,5}` = 43.50 MHz** (seed 2, **k = 1.0**),
+> bound by `ucdecode M10K → nec_bus|ad_in_q[11]` · median 44.33 · spread **1.71**
+> **CORE-DOMAIN `worst-of-5@seeds{1,2,3,4,5}` = 59.52 MHz** (seed 4, **k = 4.0**),
+> bound by `ucdecode M10K → v30u_eu|Mux73~0` · per class **k=4.0 59.52 ·
+> k=1.5 103.85 · k=2.5 225.57**
+
+**Both sweeps `verdict PASS`** on E7-E10, **TNS 0.000 setup AND hold on every
+domain of all ten draws**, 0 errors / 0 latches / 0 `lpm_divide`, ALMs
+**24 %** throughout, input manifest **`d47c1d003d64c4c5…`** on both — the same
+88 files L1's sweeps were taken on.  Wall clock 2,326 s + 1,909 s.
+
+⚠ **THE BANDS OVERLAP** ([41.71, 44.36] vs [43.50, 45.21]), so **no
+control-vs-retention delta may be computed** from them, per the distribution
+gate's own rule.
+
+⚠ **THREE OF THE TEN CORE-DOMAIN ROWS ARE OFF-CLASS** (CONTROL seeds 1 and 2,
+RETENTION seed 5 — flagged in the record and printed by the sweep).  On both
+configurations the contamination went **upward**, so it did **not** set either
+minimum: both reported core-domain figures come from clean `k = 4.0` rows.
+That is a fact about these ten draws, not a property of the instrument.
+
+⚠ **AND THE TWO KNOWN `sta_truefmax_probe.tcl` DEFECTS BOTH REPRODUCED**, at
+exactly the rates L1 recorded: the `DEFAULT`-row-by-slack artifact on **2 of 5
+RETENTION draws** (seeds 1 and 3 name a `k = 0.5` enable arc), and the
+`~DUPLICATE` leak.  Neither touches the two quotable figures, whose own draws
+(CONTROL seed 1, RETENTION seed 2) are clean `k = 1.0` reads.
+
+### 3.1b THE DETERMINISM CONTROL — **TEN OF TEN DRAWS REPRODUCE L1 TO THE DIGIT**
+
+This wave changed no RTL, so every draw above should equal L1's at the same
+seed.  **All ten do** — Fmax, worst setup and ALM count, on independently
+produced maps:
+
+| | CONTROL | RETENTION |
+|---|---|---|
+| L1 (`adcone_l1_results` §2.1) | 41.71 · 42.48 · 42.57 · 42.50 · 44.36 | 45.21 · 43.50 · 44.33 · 43.84 · 44.80 |
+| **here** | **41.71 · 42.48 · 42.57 · 42.50 · 44.36** | **45.21 · 43.50 · 44.33 · 43.84 · 44.80** |
+| spread | 2.65 = 2.65 | 1.71 = 1.71 |
+
+**That is the fifth independent confirmation of the distribution gate's §7
+determinism finding** (the fit is deterministic given netlist and seed), and it
+is what makes the paired figures above a property of the tree rather than of
+this sitting.
+
+#### 3.1a THE SAME PAIR, READ RETROACTIVELY OFF L1'S OWN RECEIPTS — A CONTROL THAT COST NOTHING
+
+L1's per-seed receipts already carry `truefmax_full`, so `core_domain_fmax()`
+can be applied to them **without rebuilding anything**.  That gives an
+independent draw of the core-domain half on the same tree, taken by a different
+sitting, and it is quoted here as a control on §3.1 rather than as a second
+measurement:
+
+| | seed 1 | 2 | 3 | 4 | 5 | **worst-of-5** |
+|---|---:|---:|---:|---:|---:|---:|
+| **CONTROL** whole-design | **41.71** | 42.48 | 42.57 | 42.50 | 44.36 | **41.71** (seed 1) |
+| **CONTROL** core-domain | ⚠ 98.28 | ⚠ 104.11 | **60.67** | 60.99 | 60.84 | **60.67** (seed 3) |
+| **RETENTION** whole-design | 45.21 | **43.50** | 44.33 | 43.84 | 44.80 | **43.50** (seed 2) |
+| **RETENTION** core-domain | 62.91 | 60.44 | 59.55 | **59.52** | ⚠ 103.85 | **59.52** (seed 4) |
+
+⚠ = an **off-class** row (§2): the `k=4.0` query returned a `k=1.5` path into
+`t1_half2~DUPLICATE`.  **Three of the ten draws are contaminated, and on both
+configurations the contamination went UPWARD, so it did not set either
+minimum** — the reported worst-of-5 comes from a clean row in each case.  That
+is a fact about these ten draws, **not a property of the instrument**, and it
+is exactly why `off_class` is printed rather than remembered.
 
 ### 3.2 THE CENSUS — WHAT BINDS, AND WHAT IS BEHIND IT
 
-<!-- P3-CENSUS -->
+Read off each sweep's own per-seed `truefmax` artifacts.
+
+| | CONTROL (worst draw, seed 1) | RETENTION (worst draw, seed 2) |
+|---|---|---|
+| **binds** (k = 1.0) | **+7.276** `opc_from_modrm → ad_in_q[14]` | **+8.261** `ucdecode M10K → ad_in_q[11]` |
+| **RUNG 1a** — the worst k=1 survivor once the observation registers are excluded | **+7.949 → 42.92 MHz**, `c_int_q~DUP → rd_pending[0]` | **+10.163 → 47.42 MHz**, `c_int_q → row_posted` |
+| how far behind the binding cone | **0.673 ns / +1.21 MHz** | **1.902 ns / +3.92 MHz** |
+| **CORE→CORE (k = 4)** | 60.67 MHz (worst-of-5) | 59.52 MHz (worst-of-5) |
+
+**`c_int_q` is the first wall behind the observation class on BOTH
+configurations' worst draws, and it is BEHIND it on both** — which is §1.2's
+verdict, re-measured on this wave's own sweeps.  RETENTION's 47.42 reproduces
+L1's committed `rung 1a` for seed 2 **to the digit**, a fourth agreement.
+
+⚠ **THE LADDER CANNOT NAME THE THIRD WALL, AND THAT IS AN INSTRUMENT LIMIT.**
+`RUNG 2` (*not latching in an observation register AND not launching from
+`c_int_q`*) reads **68.75 MHz at k = 0.5** on RETENTION seed 2 and **42.92 at
+k = 1.0** on CONTROL seed 1 — the first is the `div_cnt → t1_half2` enable arc
+returned because the rung query ranks by SLACK rather than `slack/k`, and the
+second is the `~DUPLICATE` leak returning the `c_int_q` path the rung was
+supposed to exclude.  **Neither is a third wall.**  So: *what is behind the two
+rig-crossing cones is currently UNMEASURED*, and repairing the rungs is the
+first thing a 50 MHz continuation would have to do.
 
 ### 3.3 WHAT 50 MHz MEANS UNDER PAIRED REPORTING
 
-<!-- P3-50 -->
+**Ask the question the pairing was adopted to make askable, and answer it with
+the measurement rather than with a hope.**
+
+| | CONTROL | RETENTION | ≥ 50 ? |
+|---|---:|---:|---|
+| **whole-design** `worst-of-5` | **41.71** | **43.50** | **NO** — short by **8.29** and **6.50 MHz** |
+| **core-domain** `worst-of-5` (⚠ upper bound) | **60.67** | **59.52** | **YES**, by **+10.67** and **+9.52 MHz** |
+
+> **THE HONEST SENTENCE, IN THE FORM §8.3 ASKED FOR IT:**
+> *the ucore's own logic closes at **60.67 MHz (CONTROL) / 59.52 (RETENTION)**,
+> bound by the `k = 4` CE-domain cone `ucdecode M10K → v30u_eu|{wb_kind, Mux73}`;
+> the `nec_test` RIG closes at **41.71 / 43.50**, bound by the AD publication
+> cone into `nec_bus|ad_in_q`.*
+
+⚠ **AND THE CORE-DOMAIN HALF IS AN UPPER BOUND** (§2), so the correct reading
+is *"the core's own logic is not what stops this design reaching 50, and it has
+about 10 MHz of measured headroom above it — subject to a class query that can
+return an off-class path."*  It is **not** *"the core closes at 60 MHz"* said
+flatly.
+
+**WHAT THE WHOLE-DESIGN NUMBER WOULD NEED, in nanoseconds rather than wishes:**
+
+* CONTROL 41.71 → 50.00 is `T_min` **23.974 → 20.000 ns = 3.974 ns** off the
+  binding path; RETENTION 43.50 → 50.00 is **22.989 → 20.000 = 2.989 ns**.
+* **What is measured as available**: closing everything the observation class
+  still contains is worth **+0.79 (CTL) / +1.71 (RET)** — landing on
+  **42.50 / 45.21** — and then `c_int_q` binds on every draw
+  (`adcone_l1_results_2026-08-13.md` §3.2).
+* **Closing `c_int_q` PERFECTLY after that** would land on whatever is behind
+  it — **and §3.2 says the ladder cannot currently name that number.**
+* So **50 MHz is short by roughly 3.2 ns (CTL) / 1.3 ns (RET) with BOTH
+  rig-crossing cones perfectly closed**, and the remainder would have to come
+  from a class nobody has measured yet.
+
+**50 MHz IS NOT REACHABLE BY ANY LEVER CURRENTLY ON THE TABLE, AND THAT IS NOW
+ARITHMETIC RATHER THAN OPINION.**
 
 ### 3.4 THE CLOSING STATEMENT OF THE 50 MHz CAMPAIGN
 
-<!-- P3-CLOSING -->
+#### (a) THE BAND, STAGE BY STAGE — every figure with its N, and none of them comparable to the next without saying so
+
+| stage | tree | CONTROL | RETENTION | N | what moved |
+|---|---|---:|---:|---:|---|
+| Phase 1 baseline | `1e554257b6` | 45.54 | 45.57 | 2 | **includes E-1** |
+| Phase 1's correctness fix | `f17102066f` | −0.07 | — | 2 | the CE multicycle **split by enable phase** — it was optimistic by two full periods on the one `ce_half`-gated flop |
+| amendment **A-1** | built | **−2.41** | — | 2 | **BUILT, MEASURED, WITHDRAWN** |
+| **E-1 DELETED** | `a1c63e78e4` | **41.18** | **42.28** | 2 | −4.36 / −3.29.  A constraint whose premise could not be derived from the ce/ce_half contract |
+| **P2-A** (the INT prefix) | `c137e8c105` | +0.25 | −0.09 | 2 | **REVERTED by its own pre-registered rule** |
+| **`CHAIN_MAX` 12 → 7** | `41a60bd42c` | 39.79 | 43.76 | 2 | ALMs **12,271 → 10,358 (−15.6 %)** |
+| **THE DISTRIBUTION GATE** | `a74c741d1c` | **38.97** | **37.73** | **8** | *the first honest band* — and **below every single draw ever registered for that tree** |
+| the `t1_half2` half-arc | — | — | — | — | **REFUTED: there is no wall** (90.91 / 83.43, fourth-ranked).  **No RTL changed.** |
+| **L1** | `9bf70f2eec` | **41.71** | **43.50** | **5** | **+2.74 / +3.76** at the same seeds; ALMs → **~10,100 (24 %)** |
+| **this wave** | `3ce86eb4b5` | **41.71** | **43.50** | **5** | **no RTL.**  Paired reporting adopted; `c_int_q` booked |
+
+⚠ **A worst-of-2 and a worst-of-8 are not the same quantity**, and the rows
+above are labelled with their N precisely so that no reader subtracts across
+them.  The only like-for-like deltas in the table are the ones taken at the
+same N **and the same seed set**: A-1's −2.41, E-1's −4.36 / −3.29, P2-A's
++0.25 / −0.09, and L1's **+2.74 / +3.76**.
+
+#### (b) WHAT THE CAMPAIGN ACHIEVED
+
+1. **Two constraint CORRECTIONS landed, and both made the tree honestly
+   slower.**  E-1's deletion cost 4.36 / 3.29 MHz and the enable-phase split
+   cost 0.07, and both were kept.  A campaign whose headline number went *down*
+   twice on purpose is the discipline working, not failing.
+2. **One RTL landing that paid: L1**, +2.74 / +3.76 MHz on a worst-of-5 basis,
+   twelve lines, no SDC edit, pin identity a construction rather than an
+   experiment (306 seeds / 1,243,278 replayed rows byte-identical).
+3. **One RTL landing that paid in AREA: `CHAIN_MAX`**, −15.6 % ALMs.  Together
+   with L1 the design went from **12,271 ALMs (29 %) to ~10,100 (24 %)** — **−18 %**.
+4. **Three things were built, measured and REFUSED**: amendment A-1
+   (−2.41 MHz), P2-A (the INT prefix, +0.25 / −0.09 against a 1.5 bar), and the
+   `t1_half2` arc (refuted outright — there was no wall to fix).  **Each was
+   disposed of by a rule written before its number was known.**
+5. **THE INSTRUMENTS ARE THE LARGEST DELIVERABLE, and they outlast the
+   number.**  `quartus_gate.py --seeds N` (worst-of-N, E7-E10);
+   `sta_truefmax_probe.tcl` (rank by `slack/k`, five classes);
+   `sta_fmax_attrib.tcl` (own-Fmax); `sta_halfarc_probe.tcl` (`d(slack)/dT`
+   measured, not assumed); `sta_adcone_anatomy.tcl` and
+   `sta_intcone_anatomy.tcl` (population anatomies); `sta_intcone_probe.tcl`
+   (per-launch ceilings); `ucrom_mif_check.py` (the microcode's
+   SYNTHESIS-side F44 check, which never existed); `chain_lfsr_gate`;
+   `adcone_g6_table.py`, `adcone_replay_diff.py`, `adcone_iepinfall_diff.py`;
+   and this wave's **paired reporting**.
+6. **And it found what it was not looking for**: that a single Quartus draw is
+   not a property of a tree (three agreeing draws refuted), that map variance
+   sits *above* seed variance and is unmeasured, that `sta_truefmax_probe.tcl`
+   leaks `~DUPLICATE` in two different ways — one of them, found here, in the
+   **unsafe** direction — and that a committed directed-cell table had been
+   stale for six landings.
+
+#### (c) WHAT IT DID NOT ACHIEVE, STATED PLAINLY
+
+**50 MHz was not reached on the whole-design number, and it is not reachable by
+any lever currently on the table.**  Not *"not yet"*: the two cones that bind
+are measured, the value of closing them is measured, and the sum is short.
+
+#### (d) THE ONE-SENTENCE CLOSING STATEMENT
+
+> **The ucore's own logic closes comfortably above 50 MHz; the `nec_test` RIG
+> does not, and both cones that bind it have one endpoint in the rig.  The
+> campaign's honest deliverable is that this is now MEASURED — with an
+> instrument that reports a distribution rather than a draw, a pair rather than
+> a single number, and a ceiling rather than a hope.**
 
 ---
 
@@ -335,6 +548,16 @@ touches no board.**
    documents why; this probe should inherit the filter.
 4. **The M10K fabric bar** (§4.2) — owed before any flash, not this wave's to
    discharge because this wave flashes nothing.
-5. **A worst-of-N over *(map, seed)* pairs** — still booked, not built
+5. **A RIG NOTE FOUND BY THIS WAVE, AND IT COST A BUILD**: `sw/run_intcone_g6.sh`
+   assumed the sweep's `hdl/db` survives the sweep, so it could re-fit one seed
+   on the sweep's own map for a few minutes instead of re-mapping.  **It does
+   not**: `run_sweep()` re-runs `gen_ucore_qsf.py` after the last stage, and
+   Quartus then refuses the fit with
+   *"Run Analysis and Synthesis (quartus_map) … before running the current
+   software"*.  The leg was re-run from a clean map instead.  **Nothing was
+   claimed from the failed run**, and the question it was going to answer —
+   *does `c_int_q` bind the RETENTION worst draw?* — was already answered by
+   that sweep's own `RUNG 1a` (§3.2), with no extra build at all.
+6. **A worst-of-N over *(map, seed)* pairs** — still booked, not built
    (`timing50_distribution_2026-08-13.md` §13.1).  Everything in §3 is a
    distribution at a FIXED map, and map variance sits on top of it.
