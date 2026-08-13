@@ -704,6 +704,28 @@ def q16_paired_reporting():
     check("the core-domain worst-of-N is a MIN, not a mean or a max",
           "core_worst = min(core_ok)" in src)
 
+    # --- THE OFF-CLASS FLAG, ON A REAL DRAW THAT EXHIBITS IT ---------------- #
+    # ⚠ THE QUERY IS NOT THE EXCEPTION.  The probe returns each class
+    # collection's worst path BY SLACK, and that path carries whatever
+    # exception the SDC gives it -- which since the Phase-1 enable-phase split
+    # need not be the one the class LABEL names.  This fixture is the CONTROL
+    # seed 1 draw of 2026-08-13, where the `k=4.0` row measured `k = 1.5`.
+    fx = ROOT / "sw" / "testdata" / "intcone" / "fixtures" / \
+        "ctl_seed1_offclass.truefmax.txt"
+    if fx.exists():
+        o = qg.core_domain_fmax(qg.parse_truefmax(fx))
+        check("the off-class row is DETECTED, not silently used as a k=4 figure",
+              o["off_class"] == ["k=4.0"], str(o.get("off_class")))
+        check("...and the measured k is carried per class, beside the label",
+              o["k_measured"]["k=4.0"] == 1.5, str(o.get("k_measured")))
+        check("the figure declares itself an UPPER BOUND",
+              o["upper_bound"] is True and "UPPER BOUND" in o["caveat"])
+        check("a draw with NO off-class row reports an empty list, not None",
+              qg.core_domain_fmax(tf)["off_class"] == [],
+              str(qg.core_domain_fmax(tf)["off_class"]))
+    else:
+        check("the off-class fixture exists", False, str(fx))
+
     # --- THE SUMMARY ITSELF, ON SYNTHETIC DRAWS ----------------------------- #
     # ⚠ A SUMMARY THAT CAN ONLY BE EXERCISED BY A THIRTY-MINUTE COMPILE IS A
     # SUMMARY WHOSE FIRST RUN IS ON THE DATA IT WAS WRITTEN TO REPORT.  That is

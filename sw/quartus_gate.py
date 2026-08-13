@@ -812,18 +812,42 @@ def core_domain_fmax(tf):
     if missing or not rows:
         return {"fmax_mhz": None, "class": None, "k": None, "from": None,
                 "to": None, "classes": rows, "missing": missing,
+                "off_class": [], "upper_bound": True,
                 "note": "core-domain figure NOT derivable -- a class is absent "
                         "or carries no ceiling; absence must not read as data"}
+    # ⚠ THE QUERY IS NOT THE EXCEPTION, AND A DRAW CAN PROVE IT.
+    # `sta_truefmax_probe.tcl` asks each class as a `-from`/`-to` collection and
+    # returns the worst path IN THAT COLLECTION BY SLACK.  The path it returns
+    # carries whatever exception the SDC applies to it, which need not be the
+    # one the class LABEL names -- since the Phase-1 split the SDC has a
+    # `ce -> ce_half` 2/1 and a `ce_half -> ce` 3/2 multicycle as well, and a
+    # `$v30u_ce -> $v30u_ce` query can return a path measuring `k = 1.5`.
+    # MEASURED, on the CONTROL seed 1 draw of 2026-08-13: the `k=4.0` row read
+    # `k = 1.5000, +31.616 -> 98.30 MHz`, four rows above a `k=1.5` row at
+    # `+31.613`.  So this is the probe's own doctrine biting one level down --
+    # ranking by SLACK inside a class cannot find that class's worst by
+    # `slack/k` -- and the consequence is stated rather than papered over:
+    # **the core-domain figure is an UPPER BOUND on the core-domain ceiling.**
+    # It is flagged per row, never silently averaged away.
+    nominal = {"k=4.0": 4.0, "k=1.5": 1.5, "k=2.5": 2.5}
+    off = [c for c, r in rows.items()
+           if r.get("k") is not None and abs(r["k"] - nominal[c]) > 1e-6]
     binding = min(rows.items(), key=lambda kv: kv[1]["fmax_mhz"])
     c, r = binding
     return {"fmax_mhz": r["fmax_mhz"], "class": c, "class_label": r["label"],
-            "k": r["k"], "slack": r["slack"], "t_min_ns": r["t_min_ns"],
-            "from": r["from"], "to": r["to"],
+            "k": r["k"], "k_nominal": nominal[c], "slack": r["slack"],
+            "t_min_ns": r["t_min_ns"], "from": r["from"], "to": r["to"],
             "classes": {k: v["fmax_mhz"] for k, v in rows.items()},
-            "missing": [],
+            "k_measured": {k: v.get("k") for k, v in rows.items()},
+            "missing": [], "off_class": off, "upper_bound": True,
             "definition": "min over the three SDC classes whose BOTH endpoints "
                           "are v30u_eu/v30u_biu registers: " +
-                          ", ".join(CORE_DOMAIN_CLASSES)}
+                          ", ".join(CORE_DOMAIN_CLASSES),
+            "caveat": "UPPER BOUND: each class row is the worst path in that "
+                      "collection BY SLACK, not by slack/k, so a row can return "
+                      "a path carrying a different exception than its label "
+                      "names.  `off_class` lists the rows where the measured k "
+                      "and the label's k disagree ON THIS DRAW."}
 
 
 def truefmax_complete(tf):
@@ -1102,8 +1126,12 @@ def paired_figures(per_seed, binding, seeds):
             "definition": "min over " + ", ".join(CORE_DOMAIN_CLASSES) +
                           " -- the three SDC classes whose BOTH endpoints are "
                           "v30u_eu/v30u_biu registers",
-            "source": "sta_truefmax_probe.tcl, ranked by slack/k per class",
+            "source": "sta_truefmax_probe.tcl, one row per class",
             "is_promotion_gate": False,
+            "upper_bound": True,
+            "off_class_draws": {p["seed"]: p["core_domain"].get("off_class")
+                                for p in per_seed
+                                if p["core_domain"].get("off_class")},
             "n_draws_derivable": len(core_ok),
             "quotable_as": (f"core-domain worst-of-{n}@seeds{{{seedset}}} "
                             f"= {core_worst} MHz ({core_binding.get('class')}, "
@@ -1465,6 +1493,11 @@ def run_sweep(a, tree, receipt_path, logpath):
         s = cdd["per_class_worst_of_n"][c]
         print(f"                   {c:<6} worst-of-{n} {s['min']}  "
               f"med {s['median']}  best {s['max']}")
+    print(f"                 ^ AN UPPER BOUND: each class row is that "
+          f"collection's worst BY SLACK, not by slack/k.")
+    if cdd["off_class_draws"]:
+        print(f"  ⚠ off-class rows (measured k != the label's k), by seed: "
+              f"{cdd['off_class_draws']}")
     if cdd["n_draws_derivable"] != n:
         print(f"  ⚠ the core-domain figure is derivable on only "
               f"{cdd['n_draws_derivable']} of {n} draws -- see per-seed "

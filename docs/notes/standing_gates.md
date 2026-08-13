@@ -355,6 +355,24 @@ inside a figure whose whole claim is that both endpoints are the core's.
 **In practice `k=4.0` binds** — but that is a MEASUREMENT, re-taken every draw,
 not a definition.
 
+⚠⚠ **THE CORE-DOMAIN FIGURE IS AN UPPER BOUND, AND A DRAW HAS ALREADY PROVED
+IT.**  `sta_truefmax_probe.tcl` asks each class as a `-from`/`-to` collection
+and returns **that collection's worst path BY SLACK** — which is the probe's
+own doctrine (*rank by `slack/k`, not by slack*) failing one level down, inside
+a class.  The path it returns carries whatever exception the SDC gives it, and
+since the Phase-1 **enable-phase split** the SDC also has a `ce → ce_half` 2/1
+and a `ce_half → ce` 3/2 multicycle, so a `$v30u_ce → $v30u_ce` query can
+return a path measuring **k = 1.5**.  **MEASURED on the CONTROL seed 1 draw of
+2026-08-13**: the `k=4.0` row read `k = 1.5000, +31.616 → 98.30 MHz`, four rows
+above the `k=1.5` row's `+31.613`.  So the figure is flagged rather than
+trusted: `core_domain.off_class` lists every row whose **measured** `k`
+disagrees with its label's, `k_measured` carries all three, and the sweep
+prints the off-class draws.  **A core-domain number is quotable as an upper
+bound on the core-domain ceiling and as nothing tighter.**  Fixing it means
+ranking by `slack/k` *inside* each class — an instrument change, booked, not
+taken here, because it would silently re-base every figure taken with the
+current probe.
+
 ⚠ **ABSENCE IS NOT DATA.**  If any of the three classes is missing from the
 probe's artifact, or present without a ceiling, `core_domain_fmax()` returns
 **no figure** and lists what was missing — it does **not** compute a minimum
@@ -368,7 +386,7 @@ easier to claim**.  It makes visible a fact the single number hid: on this tree
 **both** cones that bind the whole design have **one endpoint in the RIG**
 (`nec_bus|ad_in_q`, `system_large|c_int_q`), while the core's own logic sits
 tens of ns clear.  Falsifier: `python3 sw/test_quartus_gate.py`
-(**223/223**, no Quartus needed; Q16 is the pairing's own section).
+(**240/240**, no Quartus needed; Q16 is the pairing's own section).
 
 ---
 
