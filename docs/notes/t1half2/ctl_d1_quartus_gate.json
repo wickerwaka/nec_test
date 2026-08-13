@@ -1,0 +1,502 @@
+{
+ "E1_gen_ucore_qsf": {
+  "bar": "hdl/nec_test_ucore.qsf is a faithful derivative of hdl/nec_test.qsf",
+  "out": "gen_ucore_qsf: nec_test_ucore.qsf is up to date",
+  "pass": true,
+  "rc": 0
+ },
+ "bars": {
+  "E2_zero_errors": {
+   "bar": "0 compile errors, every stage Successful",
+   "pass": true,
+   "value": {
+    "asm": true,
+    "error_lines": 0,
+    "fit": "Successful - Thu Aug 13 01:05:42 2026",
+    "map": "Successful - Thu Aug 13 00:59:03 2026",
+    "stage_errors": 0
+   }
+  },
+  "E3_fmax": {
+   "bar": "divclk Fmax >= 32.0 MHz",
+   "pass": true,
+   "value": 42.09
+  },
+  "E4_worst_setup": {
+   "bar": "worst setup slack > 0 on every domain",
+   "pass": true,
+   "value": 7.489
+  },
+  "E5_tns": {
+   "bar": "TNS == 0.000, setup AND hold, every domain",
+   "pass": true,
+   "value": []
+  }
+ },
+ "build": {
+  "cmd": [
+   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sh",
+   "--flow",
+   "compile",
+   "nec_test",
+   "-c",
+   "nec_test_ucore"
+  ],
+  "configuration_requested": "CONTROL/DEFAULT",
+  "log": "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-af32aed9d59a8636d/hdl/quartus_gate_build.log",
+  "rc": 0,
+  "seconds": 599.5,
+  "stages": [
+   {
+    "cmd": [
+     "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sh",
+     "--flow",
+     "compile",
+     "nec_test",
+     "-c",
+     "nec_test_ucore"
+    ],
+    "rc": 0,
+    "seconds": 599.5
+   }
+  ]
+ },
+ "command": [
+  "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sh",
+  "--flow",
+  "compile",
+  "nec_test",
+  "-c",
+  "nec_test_ucore"
+ ],
+ "completed": "2026-08-13T08:06:21Z",
+ "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt",
+ "configuration_detail": {
+  "cmdline_macros": [],
+  "command_line": "quartus_map --read_settings_files=on --write_settings_files=off nec_test -c nec_test_ucore",
+  "macros": [
+   "MISTER_DEBUG_NOHDMI=1",
+   "MISTER_DISABLE_ALSA=1",
+   "MISTER_DISABLE_YC=1",
+   "SYNTHESIS=1"
+  ],
+  "qsf_macros": [
+   "MISTER_DEBUG_NOHDMI=1",
+   "MISTER_DISABLE_ALSA=1",
+   "MISTER_DISABLE_YC=1",
+   "SYNTHESIS=1"
+  ],
+  "retention": false,
+  "sources": {
+   "hdl/output_files_ucore/nec_test_ucore.flow.rpt": true,
+   "hdl/output_files_ucore/nec_test_ucore.map.rpt": true
+  }
+ },
+ "env": {},
+ "figures": {
+  "durations": {
+   "fit": {
+    "cpu": "00:13:14",
+    "elapsed": "00:06:43"
+   },
+   "map": {
+    "cpu": "00:03:27",
+    "elapsed": "00:02:44"
+   }
+  },
+  "error_lines": [],
+  "fmax": {
+   "FPGA_CLK2_50": 156.79,
+   "altera_reserved_tck": 63.39,
+   "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk": 42.09,
+   "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk": 60.8
+  },
+  "hold": [
+   {
+    "clock": "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+    "slack": 0.249,
+    "tns": 0.0
+   },
+   {
+    "clock": "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+    "slack": 0.268,
+    "tns": 0.0
+   },
+   {
+    "clock": "FPGA_CLK2_50",
+    "slack": 0.425,
+    "tns": 0.0
+   },
+   {
+    "clock": "altera_reserved_tck",
+    "slack": 0.591,
+    "tns": 0.0
+   }
+  ],
+  "resources": {
+   "fit_registers": "6069",
+   "latches": 0,
+   "lpm_divide": 0
+  },
+  "setup": [
+   {
+    "clock": "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+    "slack": 7.489,
+    "tns": 0.0
+   },
+   {
+    "clock": "altera_reserved_tck",
+    "slack": 8.779,
+    "tns": 0.0
+   },
+   {
+    "clock": "FPGA_CLK2_50",
+    "slack": 13.622,
+    "tns": 0.0
+   },
+   {
+    "clock": "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+    "slack": 24.235,
+    "tns": 0.0
+   }
+  ],
+  "stages": [
+   {
+    "errors": 0,
+    "stage": "Shell",
+    "warnings": 0
+   },
+   {
+    "errors": 0,
+    "stage": "Analysis & Synthesis",
+    "warnings": 1175
+   },
+   {
+    "errors": 0,
+    "stage": "Fitter",
+    "warnings": 101
+   },
+   {
+    "errors": 0,
+    "stage": "Assembler",
+    "warnings": 0
+   },
+   {
+    "errors": 0,
+    "stage": "TimeQuest Timing Analyzer",
+    "warnings": 93
+   },
+   {
+    "errors": 0,
+    "stage": "Full Compilation",
+    "warnings": 1369
+   },
+   {
+    "errors": 0,
+    "stage": "Shell",
+    "warnings": 1369
+   }
+  ],
+  "status": {
+   "alms": "10,371 / 41,910 ( 25 % )",
+   "asm_successful": true,
+   "fit_registers": "6069",
+   "fit_status": "Successful - Thu Aug 13 01:05:42 2026",
+   "map_registers": "5089",
+   "map_status": "Successful - Thu Aug 13 00:59:03 2026"
+  },
+  "ucore_hierarchy": {
+   "v30_core": {
+    "combinational_aluts": {
+     "own": 1,
+     "total": 10723
+    },
+    "dedicated_logic_registers": {
+     "own": 0,
+     "total": 1162
+    }
+   },
+   "v30u_biu": {
+    "combinational_aluts": {
+     "own": 1196,
+     "total": 1196
+    },
+    "dedicated_logic_registers": {
+     "own": 438,
+     "total": 438
+    }
+   },
+   "v30u_eu": {
+    "combinational_aluts": {
+     "own": 8473,
+     "total": 9526
+    },
+    "dedicated_logic_registers": {
+     "own": 724,
+     "total": 724
+    }
+   },
+   "v30u_ucrom": {
+    "combinational_aluts": {
+     "own": 1053,
+     "total": 1053
+    },
+    "dedicated_logic_registers": {
+     "own": 0,
+     "total": 0
+    }
+   }
+  },
+  "uninferred_ram_fragments": {
+   "by_entity": {
+    "v30u_eu": 24,
+    "v30u_ucrom": 1
+   },
+   "by_source": {
+    "pla3_tables.svh:110": 16,
+    "pla3_tables.svh:373": 2,
+    "pla3_tables.svh:636": 6,
+    "v30u_ucrom.sv:74": 1
+   },
+   "total": 25
+  }
+ },
+ "gate": "quartus_gate",
+ "gate_version": 1,
+ "git": {
+  "describe": "41a60bd42c",
+  "dirty_tracked": false,
+  "head": "41a60bd42c734a6d62e946343d978e8c964cfd13"
+ },
+ "id": "55f8c06426c6e69bb81bf51ce158e94098474ce60e3446619c6dbca2b2351663",
+ "input_manifest": {
+  "files": {
+   "hdl/files_ucore.qip": "88de032b628152698981594826b9cf53b09d53dbb1940093fa9c91ca1002b88e",
+   "hdl/nec_test.qsf": "acc19782ba4d8ab32681020ab2d885f3ca0522b86dc46a870e86e3a066ebab29",
+   "hdl/nec_test.sdc": "d5d5acdcea349fa2f1cafa5d964f81aa456cca7a1dc69c367fe5b62c84fb7054",
+   "hdl/nec_test.sv": "b04e85a3e88f14e06d182e319a71714a2865e1b182acfb9f0cdc363801ce5e6b",
+   "hdl/nec_test_ucore.qsf": "39f72a35baeafc4f7459161007a06cb26116db926b0286f04c15b9175d85f762",
+   "hdl/rtl/capture_buf.sv": "5eb48ef11ff0f8b2961151b76eedbd4a228528f162f604a70f822872c78dea66",
+   "hdl/rtl/hps_axi_slave.sv": "f7567ac588c496821cd113ceefa726998c408a62d44839e87562696263cf3721",
+   "hdl/rtl/iords_buf.sv": "b7744500def2a14af97228562a4371cd0531e7d68719e173fa431924f4ac76f8",
+   "hdl/rtl/nec_bus.sv": "99c778bde307d5e804f8cf4523b827e219ec461d07f8e9df96536aab3d688109",
+   "hdl/rtl/system_large.sv": "8d3fc7e669b33a2583fb1c58892b66f05253be9c52ebb87f7bc55c7affeff4aa",
+   "hdl/rtl/test_mem.sv": "a0e09360c7359ab8679f5189a4c9d4765956dcb33c7ab4fa4b93f3c0e27c8249",
+   "hdl/rtl/ucore/README.md": "4dca7eb0212907909f770fcb9448e3804d00de7357ea8574620ad9768bc82419",
+   "hdl/rtl/ucore/pla3_tables.svh": "0d9693c01a289c7eb258ef9478c3405c93492417ee2cf42a28e4552360f61302",
+   "hdl/rtl/ucore/ucdecode.hex": "f5cf6e2bef1d3bec371d0b0227fb7cbcaaf62fd68f2ba3e505d345f492e08bda",
+   "hdl/rtl/ucore/ucrom.hex": "d9cfcddd4cb473f0c21f112bd64419e91d9395a256158e0205137e12ba3e531d",
+   "hdl/rtl/ucore/ucrom_census.json": "c97ad035e2a8e3e7209804321dc158e9129b9c83af1ce8229052447f65bfd7c9",
+   "hdl/rtl/ucore/v30_core.sv": "a63e856d80ac3ebcdeef0fbc621f359324efd1809f781fffbb25476d8c9a36fc",
+   "hdl/rtl/ucore/v30u_biu.sv": "780f8ebf89a6be96b4895a4cc5edd322038e1ffaf07277cc94e0b95da069e73e",
+   "hdl/rtl/ucore/v30u_eu.sv": "623d2c87c1dcb55e62c5678fefc1ed9594b773de77c5703d7ec62e4768829d1f",
+   "hdl/rtl/ucore/v30u_eu_1bl.svh": "8f22d7cd81a85092cb084996b17f8d70b70d19705ef79645dfd2a68bd83798f2",
+   "hdl/rtl/ucore/v30u_eu_cond.svh": "88eefe030009584d26dc647d89a87cfa10e70b016a8b48648b772748fb72cb66",
+   "hdl/rtl/ucore/v30u_eu_iend_late.svh": "e7ecc8f7fb62ec279d331389d37421bbf23b1675dc37eb049aa78a825559ba33",
+   "hdl/rtl/ucore/v30u_eu_poste.svh": "0466f790d6f20633f07ece674481ede059c4e1bea0a785fcca819e5e0127584b",
+   "hdl/rtl/ucore/v30u_eu_row.svh": "5c80014d4064586e35f7fafea0c97c2e2847b664155338ca90dd6421d8e4e409",
+   "hdl/rtl/ucore/v30u_eu_ss_read.svh": "62898d25785213829789d3a9347d310e15c03b111e9fb42e16ead2bf0d4fd53d",
+   "hdl/rtl/ucore/v30u_eu_ss_write.svh": "75d626cffe04a9329842bcdcb6c1de03ae412b4d2237f47ce63592ccfff5c392",
+   "hdl/rtl/ucore/v30u_eu_step.svh": "716bf63d0f2863ac761bccfe7b03910c761c8352069ba050949dc14416027ea4",
+   "hdl/rtl/ucore/v30u_eu_wd1.svh": "1eb016ccef3daeae9e25208bc55443e7441a58a88c685411bf188e4dd7527683",
+   "hdl/rtl/ucore/v30u_ss_pkg.sv": "00a078e87fa41afb24d4e0a02ed025d81027908890cfbc4f9a79ed7e7b6c9abf",
+   "hdl/rtl/ucore/v30u_ucrom.sv": "60aa81810bbccaa3ab6041394429e1762ab880b051f5aa037ffe15b1df931718",
+   "hdl/rtl/video_gen.v": "d7058700f636c5f3bf27995c0a3561cecb6e0d5ff68bcac7c35fa78a8d0241e0",
+   "hdl/rtl/wvec_buf.sv": "50beb8d66d3e8b6840295cca3e5921ad49a180617f4431594a13f91283ac675f",
+   "hdl/sys/alsa.sv": "74943b658cd3f4adc5b74c72f225fb42b95122a1c5e453df860a4c6a9bf72fc9",
+   "hdl/sys/arcade_video.v": "ce64cdd7f900ded7b9cd9aa728dab7383b7561cdc75dfe82ab23fe27a3d217d3",
+   "hdl/sys/ascal.vhd": "08c21b36a95f22c813161066d9943c2d6959e8790d8ed840ee29ed335322d4c5",
+   "hdl/sys/audio_out.v": "565dd9badb00052dbd324e70f7ab66e8c6ecd0c5c2791aebffe477a2c0669363",
+   "hdl/sys/build_id.tcl": "148dc6a8124d36ac2898a45d085960cc05178a76d7297fde8877925fc0a74e88",
+   "hdl/sys/ddr_svc.sv": "8dfa874b9a93b4dbbe3b2fcf4f9035a895262cc090d398f4099941a626f41c08",
+   "hdl/sys/f2sdram_safe_terminator.sv": "400bcbcfc0b4aae324fe813866a5443d577bf4de9b4ab1454cb068733d170261",
+   "hdl/sys/gamma_corr.sv": "2754944c6fe05d921374d1fecc26621782520b3bc6fbf600ca561e9f37c7af88",
+   "hdl/sys/hps_io.sv": "1182da0710483a1030687c12e6601025a5293ab90f2eb15cdf5fdea38ea4c275",
+   "hdl/sys/hq2x.sv": "2146b69cf63c26a4b41407e9ac1b4462db4d7e3ea6d8a99f31ba12712d68f975",
+   "hdl/sys/i2c.v": "09bd7ebd5d84fb57f6a9d569e5214f3154c49e55826c15bd78884f3c781fec5b",
+   "hdl/sys/i2s.v": "927d2aea6797fb837f383e5e8a3259609e132ed24883127240ab21601f467efa",
+   "hdl/sys/iir_filter.v": "570a8095c15af84a60015b5eab105cee6e2d7edde77e20f0ce40c075ab2db8b7",
+   "hdl/sys/ltc2308.sv": "825fa1197c8e9f31c19c2fef1b01693133fb7df3cfb2dd831f2848a98fc6899c",
+   "hdl/sys/math.sv": "d384fa9fcf73100cb28a2affc5db1e4aacc87620287971c3882507fc3af056cc",
+   "hdl/sys/mcp23009.sv": "f168485e0b64c0545060f25b858c9f1c12b57024ce441754bb6a0cb0e9072e3f",
+   "hdl/sys/mt32pi.sv": "4ad39571d16a4b25347030d75ffdf601803ddec71e2e3fcabe962103cc45a1a2",
+   "hdl/sys/osd.v": "68ec08401a6ddaf68c95a2e976b9085b77f0002d5b64ffed7454055dbcc48062",
+   "hdl/sys/pll.13.qip": "f25f58e7c0290583f33ee0fdd729a4470cc69312686f0f1ecb95c61115d61cec",
+   "hdl/sys/pll_audio.13.qip": "60edce734c54e4b9f9d56f078bc797841e52c6817f4d27e0cfe77db5d77b2596",
+   "hdl/sys/pll_audio.qip": "278496eefe70d18f6b3ccf624c3a4595ccca74a9a6740eb4520200f1e929a236",
+   "hdl/sys/pll_audio.v": "1662fff7650cd443db81db7f0707f5583d223372b3e3c41af2d41ea4f3ac38f3",
+   "hdl/sys/pll_audio/pll_audio_0002.qip": "4cedd5394006286e0be61acdcbb6455f35cdf5c1488f4eb4a76b60e20eb43fb8",
+   "hdl/sys/pll_audio/pll_audio_0002.v": "2b24d2a561d81cc8b20f725884ee9c243e619058e42ebcdcf6f491d33008696c",
+   "hdl/sys/pll_cfg.qip": "7c1573f321012132479272242434d02058b1bcfe8d89843130ef11173a901eae",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_core.v": "9058d2c68e9cb0b1b6b3ab5487daad8aeaf04461e162aba317857dd133329189",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_top.v": "34c11c19e6bf3797d2db2e41314ce802f5a01041265ce943b54e7f20eb2027c9",
+   "hdl/sys/pll_cfg/pll_cfg.v": "e07ae93193537830b3bc9029465e763a6bfe354c25b7e7747eeeb4094b08ad10",
+   "hdl/sys/pll_cfg/pll_cfg_hdmi.v": "d3874dda124af03656054fa1ae1ee70f1a4d3cea6d4670795a5168325bb6760a",
+   "hdl/sys/pll_hdmi.13.qip": "625df824716313233400454bc1142615fb3a234a494225691c8a554753b1731b",
+   "hdl/sys/pll_hdmi.qip": "5571604010bf98858a0797a2286d2389e105d32a97b42508865b02ba4237dd0d",
+   "hdl/sys/pll_hdmi.v": "499561547c1045a46f1137558e2bab83d8e026e5d32669b5c5779a264b7ed676",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.qip": "de648286a832ee72839dd6abb444231a4238d32b2c26f29426399d2221d7bf5b",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.v": "27c77f35c89e97994477801f83edf3c7e9c5b9e57df49864434d300c40e9f1f7",
+   "hdl/sys/pll_hdmi_adj.vhd": "ae18c82eef2f6b9c7783c68ac272d03f570eb1bdaddce14a1908c351da51a71b",
+   "hdl/sys/pll_q13.qip": "c2b9c95a49d9b1100b0640bbdeea1acff845b0a8cbc11a7259c0913d2c61cfa8",
+   "hdl/sys/pll_q17.qip": "7139faf33ae28066e805f290b15401eddb092d4b7d31b529a3ce1f0213fbc90a",
+   "hdl/sys/scandoubler.v": "d36181c5fde9df0a504c547e23f60bcf201420052ada2682f081b00fd9485e6b",
+   "hdl/sys/scanlines.v": "1fc7ac5359fd224a3fc06388f7671e07bf57cf6a39f35803a265661c56c564d4",
+   "hdl/sys/sd_card.sv": "25114f9a0e9ab4dd702633ae927fc825dc79a4d9f7746c1bb75dbd10d61eb6d6",
+   "hdl/sys/shadowmask.sv": "88429d137b4ce9f6538a052f03d874604f46decf6d69b3fc824cc795efcf3193",
+   "hdl/sys/sigma_delta_dac.v": "352d31dd185bce14d9d1e8a4999fbb5f2b5b2e42b048bdc9f4b828119cc5127a",
+   "hdl/sys/spdif.v": "a617bba332c4611caf81ba585b8f6828c7899aec5f81664a870f10419cb9b451",
+   "hdl/sys/sys.qip": "3854d7f172097e01a40037e0a82dfd1a4178391ea0964767492979216279f31d",
+   "hdl/sys/sys.tcl": "8ed838a8c1e36327f862288ed36b681e320d940263ceb3436ae65a7a6c887676",
+   "hdl/sys/sys_analog.tcl": "36a875d6c59ba21b6d8936619db60f1bfcd8dbed5d5082aa43c72f22b22fd68f",
+   "hdl/sys/sys_dual_sdram.tcl": "4f41376069b2070079d8ba4ae4a722c8ecfe3ca4b99798d0bdd8cda986b5ad5b",
+   "hdl/sys/sys_top.sdc": "9c975aff0a05b115e4bcabb63d0e62c83b53957895e1c1920b304e8ed9054183",
+   "hdl/sys/sys_top.v": "8f8d493cde9d2e5a32604adf61fe9284a75291869c5018bd483b3f34a9332216",
+   "hdl/sys/sysmem.sv": "9f8cf78563cc31beb7dfc6d7048c51ba536ff4f1f9f640b4ff9f8d574456c94e",
+   "hdl/sys/vga_out.sv": "02a533c3dfd547afddea2946019ecc79bbe9c27bb6128c0999fa5fc9e78f8108",
+   "hdl/sys/video_cleaner.sv": "44b986d9bf8412e56bf8e4eae3dc87e04b4c378e58ec6119de5a8aed320e3572",
+   "hdl/sys/video_freak.sv": "6a9b8565f66894a8f2ec10c916593e980d260f29f1886bfe70bf6f3b0cf6edc0",
+   "hdl/sys/video_freezer.sv": "0f3f4710b072b7e90b0b6bfe7607dec18dbd6bed78d1994f32d6fa72a6b7aef3",
+   "hdl/sys/video_mixer.sv": "31ed2c917bd6680b4d60328e71a4f28015bd5fcec21e15b290eacec88971167d",
+   "hdl/sys/yc_out.sv": "c52d7bfcc8dbc5a0cda2b3117172cbba790fb97b7de61722ddac205f6ec8bc20"
+  },
+  "n_files": 88,
+  "sha256": "c23e63aa4cf19684ed985042883a592209cedaabaf968d89f80ecb73e409f997"
+ },
+ "inputs": {
+  "files": {
+   "hdl/files_ucore.qip": "88de032b628152698981594826b9cf53b09d53dbb1940093fa9c91ca1002b88e",
+   "hdl/nec_test.qsf": "acc19782ba4d8ab32681020ab2d885f3ca0522b86dc46a870e86e3a066ebab29",
+   "hdl/nec_test.sdc": "d5d5acdcea349fa2f1cafa5d964f81aa456cca7a1dc69c367fe5b62c84fb7054",
+   "hdl/nec_test.sv": "b04e85a3e88f14e06d182e319a71714a2865e1b182acfb9f0cdc363801ce5e6b",
+   "hdl/nec_test_ucore.qsf": "39f72a35baeafc4f7459161007a06cb26116db926b0286f04c15b9175d85f762",
+   "hdl/rtl/capture_buf.sv": "5eb48ef11ff0f8b2961151b76eedbd4a228528f162f604a70f822872c78dea66",
+   "hdl/rtl/hps_axi_slave.sv": "f7567ac588c496821cd113ceefa726998c408a62d44839e87562696263cf3721",
+   "hdl/rtl/iords_buf.sv": "b7744500def2a14af97228562a4371cd0531e7d68719e173fa431924f4ac76f8",
+   "hdl/rtl/nec_bus.sv": "99c778bde307d5e804f8cf4523b827e219ec461d07f8e9df96536aab3d688109",
+   "hdl/rtl/system_large.sv": "8d3fc7e669b33a2583fb1c58892b66f05253be9c52ebb87f7bc55c7affeff4aa",
+   "hdl/rtl/test_mem.sv": "a0e09360c7359ab8679f5189a4c9d4765956dcb33c7ab4fa4b93f3c0e27c8249",
+   "hdl/rtl/ucore/README.md": "4dca7eb0212907909f770fcb9448e3804d00de7357ea8574620ad9768bc82419",
+   "hdl/rtl/ucore/pla3_tables.svh": "0d9693c01a289c7eb258ef9478c3405c93492417ee2cf42a28e4552360f61302",
+   "hdl/rtl/ucore/ucdecode.hex": "f5cf6e2bef1d3bec371d0b0227fb7cbcaaf62fd68f2ba3e505d345f492e08bda",
+   "hdl/rtl/ucore/ucrom.hex": "d9cfcddd4cb473f0c21f112bd64419e91d9395a256158e0205137e12ba3e531d",
+   "hdl/rtl/ucore/ucrom_census.json": "c97ad035e2a8e3e7209804321dc158e9129b9c83af1ce8229052447f65bfd7c9",
+   "hdl/rtl/ucore/v30_core.sv": "a63e856d80ac3ebcdeef0fbc621f359324efd1809f781fffbb25476d8c9a36fc",
+   "hdl/rtl/ucore/v30u_biu.sv": "780f8ebf89a6be96b4895a4cc5edd322038e1ffaf07277cc94e0b95da069e73e",
+   "hdl/rtl/ucore/v30u_eu.sv": "623d2c87c1dcb55e62c5678fefc1ed9594b773de77c5703d7ec62e4768829d1f",
+   "hdl/rtl/ucore/v30u_eu_1bl.svh": "8f22d7cd81a85092cb084996b17f8d70b70d19705ef79645dfd2a68bd83798f2",
+   "hdl/rtl/ucore/v30u_eu_cond.svh": "88eefe030009584d26dc647d89a87cfa10e70b016a8b48648b772748fb72cb66",
+   "hdl/rtl/ucore/v30u_eu_iend_late.svh": "e7ecc8f7fb62ec279d331389d37421bbf23b1675dc37eb049aa78a825559ba33",
+   "hdl/rtl/ucore/v30u_eu_poste.svh": "0466f790d6f20633f07ece674481ede059c4e1bea0a785fcca819e5e0127584b",
+   "hdl/rtl/ucore/v30u_eu_row.svh": "5c80014d4064586e35f7fafea0c97c2e2847b664155338ca90dd6421d8e4e409",
+   "hdl/rtl/ucore/v30u_eu_ss_read.svh": "62898d25785213829789d3a9347d310e15c03b111e9fb42e16ead2bf0d4fd53d",
+   "hdl/rtl/ucore/v30u_eu_ss_write.svh": "75d626cffe04a9329842bcdcb6c1de03ae412b4d2237f47ce63592ccfff5c392",
+   "hdl/rtl/ucore/v30u_eu_step.svh": "716bf63d0f2863ac761bccfe7b03910c761c8352069ba050949dc14416027ea4",
+   "hdl/rtl/ucore/v30u_eu_wd1.svh": "1eb016ccef3daeae9e25208bc55443e7441a58a88c685411bf188e4dd7527683",
+   "hdl/rtl/ucore/v30u_ss_pkg.sv": "00a078e87fa41afb24d4e0a02ed025d81027908890cfbc4f9a79ed7e7b6c9abf",
+   "hdl/rtl/ucore/v30u_ucrom.sv": "60aa81810bbccaa3ab6041394429e1762ab880b051f5aa037ffe15b1df931718",
+   "hdl/rtl/video_gen.v": "d7058700f636c5f3bf27995c0a3561cecb6e0d5ff68bcac7c35fa78a8d0241e0",
+   "hdl/rtl/wvec_buf.sv": "50beb8d66d3e8b6840295cca3e5921ad49a180617f4431594a13f91283ac675f",
+   "hdl/sys/alsa.sv": "74943b658cd3f4adc5b74c72f225fb42b95122a1c5e453df860a4c6a9bf72fc9",
+   "hdl/sys/arcade_video.v": "ce64cdd7f900ded7b9cd9aa728dab7383b7561cdc75dfe82ab23fe27a3d217d3",
+   "hdl/sys/ascal.vhd": "08c21b36a95f22c813161066d9943c2d6959e8790d8ed840ee29ed335322d4c5",
+   "hdl/sys/audio_out.v": "565dd9badb00052dbd324e70f7ab66e8c6ecd0c5c2791aebffe477a2c0669363",
+   "hdl/sys/build_id.tcl": "148dc6a8124d36ac2898a45d085960cc05178a76d7297fde8877925fc0a74e88",
+   "hdl/sys/ddr_svc.sv": "8dfa874b9a93b4dbbe3b2fcf4f9035a895262cc090d398f4099941a626f41c08",
+   "hdl/sys/f2sdram_safe_terminator.sv": "400bcbcfc0b4aae324fe813866a5443d577bf4de9b4ab1454cb068733d170261",
+   "hdl/sys/gamma_corr.sv": "2754944c6fe05d921374d1fecc26621782520b3bc6fbf600ca561e9f37c7af88",
+   "hdl/sys/hps_io.sv": "1182da0710483a1030687c12e6601025a5293ab90f2eb15cdf5fdea38ea4c275",
+   "hdl/sys/hq2x.sv": "2146b69cf63c26a4b41407e9ac1b4462db4d7e3ea6d8a99f31ba12712d68f975",
+   "hdl/sys/i2c.v": "09bd7ebd5d84fb57f6a9d569e5214f3154c49e55826c15bd78884f3c781fec5b",
+   "hdl/sys/i2s.v": "927d2aea6797fb837f383e5e8a3259609e132ed24883127240ab21601f467efa",
+   "hdl/sys/iir_filter.v": "570a8095c15af84a60015b5eab105cee6e2d7edde77e20f0ce40c075ab2db8b7",
+   "hdl/sys/ltc2308.sv": "825fa1197c8e9f31c19c2fef1b01693133fb7df3cfb2dd831f2848a98fc6899c",
+   "hdl/sys/math.sv": "d384fa9fcf73100cb28a2affc5db1e4aacc87620287971c3882507fc3af056cc",
+   "hdl/sys/mcp23009.sv": "f168485e0b64c0545060f25b858c9f1c12b57024ce441754bb6a0cb0e9072e3f",
+   "hdl/sys/mt32pi.sv": "4ad39571d16a4b25347030d75ffdf601803ddec71e2e3fcabe962103cc45a1a2",
+   "hdl/sys/osd.v": "68ec08401a6ddaf68c95a2e976b9085b77f0002d5b64ffed7454055dbcc48062",
+   "hdl/sys/pll.13.qip": "f25f58e7c0290583f33ee0fdd729a4470cc69312686f0f1ecb95c61115d61cec",
+   "hdl/sys/pll_audio.13.qip": "60edce734c54e4b9f9d56f078bc797841e52c6817f4d27e0cfe77db5d77b2596",
+   "hdl/sys/pll_audio.qip": "278496eefe70d18f6b3ccf624c3a4595ccca74a9a6740eb4520200f1e929a236",
+   "hdl/sys/pll_audio.v": "1662fff7650cd443db81db7f0707f5583d223372b3e3c41af2d41ea4f3ac38f3",
+   "hdl/sys/pll_audio/pll_audio_0002.qip": "4cedd5394006286e0be61acdcbb6455f35cdf5c1488f4eb4a76b60e20eb43fb8",
+   "hdl/sys/pll_audio/pll_audio_0002.v": "2b24d2a561d81cc8b20f725884ee9c243e619058e42ebcdcf6f491d33008696c",
+   "hdl/sys/pll_cfg.qip": "7c1573f321012132479272242434d02058b1bcfe8d89843130ef11173a901eae",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_core.v": "9058d2c68e9cb0b1b6b3ab5487daad8aeaf04461e162aba317857dd133329189",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_top.v": "34c11c19e6bf3797d2db2e41314ce802f5a01041265ce943b54e7f20eb2027c9",
+   "hdl/sys/pll_cfg/pll_cfg.v": "e07ae93193537830b3bc9029465e763a6bfe354c25b7e7747eeeb4094b08ad10",
+   "hdl/sys/pll_cfg/pll_cfg_hdmi.v": "d3874dda124af03656054fa1ae1ee70f1a4d3cea6d4670795a5168325bb6760a",
+   "hdl/sys/pll_hdmi.13.qip": "625df824716313233400454bc1142615fb3a234a494225691c8a554753b1731b",
+   "hdl/sys/pll_hdmi.qip": "5571604010bf98858a0797a2286d2389e105d32a97b42508865b02ba4237dd0d",
+   "hdl/sys/pll_hdmi.v": "499561547c1045a46f1137558e2bab83d8e026e5d32669b5c5779a264b7ed676",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.qip": "de648286a832ee72839dd6abb444231a4238d32b2c26f29426399d2221d7bf5b",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.v": "27c77f35c89e97994477801f83edf3c7e9c5b9e57df49864434d300c40e9f1f7",
+   "hdl/sys/pll_hdmi_adj.vhd": "ae18c82eef2f6b9c7783c68ac272d03f570eb1bdaddce14a1908c351da51a71b",
+   "hdl/sys/pll_q13.qip": "c2b9c95a49d9b1100b0640bbdeea1acff845b0a8cbc11a7259c0913d2c61cfa8",
+   "hdl/sys/pll_q17.qip": "7139faf33ae28066e805f290b15401eddb092d4b7d31b529a3ce1f0213fbc90a",
+   "hdl/sys/scandoubler.v": "d36181c5fde9df0a504c547e23f60bcf201420052ada2682f081b00fd9485e6b",
+   "hdl/sys/scanlines.v": "1fc7ac5359fd224a3fc06388f7671e07bf57cf6a39f35803a265661c56c564d4",
+   "hdl/sys/sd_card.sv": "25114f9a0e9ab4dd702633ae927fc825dc79a4d9f7746c1bb75dbd10d61eb6d6",
+   "hdl/sys/shadowmask.sv": "88429d137b4ce9f6538a052f03d874604f46decf6d69b3fc824cc795efcf3193",
+   "hdl/sys/sigma_delta_dac.v": "352d31dd185bce14d9d1e8a4999fbb5f2b5b2e42b048bdc9f4b828119cc5127a",
+   "hdl/sys/spdif.v": "a617bba332c4611caf81ba585b8f6828c7899aec5f81664a870f10419cb9b451",
+   "hdl/sys/sys.qip": "3854d7f172097e01a40037e0a82dfd1a4178391ea0964767492979216279f31d",
+   "hdl/sys/sys.tcl": "8ed838a8c1e36327f862288ed36b681e320d940263ceb3436ae65a7a6c887676",
+   "hdl/sys/sys_analog.tcl": "36a875d6c59ba21b6d8936619db60f1bfcd8dbed5d5082aa43c72f22b22fd68f",
+   "hdl/sys/sys_dual_sdram.tcl": "4f41376069b2070079d8ba4ae4a722c8ecfe3ca4b99798d0bdd8cda986b5ad5b",
+   "hdl/sys/sys_top.sdc": "9c975aff0a05b115e4bcabb63d0e62c83b53957895e1c1920b304e8ed9054183",
+   "hdl/sys/sys_top.v": "8f8d493cde9d2e5a32604adf61fe9284a75291869c5018bd483b3f34a9332216",
+   "hdl/sys/sysmem.sv": "9f8cf78563cc31beb7dfc6d7048c51ba536ff4f1f9f640b4ff9f8d574456c94e",
+   "hdl/sys/vga_out.sv": "02a533c3dfd547afddea2946019ecc79bbe9c27bb6128c0999fa5fc9e78f8108",
+   "hdl/sys/video_cleaner.sv": "44b986d9bf8412e56bf8e4eae3dc87e04b4c378e58ec6119de5a8aed320e3572",
+   "hdl/sys/video_freak.sv": "6a9b8565f66894a8f2ec10c916593e980d260f29f1886bfe70bf6f3b0cf6edc0",
+   "hdl/sys/video_freezer.sv": "0f3f4710b072b7e90b0b6bfe7607dec18dbd6bed78d1994f32d6fa72a6b7aef3",
+   "hdl/sys/video_mixer.sv": "31ed2c917bd6680b4d60328e71a4f28015bd5fcec21e15b290eacec88971167d",
+   "hdl/sys/yc_out.sv": "c52d7bfcc8dbc5a0cda2b3117172cbba790fb97b7de61722ddac205f6ec8bc20"
+  },
+  "n_files": 88,
+  "sha256": "c23e63aa4cf19684ed985042883a592209cedaabaf968d89f80ecb73e409f997"
+ },
+ "kind": "quartus_bitstream",
+ "label": "t1half2-baseline-control-d1",
+ "name": "hdl/output_files_ucore/nec_test_ucore.sof",
+ "outputs": {
+  "hdl/output_files_ucore/nec_test_ucore.fit.summary": "ecf288131ce644572f02c04f7156468e5aa942e693e0fe2037d39b86b0db0a82",
+  "hdl/output_files_ucore/nec_test_ucore.rbf": "f574acd8c79cdabe202f7a9cf794cf99336dde9c3433b90933a534992e3ca5e3",
+  "hdl/output_files_ucore/nec_test_ucore.sof": "f05b78efab13db84b151ec6666f116ef5a1bc3cb1fba3df42557ada69ca51a72",
+  "hdl/output_files_ucore/nec_test_ucore.sta.summary": "9065fd881be862402d59d7d3fcd23d56f24afd02b97293ac5553a247a9f590fe"
+ },
+ "qsf_regenerated_post_build": true,
+ "rc": 0,
+ "reports": {
+  "files": {
+   "hdl/output_files_ucore/nec_test_ucore.asm.rpt": "1feb8adfe5f56293485e4d2662cc71ff607e286fb56472ac21dd9b17f22c9d86",
+   "hdl/output_files_ucore/nec_test_ucore.fit.rpt": "116ecc07c3ea39d862c9850d2368212f9bd9bdf6fab95eabad2d20d43ffec081",
+   "hdl/output_files_ucore/nec_test_ucore.fit.summary": "ecf288131ce644572f02c04f7156468e5aa942e693e0fe2037d39b86b0db0a82",
+   "hdl/output_files_ucore/nec_test_ucore.flow.rpt": "04ab808a11528a667d6dbd32f7e8b2200223ae7b49d9eb35d6e83032795fa241",
+   "hdl/output_files_ucore/nec_test_ucore.map.rpt": "f4afce5d8730e42c02824b4f6b3cacf09d1779821f8f585e5070fe501ddcbd1b",
+   "hdl/output_files_ucore/nec_test_ucore.map.summary": "0ce343af27d088c1e06db58e8f741bee079207da71914e2b8a8f677bbed1d76f",
+   "hdl/output_files_ucore/nec_test_ucore.sta.rpt": "87a8dedac5a853c26e15f32e96d6e542d622c7f57ce9b508a26359f602518af0",
+   "hdl/output_files_ucore/nec_test_ucore.sta.summary": "9065fd881be862402d59d7d3fcd23d56f24afd02b97293ac5553a247a9f590fe",
+   "hdl/quartus_gate_build.log": "fe2fcabb1489fbccc1d2d381b754cceaca9670331533bcb4a231e29cc15643b0"
+  },
+  "n_files": 9,
+  "sha256": "fa4ceb66718a3878b923d56d37cdc5e13a968c2d8948aa810f5ac6357749feb9"
+ },
+ "schema": "nec_test/receipt",
+ "schema_version": 1,
+ "seconds": 599.5,
+ "signaltap": {
+  "assignments_added": [],
+  "requested": false
+ },
+ "started": "2026-08-13T07:56:17Z",
+ "tool": "Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition",
+ "tool_name": "quartus_sh",
+ "tool_probe": null,
+ "tool_sha256": null,
+ "tool_version": "Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition",
+ "tree": "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-af32aed9d59a8636d/hdl/output_files_ucore",
+ "ts": "2026-08-13T07:56:17Z",
+ "verdict": "PASS"
+}
