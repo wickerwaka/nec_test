@@ -3041,7 +3041,31 @@ initial for (cpi = 0; cpi < 1024; cpi = cpi + 1) cp_seen[cpi] = 1'b0;
 // block: `CHAIN_MAX` is how many of the model's zero-cost steps may ride one
 // clock, and it costs a FULL UNROLLED COPY of the step case per unit -- which
 // is why 24 of the 33 arms are folded out of positions >= 1 (v30u_eu_step.svh).
-localparam bit [3:0] CHAIN_MAX = 4'd12;
+//
+// **7 = the derived maximum occupancy 6, PLUS ONE SPARE POSITION**, because
+// fabric has no assertion.  It was 12 until 2026-08-12.
+//
+// THE BOUND IS 6 AND THREE SOURCES SAY SO, none of which is a gate:
+//   1. sec.51.2's transition-graph argument -- only NINE of the 24 states hand
+//      over without setting `stop` -- plus its (position, state) census over
+//      347 golden forms x 12 waits and the boot march: 24 / 9 / 5 / 3 / 2 / 1.
+//   2. `m72_downstream_timing_2026-08-12.md` sec.3: the same graph re-derived
+//      independently in another repo, same nine states, same depth 6.
+//   3. `hdl/tb/tb_chain_lfsr.sv`: an ALL-LFSR environment executing arbitrary
+//      bytes -- nothing in common with the golden suite -- reporting
+//      CHAIN_DEPTH_MAX 6, entry state 25 (`S_EPOP`), on every seed.
+//
+// **THE GATE IS THE `CHAIN OVERFLOW` $fatal BELOW**, and it is what makes the
+// tightening safe rather than merely agreed-upon.  sec.51.2 declined to tighten
+// precisely because tightening MAKES a claim; the claim is now made, and it is
+// asserted continuously over every population this tree runs.
+//
+// ⚠ THE `[3:0]` WIDTH DOES NOT NARROW WITH THE BOUND.  A `[2:0]` `chain` wraps
+// at the loop's `chain + 4'd1` when it reaches 7, so `8 < 7` never becomes
+// false and the unroll never terminates -- an ELABORATION HANG, not a runtime
+// bug.  It also silently re-keys `CHAIN_PROBE`'s `{chain, st_n}` census.  The
+// width is what makes 8 representable and it stays.
+localparam bit [3:0] CHAIN_MAX = 4'd7;
 
 integer i;
 integer ci;                 // the commit block's own index

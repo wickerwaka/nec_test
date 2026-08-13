@@ -4204,6 +4204,27 @@ So the 24 arms now open with `if (chain == 4'd0)`, the unroll folds them out of
 eleven of the twelve copies, and **`CHAIN_MAX` stays at 12** — the bound is not
 tightened, so no new corpus-scoped claim is made about chain depth.
 
+> ⚠ **THAT LAST CLAUSE IS SUPERSEDED — `CHAIN_MAX` IS 7 SINCE 2026-08-12**
+> (`timing50_chainmax_prereg_2026-08-12.md` + `timing50_chainmax_results_
+> 2026-08-12.md`).  The reasoning above is NOT superseded; it is the first of
+> the three sources the tightening cites.  What changed is that the claim
+> §51.2 declined to make is now MADE, and it is made with a falsifier attached
+> rather than on the strength of the argument: `hdl/tb/tb_chain_lfsr.sv` +
+> `sw/chain_lfsr_gate.py` assert `CHAIN OVERFLOW` continuously over an
+> all-LFSR environment executing arbitrary bytes, and they report
+> `CHAIN_DEPTH_MAX 6`, entry state 25 (`S_EPOP`) — **this section's census
+> number and this section's entry state, from a stimulus distribution with
+> nothing in common with the 347 golden forms**.
+>
+> **The area §51.1 says the fold recovered is NOT the area the bound was
+> holding.**  Measured on two CONTROL builds of the same tree, `v30u_eu` own
+> combinational ALUTs **11,282 → 8,480 (−2,802, −24.8 %)** and `v30_core`
+> total **13,521 → 10,738 (−20.6 %)**, with `dedicated_logic_registers`
+> **724 → 724** and the core's total register count **1,162 → 1,162**.  Five
+> folded positions at **~560 ALUTs each** — against the **~2,200 logic cells**
+> §51.1 measured for an UNFOLDED one, which is the fold's own factor of four,
+> now measured from the other side.
+
 ### §51.3 THE TWO FALSIFIERS, BOTH NEW, AND THE TRAP THAT MADE ONE NECESSARY
 
 1. **`CHAIN OVERFLOW`** — the loop now `$fatal`s if it ends with `stop` still
