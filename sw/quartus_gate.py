@@ -347,6 +347,46 @@ def parse_durations(tree):
 # --------------------------------------------------------------------------- #
 RETENTION_MACRO = "X1_AD_RETENTION"
 
+# --------------------------------------------------------------------------- #
+# SIGNALTAP -- OPT-IN, DEFAULT OFF  (timing50 Phase 1 P-1, 2026-08-12)
+# --------------------------------------------------------------------------- #
+# `hdl/nec_test.qsf` used to carry these three lines unconditionally, naming an
+# `stp1.stp` that HAS NEVER EXISTED in this repository.  A CONTROL build with
+# them removed measured Fmax 45.61 / +8.892 / 12,282 ALMs -- identical in every
+# figure -- and a BYTE-IDENTICAL `.rbf`, so the setting was inert.  They now
+# live here and reach a build ONLY via `--signaltap`.
+#
+# WHY THEY ARE APPENDED TO THE REVISION .qsf RATHER THAN LEFT IN THE SOURCE:
+# `gen_ucore_qsf.py --check` (E1) gates that `nec_test_ucore.qsf` is a faithful
+# derivative of `nec_test.qsf` -- so the lines cannot be removed from the ucore
+# revision alone without failing that gate, and leaving them in one revision
+# only would make the A/B bitstreams differ by the DEBUG FABRIC as well as by
+# the core, which is precisely what E1 exists to prevent.  Appending happens
+# AFTER E1 has run and BEFORE the compile; Quartus rewrites the revision .qsf
+# during a build anyway (sec.70.7), and `main()` already regenerates it
+# afterwards.
+SIGNALTAP_ASSIGNMENTS = (
+    "set_global_assignment -name ENABLE_SIGNALTAP ON",
+    "set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp",
+    "set_global_assignment -name SIGNALTAP_FILE stp1.stp",
+)
+
+
+def enable_signaltap(qsf_path):
+    """Append the SignalTap assignments to a revision .qsf.  -> the lines added.
+
+    Returns the list so the caller can put it in the receipt: a build that
+    carries debug fabric must SAY SO in its own artifact, because the whole
+    point of the default-off policy is that a flashed bitstream's debug
+    capability is a recorded decision rather than an inherited default."""
+    txt = qsf_path.read_text()
+    add = [ln for ln in SIGNALTAP_ASSIGNMENTS if ln not in txt.splitlines()]
+    if add:
+        with open(qsf_path, "a") as f:
+            f.write("\n# --- appended by quartus_gate.py --signaltap ---\n")
+            f.write("\n".join(add) + "\n")
+    return add
+
 
 def _macro_name_value(tok):
     n, _, v = tok.partition("=")
@@ -599,6 +639,12 @@ def main():
                          f"--verilog_macro={RETENTION_MACRO}=1 on quartus_map. "
                          f"Without this flag the gate builds CONTROL, and the "
                          f"environment variable of that name is REFUSED.")
+    ap.add_argument("--signaltap", action="store_true",
+                    help="build WITH the SignalTap debug fabric.  DEFAULT OFF: "
+                         "G6 and flash builds carry no debug fabric, and the "
+                         "three assignments are appended to the revision .qsf "
+                         "for this build only (and recorded in the receipt).  "
+                         "Needs an hdl/stp1.stp, which does not exist yet.")
     ap.add_argument("--dry-run", action="store_true",
                     help="print the stages this invocation would run, and "
                          "exit 0.  Builds nothing, writes no receipt.")
@@ -746,6 +792,16 @@ def main():
         rec["build"] = {"note": "--parse-only: reports gated as found"}
     else:
         tree.parent.mkdir(parents=True, exist_ok=True)
+        # AFTER E1, BEFORE THE COMPILE.  E1 must see the tree's own faithful
+        # derivation; the compiler must see the debug fabric this run asked
+        # for.  Recorded either way -- `[]` is "asked for nothing", and the
+        # key is always present so a receipt can never be silent about it.
+        rec["signaltap"] = {"requested": a.signaltap, "assignments_added": []}
+        if a.signaltap:
+            added = enable_signaltap(HDL / f"{REVISION}.qsf")
+            rec["signaltap"]["assignments_added"] = added
+            print(f"quartus_gate: --signaltap -> appended {len(added)} "
+                  f"assignment(s) to {REVISION}.qsf", flush=True)
         b, rc = build(tree, a.keep_db, logpath, retention=a.retention)
         if b is None:
             return rc

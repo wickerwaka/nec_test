@@ -83,8 +83,31 @@ source sys/sys.tcl
 # two-bitstream A/B its own output directory, which is what U4 wants anyway.
 source files.qip
 
-set_global_assignment -name ENABLE_SIGNALTAP ON
-set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
-set_global_assignment -name SIGNALTAP_FILE stp1.stp
+# SIGNALTAP IS NOT IN RELEASE BITSTREAMS  (timing50 Phase 1 P-1, 2026-08-12).
+# This file used to carry, unconditionally:
+#     set_global_assignment -name ENABLE_SIGNALTAP ON
+#     set_global_assignment -name USE_SIGNALTAP_FILE stp1.stp
+#     set_global_assignment -name SIGNALTAP_FILE stp1.stp
+# and `hdl/stp1.stp` HAS NEVER EXISTED IN THIS REPOSITORY -- `git log --all` on
+# that path and on `*.stp` are both empty.  So the setting named an instance
+# file that was never there.
+#
+# MEASURED, not argued (docs/notes/timing50_census_2026-08-12.md sec.3.4): a
+# CONTROL build with these three lines removed produced Fmax 45.61, worst setup
+# +8.892 and 12,282 ALMs -- IDENTICAL IN EVERY FIGURE to the build with them --
+# and a **BYTE-IDENTICAL `.rbf`** (277e7de5f8fcfcde...).  The setting was
+# contributing nothing to the bitstream, so removing it gives up NO debug
+# capability: there was none to give up.
+#
+# ⚠ THE JTAG HUB IN THE CRITICAL PATH IS NOT THIS SETTING'S.  CONTROL's worst
+# path is `sld_mod_ram_rom -> sld_jtag_hub|tdo`, and `sld_mod_ram_rom` is the
+# In-System Memory Content Editor node instantiated by the three
+# ENABLE_RUNTIME_MOD lpm_hints in `rtl/capture_buf.sv` and `rtl/test_mem.sv`.
+# It survives this removal (measured), and `sw/dump_capture.tcl` still works.
+#
+# TO GET SIGNALTAP BACK for a board-debug build:  `sw/quartus_gate.py
+# --signaltap`, which appends the three assignments to the revision .qsf for
+# that build only and records it in the receipt.  It also needs an `stp1.stp`
+# that does not exist yet.
 
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
