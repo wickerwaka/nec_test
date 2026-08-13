@@ -65,9 +65,10 @@ set_multicycle_path -setup 2 -from $v30u_regs -to $obs_regs
 set_multicycle_path -hold  1 -from $v30u_regs -to $obs_regs
 ```
 
-`$obs_regs` is **28 registers**: `nec_bus|ad_in_q[19:0]`, `bs_q[2:0]`,
-`qs_q[1:0]`, `rd_n_q`, `ube_n_q`, `buslock_n_q` — and, only when
-`X1_AD_RETENTION` is defined, `system_large|core_ad_hold[19:0]`.
+`$obs_regs` is **28 `nec_bus` registers** — `ad_in_q[19:0]`, `bs_q[2:0]`,
+`qs_q[1:0]`, `rd_n_q`, `ube_n_q`, `buslock_n_q` — **plus 20 more**,
+`system_large|core_ad_hold[19:0]`, in retention builds only (**48** there,
+28 in CONTROL).
 
 **THE MECHANISM THE EXCEPTION RELIES ON, stated exactly.**  These samplers are
 **free-running**: `nec_bus.sv:201-209` is an `always_ff @(posedge clk)` with no
@@ -289,12 +290,187 @@ checked.
 
 ---
 
-## §7 THE READING-B SWEEP OF THE REST OF THE TREE
+## §7 THE READING-B SWEEP — EVERY CONSTRAINT AND EVERY LIVE DERIVATION
 
-*(filled in — see below)*
+**Method: `hdl/nec_test.sdc` read top to bottom (it is the design's ONLY `.sdc`
+besides MiSTer's `sys/sys_top.sdc`; `input_files()` returns exactly those two),
+and every derivation in it re-checked against C-a/C-b/C-c with the divider
+covered up.**  Then the same question asked of the documents that quote a
+timing claim as current.
+
+### 7.1 `nec_test.sdc` — the four surviving exceptions
+
+| # | exception | derivation | **under Reading B** |
+|---|---|---|---|
+| 1 | `derive_pll_clocks` / `derive_clock_uncertainty` | — | **N/A** — no enable assumption of any kind. |
+| 2 | `-setup 4 -hold 3`, `$v30u_ce → $v30u_ce` | C-c: `ce → ce ≥ 4` | **STANDS.** C-c is derived from the CORE (`ce_half`'s only consumer is `t1_half2`, `v30u_biu.sv:1089`, verified by grep over the whole `ucore/` tree; `t1_half2` gates `ad_oe_data` and selects `ad_o`, `:1056`/`:1062`/`:1080`), plus C-b. It assumes what a platform must do for the core to *work*, not what any train *does*, and its falsifier is FUNCTIONAL. |
+| 3 | `-setup 2 -hold 1`, `$v30u_ce → $v30u_half` | `ce` at *n*, launch *n+1*; earliest `ce_half` at *n+2* (C-b); negedge capture *n+2.5* → **1.5** periods | **STANDS**, and it is C-b and nothing else. Measured latch time **46.875 ns = 1.5 × 31.250** (`timing50_phase1_results…` §4.1) — the analyser's arithmetic agreeing with the derivation. |
+| 4 | `-setup 3 -hold 2`, `$v30u_half → $v30u_ce` | `ce_half` at *m*, launch *m+0.5*; earliest `ce` at *m+2* (C-b); capture *m+3* → **2.5** periods | **STANDS**, same premise. |
+| 5 | `div_cnt → t1_half2` **deliberately NOT excepted** | an enable must be valid at the negedge inside its own cycle — a true half period | **STANDS**, and it is the *safe* direction: relaxing it would be a false PASS. |
+
+**`hdl/sys/sys_top.sdc` — SWEPT AND CLEAN.**  MiSTer's own file, 50 `set_*`
+statements: 1 `set_multicycle_path` pair (`*_osd|osd_vcnt*`, 2/1) and the rest
+`set_false_path` on `KEY*` / `BTN_*` / `LED_*` / `VGA_*` / `cfg[*]` / the OSD
+counters.  **None of them names a `v30u_*`, a `nec_bus` or a `system_large`
+register, and none rests on an enable train.**  Nothing to do.
+
+**No other path in the design carries an exception.**  Everything crossing the
+boundary in either direction — `nec_bus`/save-state into the core, the core out
+to the capture path — is single-cycle, which is correct precisely because those
+launch registers are not CE-gated.
+
+**⚠ ONE MAINTENANCE HAZARD FOUND, BOOKED AND NOT FIXED IN THIS WAVE.**
+`$v30u_half` is `[get_registers {*|v30u_biu:*|t1_half2}]` — selected **by
+name**.  A second `ce_half`-gated flop added to either core module would fall
+into `$v30u_ce` by `remove_from_collection`'s complement and be handed
+**`-setup 4`** where the contract warrants **1.5** — the identical defect P-3
+just fixed, re-introduced silently.  **No gate would see it**: `r7_lint` does
+not model exceptions, Verilator does not, and G6 believes the file.
+**FALSIFIER, one line of Tcl or one grep**: the count of synthesised
+`negedge`-clocked flops in `hdl/rtl/ucore/**` must be **1**, and
+`get_collection_size $v30u_half` must equal it.  It is **not** landed here
+because the four G6 draws in §5 are already running against the committed
+`.sdc`, and an SDC edit taken after the builds is an SDC edit that was not
+measured.
+
+### 7.2 The documents — errata booked, nothing rewritten in place
+
+Grepped for `div/2`, `divider of record`, `cfg_clk_div` across `docs/notes/`.
+Historical records of *what was believed when* are left exactly as they are
+(this repo's standing habit: a ratchet is only readable against its own
+history).  What is booked is every place a **dead derivation is quoted as
+CURRENT**:
+
+| document | what it says | disposition |
+|---|---|---|
+| `hdl/nec_test.sdc` E-1 block | the whole `div/2 − 1` derivation, the declared operating triple, the RTL falsifier, the A-1 note | **DELETED with this wave** (`a1c63e78e4`), replaced by the re-derivation and the deletion's reasoning |
+| `standing_gates.md` §A, *"THE BAND MOVED 2026-08-11 — E-1"* | E-1 as the live band-setter, plus *"a decision is owed and it is worth 2.41 MHz"* (A-1) | **ERRATUM** — §7.3 below; the band, the A-1 decision and the fabric bar are all superseded |
+| `timing50_census_2026-08-12.md` §5.2 | states the scope question and reserves it for the user | **ANSWERED** — Reading B; the section is now history, not an open item |
+| `timing50_phase1_results_2026-08-12.md` §7.3, §8 | *"one decision is owed by the user… worth 2.41 MHz"* | **DISCHARGED** — the decision was taken, and against A-1: the deletion is strictly tighter |
+| `ghost_preflash20_results_2026-08-12.md` §6.3 | books an *"E-1 analogue for `c_int_q`"* and prescribes the recipe *"show … no path from it is read before E(div/2 − 1); then a `-setup 2 -hold 1` is the same claim E-1 makes"* | **ERRATUM: THE RECIPE IS VOID TWICE OVER.** It names a divider, and the claim it offers to be "the same as" no longer exists. `c_int_q` is an RTL problem and there is no SDC form of it. |
+| `timing_recovery_prereg/census/results_2026-08-11.md` | E-1's original derivation and its measurement | **HISTORY, RETAINED.** Its `chip`-side and Fmax measurements are true of the trees they were taken on. **Its derivation is refuted; its numbers are not.** |
+| `fz2_flash19_prereg_2026-08-12.md` §… | *"grants 3 sys periods at the divider of record"* | **HISTORY** — it is a pre-registration for a flash that was taken; it is not restated anywhere as a live warrant |
+| `m72_downstream_timing_2026-08-12.md` §1 | *"8 at the divider of record, so `-setup 4 -hold 3` is honest there"* | **STILL TRUE AND NOW REDUNDANT** — `-setup 4` no longer *rests* on the divider (C-c derives it), so the sentence is a corroboration rather than a premise |
+
+### 7.3 THE ERRATUM AGAINST `standing_gates.md` §A
+
+Three of its clauses are superseded by this wave and are itemised rather than
+edited away:
+
+1. **"CURRENT BAND … CONTROL 44.72 / RETENTION 45.71"** and its successor
+   (CONTROL 45.54 / RETENTION 45.57 at Phase 1) — **superseded by §5 below.**
+   Both remain true of the trees they were taken on, and both were taken with
+   E-1 in the SDC.
+2. **"A DECISION IS OWED AND IT IS WORTH 2.41 MHz" (A-1)** — **DISCHARGED, and
+   not by taking A-1.** A-1 is permanently withdrawn; the deletion supersedes it
+   in both directions.
+3. **"E-1 IS NOT PROMOTED TO A FLASH … the registered fabric bar for the first
+   bitstream carrying it"** — **MOOT.** FLASH #19 carried E-1 and met that bar;
+   the exception is now gone, so no future bitstream carries it, and no fabric
+   debt is owed for it. The bitstream on the board is **still FLASH #19's**,
+   which **does** carry E-1: this wave flashes nothing, so the board and the
+   tree now disagree about the SDC, and **a fabric figure taken on FLASH #19 is
+   a figure taken with E-1 in force.**
 
 ---
 
-## §8 THE RECOVERY PATH FOR THE OBSERVATION CROSSING
+## §8 THE RECOVERY PATH — PROPOSED, NOT IMPLEMENTED
 
-*(filled in — see below)*
+**What has to be recovered, stated as a circuit and not as a number:** the
+core's AD publication is **combinational from `v30u_eu|upc_opc[*]` /
+`upc_page[*]` through the microcode ROM and the `assign ad_o` mux at 34-39
+logic levels** (`timing_recovery_census_2026-08-11.md` F-2/F-3), and it
+terminates on a **free-running** flop.  E-1 hid that with a constraint.  Nothing
+else changed: **the cone was always there and it is the core's own.**
+
+### 8.1 (a) REGISTER THE OBSERVATION PATH — **NOT RECOMMENDED**
+
+*The shape*: put a free-running pipeline stage between the core's AD and the
+samplers (`system_large`, on `hb_ad_sample`, observation-only — the core, the
+pads and the read-data path untouched), and compensate on the comparator side.
+
+**⚠ AND THE FIRST THING TO SAY IS THAT THE OBVIOUS FORM OF IT DOES NOT WORK.**
+A stage *after* `ad_in_q` shortens nothing — the long path ends at `ad_in_q`'s
+`D` pin.  To break the cone the register must go *inside* it, i.e. between
+`ad_o` and `hb_ad_sample`, and then what moves is **not a row index but a
+SAMPLING PHASE**: the address-phase sample slides from `E(div/2 − 1)` to
+`E(div/2 − 2)` and the end-of-cycle sample from `E(div − 1)` to `E(div − 2)`.
+
+**THE COST, QUANTIFIED.**  A phase change is compensable in a comparator only
+where the observed pin is stable across the shifted clock, and the one leg that
+cannot be reasoned about is the one that matters: **the socket leg, where a
+real V30's pins change with its own propagation delay after the CPU clock
+edge.**  So the equivalence cannot be *derived* — and least of all by the
+`div = 8` argument that would prove it, which is the argument Reading B just
+retired.  It has to be **measured**, and the populations it would have to be
+measured against are silicon captures that this wave may not re-take:
+
+| population | size | carries row positions? |
+|---|---:|---|
+| fuzz-v2 live corpus (`fz2c`/`fz2e`) | **3,839 seeds / 11,322,230 scored rows** | yes — every scored row is a per-CPU-clock sample |
+| `check_fuzz_bank` replay set | **621 seeds** (623 files − EXC-1) | yes |
+| v1 banks `mc1`/`mc2`/`t30-raw`/`t30-brkem` (SUP-1, superseded) | 3,242 seeds | yes |
+| timed suites (`v0.1`, `-w1`, `-w3`, `EB`, the four `evt` cells, `w1evt-biased`) | 169,000 + 1,200 + 1,200 + 200 + 200 + 1,200 + 200 + 1,200 cells | yes |
+| HLT delay sweeps + the S16 display walk | 283 + 1,371 cells | yes |
+| `b2`/`b3` priority tranches, `check_ab_hw` first light, `check_ab_sim` | 188 + 178 + 800 + 187 rows | yes |
+
+*(sizes as registered in `standing_gates.md` §B and CLAUDE.md; the fz2 capture
+corpus is untracked and is not present in this worktree, so these are quoted
+from the registry and not re-counted here.)*
+
+**VERDICT: it trades a constraint whose premise was unprovable for an
+instrument change whose equivalence is unprovable offline, against an 11.3
+million-row silicon corpus and a board this wave may not touch.  That is the
+wrong direction of trade.**
+
+### 8.2 (b) A SYNCHRONIZER CHAIN WITH A CONTRACT-ONLY JUSTIFICATION — **UNAVAILABLE**
+
+**Not "not recommended" — unavailable, and §2.4(a) is the proof.**  A
+synchronizer re-times a *metastable* sample; it does not correct a *wrong* one.
+The tree already has the two-flop shape (`ad_in_q → ad_in_q2`, free-running)
+and it buys nothing: `ad_in_q2` faithfully captures whatever garbage `ad_in_q`
+took at L+1.  For a chain to buy a period the *consumer's* gate would have to be
+delayed, and every consumer gate is combinational off `div_cnt`
+(`nec_bus.sv:176`).  **The only structure that would work is one that makes the
+guaranteed `ce → ce_half` gap 3 instead of 2, and that is a change to the
+contract, i.e. a question for the user and for M72, not a circuit.**
+
+### 8.3 (c) ACCEPT IT AS THE RIG'S HONEST BOUND AND RE-SCOPE — **RECOMMENDED, WITH ONE QUALIFICATION THAT MATTERS**
+
+*The shape*: stop treating the whole-design worst path as the 50 MHz target's
+subject.  Report **two** numbers, both from the same build, both receipted:
+
+* **`WHOLE-DESIGN Fmax`** — what G6 already computes and gates (E3 ≥ 32 MHz, E4
+  worst setup > 0, E5 TNS 0.000). **This is unchanged and stays the promotion
+  gate.** It is the number the board must satisfy, and the rig runs at 32 MHz.
+* **`CORE-DOMAIN Fmax`** — the worst path with both endpoints inside
+  `v30u_eu`/`v30u_biu`, the class `sta_census.tcl` already reports as
+  `CORE→CORE`. It is what a downstream integration inherits, and on this tree it
+  has carried **+36 to +39 ns** while the design bound at **+8.7**.
+
+**Honestly stated, "Fmax" would then mean**: *the ucore's own logic closes at
+X MHz; the nec_test RIG closes at Y MHz, bound by cone Z.*  Two numbers, each
+with its cone named, and neither standing in for the other.
+
+**THE QUALIFICATION, AND IT IS WHY THIS IS NOT A FREE RE-SCOPING.**  The cone
+that binds is **not** wholly the rig's.  Its *latch* register
+(`nec_bus|ad_in_q`) is rig-only — M72 replaces `nec_bus` wholesale — but its
+*launch* side, the 34-39 levels from `upc_opc` through `ucrom` to `assign
+ad_o`, is **the core's own output cone, and every integration inherits it**;
+M72 registers the core's AD on its own adapter flops (`v30_bus|addr_neg`,
+`ube_neg` — census §6.1) and therefore has a crossing of the same class.  So
+(c) is honest **only if it is paired with the RTL item below**; on its own it
+would re-scope a real core problem into invisibility.
+
+**THE PAIRED RTL ITEM, named and NOT opened here**: shorten or register the
+core's AD publication cone — the `v30u_ucrom` → `assign ad_o` path.  It is the
+same item `timing_recovery_results_2026-08-11.md` §7 ends on (*"the band lost
+across the campaign went into `assign ad_o`"*) and the same one
+`timing50_census_2026-08-12.md` §8 lists as the ucrom-as-M10K lever.  It is
+**behaviour-visible** (a registered `ad_o` moves the pins in time), so it needs
+its own campaign with a silicon-match bar, not a phase of this one.
+
+**RECOMMENDATION: (c), paired.**  It costs nothing, hides nothing as long as
+both numbers are printed with their cones, and it is the only one of the three
+that does not spend a silicon corpus or assert something unprovable.  **(a) is
+rejected on the re-goldening cost; (b) does not exist.**

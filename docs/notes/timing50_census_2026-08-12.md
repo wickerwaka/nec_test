@@ -375,6 +375,29 @@ honest exception is `-setup 1` — no relaxation at all.**
 
 ### 5.2 ⚠ AND AN OPEN QUESTION FOR THE USER, REPORTED NOT ACTED ON
 
+> ## ⚠⚠ **THIS QUESTION WAS ANSWERED THE SAME DAY, AND THE ANSWER IS "B" —
+> ## THE SECTION BELOW IS HISTORY, NOT AN OPEN ITEM.**
+>
+> **USER RULING, 2026-08-12, part 2:** the contract is **UNIVERSAL**.  It
+> governs **every arc the SDC writes**, rig-side included — the second of the
+> two readings §5.2 offers.  Consequences, all of them taken:
+>
+> * **E-1 IS DELETED** (`a1c63e78e4`).  Not narrowed — deleted.  The
+>   re-derivation from C-a/C-b/C-c alone is short by **exactly one fabric
+>   clock**: the binding consumers are `ce_half`-gated, C-b puts the earliest
+>   `ce_half` two clocks after the launching `ce`, and the sample that is
+>   actually read had **one** period.  Full attempt, the four closed escapes,
+>   and the one surviving fragment (`core_ad_hold[19:16]`, booked not landed):
+>   **`docs/notes/timing50_e1_rederivation_2026-08-12.md`**.
+> * **AMENDMENT A-1 IS PERMANENTLY WITHDRAWN.**  The deletion is strictly
+>   tighter than A-1 was, in both directions.
+> * ⚠ **§5.2's closing sentence — *"Either answer is cheap"* — WAS WRONG, and
+>   this document said the wrong thing for the right reason.**  It reasoned
+>   from the E-1 cone's +27.751 / +25.579 ns of slack *as measured with E-1 in
+>   force*; removing the exception halves that cone's budget, and the measured
+>   cost is in §5 of the re-derivation note.  **A slack figure measured under an
+>   exception is not evidence about the tree without it.**
+
 The same derivation says the **landed** `-setup 2` is not derivable from the
 contract either.  It is derivable only on a **rig-local** reading:
 

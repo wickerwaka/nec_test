@@ -399,6 +399,22 @@ bind.**
 
 ### 6.3 NO FIX TAKEN — BOOKED, WITH THE DERIVATION IT WOULD NEED
 
+> ⚠⚠ **ERRATUM, 2026-08-12: THE RECIPE BELOW IS VOID TWICE OVER, AND THE
+> BOOKING SURVIVES ONLY AS "THIS IS AN RTL PROBLEM".**
+>
+> The **USER RULING** of 2026-08-12 (part 1, the ce/ce_half portability
+> contract; part 2, **it is UNIVERSAL**) forbids `div/2 − 1` as a premise
+> anywhere in the SDC, rig-side included — so *"show … no path from it is read
+> before `E(div/2 − 1)`"* is not a derivation that can be done.  And **E-1
+> itself was DELETED** on the same ruling (`a1c63e78e4`;
+> `docs/notes/timing50_e1_rederivation_2026-08-12.md`), so *"the same claim
+> E-1 makes"* names a claim that no longer exists.
+>
+> **What stands**: `c_int_q → v30u_eu|row_posted` is a real cone and it is an
+> **RTL** item — R7′'s shape on the INT pin — exactly as this section
+> concludes.  **What is struck**: any suggestion that an SDC exception is the
+> route to it.  There is no contract-only SDC form of this fix.
+
 An E-1 analogue for `c_int_q` is **not a one-liner and is not taken**. E-1 is
 legal only because `nec_test.sdc` §E-1 *derives* that every large-mode consumer
 of the observation registers is gated by `tick_rise`/`tick_fall` and that the
