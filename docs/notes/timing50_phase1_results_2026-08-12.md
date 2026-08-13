@@ -54,6 +54,10 @@ All builds from a clean `db` via `sw/quartus_gate.py`, Quartus 17.1.0 Lite,
 | **9** | **CONTROL** | **THE LANDED TREE**, draw 2 | **45.54** | +9.403 | 0.000/0.000 | **12,253** | `e01e03ee28109e0e…` |
 | **10** | **RETENTION** | **THE LANDED TREE**, draw 1 | **45.57** | +8.868 | 0.000/0.000 | **12,213** | `428ae804577cabf8…` |
 | **11** | **RETENTION** | **THE LANDED TREE**, draw 2 | **45.57** | +8.868 | 0.000/0.000 | **12,213** | `60d6bf83dc6da055…` |
+| **12** | **CONTROL** | **THE COMMITTED TREE** (CRLF-corrected), draw 1 | **45.54** | +9.403 | 0.000/0.000 | **12,253** | `4ae475f76b890cef…` |
+| **13** | **CONTROL** | **THE COMMITTED TREE**, draw 2 | **45.54** | +9.403 | 0.000/0.000 | **12,253** | `0748dbeb61450a41…` |
+| **14** | **RETENTION** | **THE COMMITTED TREE**, draw 1 | **45.57** | +8.868 | 0.000/0.000 | **12,213** | `6341372c8768247a…` |
+| **15** | **RETENTION** | **THE COMMITTED TREE**, draw 2 | **45.57** | +8.868 | 0.000/0.000 | **12,213** | `12350cc8bbf9e46b…` |
 
 **Every draw PASSED G6** — 0 errors, 0 latches, 0 `lpm_divide`, every stage
 Successful, TNS 0.000 setup **and** hold on every domain.  **Every pair of draws
@@ -67,16 +71,19 @@ so draws 4-9 were taken on a `.qsf` that differs from the committed one **in
 every line terminator and in nothing else**.  Draws 1-3 were taken on the
 original CRLF file, and draws 10-11 were re-taken on the corrected one.
 
-**IT CANNOT HAVE CHANGED A BUILD.**  Quartus's settings parser is
-line-ending-agnostic, and the measured evidence is in this table: draws 8-9
-(LF) and the re-taken pair on the corrected CRLF file agree exactly.
+**IT CANNOT HAVE CHANGED A BUILD, AND THAT IS NOW MEASURED RATHER THAN
+ARGUED.**  Draws **12-15** re-take both pairs on the committed CRLF tree
+(input manifest `81d833748e3a1c18…`) and reproduce draws 8-11 **exactly** —
+45.54 / +9.403 / 12,253 and 45.57 / +8.868 / 12,213, to the last digit in
+every figure.  Quartus's settings parser is line-ending-agnostic and the
+four draws say so.
 
 **BUT IT DOES CHANGE `input_manifest`,** which hashes bytes — so a receipt from
 draws 4-9 will not match a rebuild of the committed tree, and that is the whole
 point of the manifest.  **The line endings are restored** (the file's diff
 against `master` is now the intended 3 removed + 28 added lines and nothing
-else), and **the quoted band was RE-TAKEN on the corrected tree** rather than
-inherited.  Stated rather than hidden; the attribution figures in §7.2 are
+else), and **the quoted band is draws 12-15, taken on the committed tree**,
+not inherited from draws 8-11.  Stated rather than hidden; the attribution figures in §7.2 are
 deltas between builds and are unaffected either way.
 
 ⚠ **`standing_gates.md` §A governs**: identical pairs are two draws, not

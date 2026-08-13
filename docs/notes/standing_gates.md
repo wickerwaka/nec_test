@@ -87,8 +87,9 @@ pattern one level down).
 ⚠ **CURRENT BAND, RE-REGISTERED 2026-08-12 (timing50 Phase 1): CONTROL 45.54 /
 RETENTION 45.57**, worst-of-2 from a clean `db`, both draws identical in each
 configuration, TNS 0.000 setup AND hold on every domain, ALMs 12,253 / 12,213
-(29 %).  Receipts `cc878e4019cbdcd3…` / `e01e03ee28109e0e…` (CONTROL) and
-`428ae804577cabf8…` / `60d6bf83dc6da055…` (RETENTION).  It was CONTROL 45.61 /
+(29 %).  Receipts `4ae475f76b890cef…` / `0748dbeb61450a41…` (CONTROL) and
+`6341372c8768247a…` / `12350cc8bbf9e46b…` (RETENTION), all four on the
+committed tree's 88-file input manifest `81d833748e3a1c18…`.  It was CONTROL 45.61 /
 RETENTION 44.32 at `82d7561c4b`.
 
 **THE BAND MOVED FOR A REASON THAT IS NOT A TIMING WIN**, and it must be quoted
