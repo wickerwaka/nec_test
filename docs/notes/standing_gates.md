@@ -499,6 +499,60 @@ For the record it **WOULD FAIL**: `eu_rd_now ← t3_done ← ready`
 (`hdl/rtl/core/v30_biu.sv:865`, `:1179`).  That is not a new finding about the
 archived core and nothing is to be done about it.
 
+### THE CHAIN-DEPTH FALSIFIER — **NEW, 2026-08-12.  ALWAYS-ON, ~20 s.**
+
+`python3 sw/chain_lfsr_gate.py`  (exit 0 PASS / 1 bar MISSED / 2 could-not-run)
+
+**Why it exists.** `v30u_eu.sv`'s `CHAIN_MAX` is a **bound on a claim** — no
+more than N zero-cost model steps ever ride one clock — and on 2026-08-12 that
+bound was tightened from 12 to **7** (`timing50_chainmax_prereg_2026-08-12.md`
+/ `..._results_...`).  `ucore_provenance.md` §51.2 had derived the true maximum
+occupancy as **6** and **explicitly declined to tighten**, on the correct
+ground that *tightening makes a claim*.  Three sources agree the bound is 6
+(§51.2's transition graph + census; `m72_downstream_timing_2026-08-12.md` §3's
+independent re-derivation; this harness).  **None of those three is a gate.**
+The gate is the `CHAIN OVERFLOW` `$fatal` at `v30u_eu.sv:3763`, and a `$fatal`
+is only evidence over stimulus that could have fired it — which the 347-form
+golden suite, on its own, is not.
+
+**What it runs.** `hdl/tb/tb_chain_lfsr.sv`: the ucore in an environment that
+is entirely LFSR — LFSR memory (writes land), LFSR `READY`, LFSR
+`INT`/`NMI`/`POLL_N` — executing **arbitrary bytes**.  The CE train is built to
+the **ce/ce_half contract (Reading B)** and to nothing narrower: `ce` one
+fabric clock, `ce_half` the **next**, then an LFSR-drawn gap `g ∈ [0,7]`.
+**There is no `div` in the file.**
+
+**The bars.** depth ≤ `CHAIN_MAX − 1` (a run that reaches the declared bound
+has eaten the spare position); 0 overflows; `ce & ce_half` coincident **0**
+times; the contract's MINIMUM gap (`g = 0`) reached ≥ 1,000×/seed; a liveness
+floor on bus cycles and instruction starts; and — with `--sig-ref` — the
+64-bit output signature byte-identical to a named reference.
+
+**Registered at the landing**, 4 seeds × 400,000 fabric clocks:
+`CHAIN_DEPTH_MAX` **6**, `entry_st` **25 (`S_EPOP`)** on every seed, 0
+overflows, `g0` 8,903–9,163, coincide 0.  Signature reference
+`sw/testdata/chain_lfsr_sig.json`.
+
+⚠ **THE GATE READS `CHAIN_MAX` OUT OF THE RTL** rather than carrying a second
+copy of the number it checks, and **the shipped RTL carries no test hook** — a
+`CHAIN_MAX_OVERRIDE` `ifdef` would be a second definition of the bound living
+in the file the bound is declared in.
+
+**NON-VACUITY IS A MODE, NOT A COMMENT**: `--nonvacuity` copies the ucore to
+scratch, rewrites `CHAIN_MAX` to `4'd4` — below the observed maximum — builds
+that and **requires the `$fatal`**.  Measured: fires **4/4 seeds**.
+
+⚠ **TWO THINGS THE HARNESS FOUND ABOUT ITSELF, both live caveats.**
+**(a)** Its first signature mixer was `rotl1 ^ rotl32`, i.e. the GF(2)
+polynomial `R(1 + R^31)`, which is **singular** — it returned ONE value on four
+seeds whose bus-cycle census differed fivefold.  *"Signatures must DIFFER
+across seeds"* is now a bar, because a constant reproduces across any RTL
+change and would make the equivalence leg vacuous.
+**(b)** The liveness floor **scales with `--clocks`, and activity does not**:
+a random byte stream can wedge, and at 4,000,000 clocks an unregistered seed
+reached `fpops = 6`.  The registered gate form (4 × 400,000) is unaffected;
+above it the floor over-reports.  Booked, not fixed.
+
 ## B. THE STANDING SET — the `ucore`
 
 Standing ratchets. Monotone: never re-scored downward without a loud, itemised
