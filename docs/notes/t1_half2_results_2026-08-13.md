@@ -154,7 +154,7 @@ in §3.2.)*
 | class | worst path | `k` | slack | **campaign formula** | **CORRECTED** |
 |---|---|---:|---:|---:|---:|
 | default | `upc_opc[6]~DUP → nec_bus\|ad_in_q[16]` | 1.0 | +7.489 | 42.09 | **42.09 MHz — BINDS** |
-| `k=4` CE multicycle | `upc_opc[6]~DUP → v30u_eu\|opc_base[4]` | 4.0 | +57.784 | 1319 | **59.51 MHz** |
+| `k=4` CE multicycle | `upc_opc[6]~DUP → v30u_eu\|opc_base[4]` | 4.0 | +57.784 | n/a (`T0 − slack` < 0) | **59.51 MHz** |
 | `k=1.5` data arc | `upc_opc[6]~DUP → t1_half2` | 1.5 | +29.462 | 559 | **86.14 MHz** |
 | `k=2.5` outbound | `t1_half2 → v30u_biu\|r_cur_data[5]` | 2.5 | +66.273 | — | **210.93 MHz** |
 | **`k=0.5` ENABLE arc** | **`nec_bus\|div_cnt[4] → t1_half2`** | **0.5** | **+10.125** | **47.34** | **90.91 MHz** |
@@ -360,10 +360,10 @@ different configuration.**  Two independent netlists, one answer.
 | class | worst path | `k` | slack | **campaign formula** | **CORRECTED** |
 |---|---|---:|---:|---:|---:|
 | default | `upc_opc[5]~DUP → nec_bus\|ad_in_q[7]` | 1.0 | +6.242 | 39.99 | **39.99 MHz — BINDS** |
-| `k=4` CE multicycle | `upc_opc[7] → v30u_eu\|opc_base[4]` | 4.0 | +58.658 | — | **60.29 MHz** |
-| `k=1.5` data arc | `upc_opc[1]~DUP → t1_half2` | 1.5 | +30.580 | — | **92.05 MHz** |
-| `k=2.5` outbound | `t1_half2 → v30u_biu\|r_cur_data[5]` | 2.5 | +67.511 | — | **235.54 MHz** |
-| **`k=0.5` ENABLE arc** | **`div_cnt[4] → t1_half2`** | **0.5** | **+9.632** | **44.55** | **83.43 MHz** |
+| `k=4` CE multicycle | `upc_opc[7] → v30u_eu\|opc_base[4]` | 4.0 | +58.658 | n/a (< 0) | **60.29 MHz** |
+| `k=1.5` data arc | `upc_opc[1]~DUP → t1_half2` | 1.5 | +30.580 | 1493 | **92.05 MHz** |
+| `k=2.5` outbound | `t1_half2 → v30u_biu\|r_cur_data[5]` | 2.5 | +67.511 | n/a (< 0) | **235.54 MHz** |
+| **`k=0.5` ENABLE arc** | **`div_cnt[4] → t1_half2`** | **0.5** | **+9.632** | **46.26** | **83.43 MHz** |
 
 **TRUE CEILING = 39.99 MHz, = Quartus's own `Fmax Summary` to the digit.**
 
