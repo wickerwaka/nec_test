@@ -509,6 +509,170 @@ def build_commands(retention=False):
     ]
 
 
+# --------------------------------------------------------------------------- #
+# THE DISTRIBUTION MODE -- map ONCE, fit N times at N distinct fitter seeds.
+#
+# WHY IT EXISTS.  `ucore_provenance.md` §74.4 asked for a multi-seed worst-of-N
+# gate and nobody built one, so every Fmax in this repo from §52 onward is ONE
+# DRAW of a distribution nobody had characterised.  The k=0.5 wave measured how
+# bad that is: on the BYTE-IDENTICAL 88-file manifest `c23e63aa4cf19684…`,
+# CONTROL drew 42.09 where three earlier draws agreed at 39.79, and RETENTION
+# drew 39.99 where two agreed at 43.76 -- and the two configurations' ORDER
+# flipped.  "Three agreeing draws" turned out to be a property of one session's
+# determinism, not of the tree (`t1_half2_results_2026-08-13.md` §5).
+#
+# MAP ONCE, FIT N TIMES.  `quartus_fit --seed=<value>` sets the fitter's initial
+# placement configuration; the mapped atom netlist in `db/` is the SAME netlist
+# for every seed, which is exactly what makes the N draws a distribution OF ONE
+# TREE rather than N different trees.  Verified two ways per seed, because a
+# flag that is accepted and ignored is this repo's most-repeated trap:
+#
+#   * `<rev>.fit.rpt`'s own `Info: Command:` line must carry `--seed=<S>`, and
+#   * the Fitter Settings table's `Seed` row, where Quartus echoes it back,
+#
+# and a disagreement between EITHER of those and what was ASKED is a hard RED
+# (`E8`).  A sweep that silently ran eight identical fits would otherwise report
+# a spread of 0.00 MHz and read as a reassuring result.
+# --------------------------------------------------------------------------- #
+def map_command(retention=False):
+    """The ONE map stage the whole sweep shares.  -> argv"""
+    q = str(QUARTUS_BIN / "quartus_map")
+    argv = [q]
+    if retention:
+        argv.append(f"--verilog_macro={RETENTION_MACRO}=1")
+    return argv + [PROJECT, "-c", REVISION]
+
+
+def seed_commands(seed, asm=True):
+    """The per-seed stages, in order.  -> [[argv], ...]
+
+    NO `quartus_map` HERE, DELIBERATELY: re-mapping per seed would make each
+    draw a different netlist and the sweep would measure Analysis & Synthesis
+    non-determinism (§74.4a: the COMBINATIONAL counts are not reproducible run
+    to run) on top of placement variance, which is two effects reported as one.
+    The macro therefore does NOT appear on any stage here -- it travelled on the
+    single shared map, and `parse_configuration` reads it back off `map.rpt`.
+
+    ⚠ `--recompile=off` IS PINNED EXPLICITLY, not left to the default.  Rapid
+    Recompile reuses the PREVIOUS compilation's placement and routing, and the
+    project carries `SMART_RECOMPILE ON`; a sweep in which fit N+1 started from
+    fit N's placement would report a spread that is an artefact of the order the
+    seeds were run in.  Off is already the default -- pinning it says so in the
+    command line that lands in the receipt, where a reader can check it."""
+    q = lambda n: str(QUARTUS_BIN / n)                        # noqa: E731
+    cmds = [[q("quartus_fit"), f"--seed={seed}", "--recompile=off",
+             PROJECT, "-c", REVISION]]
+    if asm:
+        cmds.append([q("quartus_asm"), PROJECT, "-c", REVISION])
+    cmds.append([q("quartus_sta"), PROJECT, "-c", REVISION])
+    return cmds
+
+
+def truefmax_command(outstem):
+    """`sta_truefmax_probe.tcl` on the fitted netlist -> the per-k-class
+    ceilings.  Not a bar: it is the only instrument that ranks by `slack / k`
+    instead of by slack, and `standing_gates.md` §A's erratum says a ceiling
+    quoted without `k` is not quotable."""
+    return [str(QUARTUS_BIN / "quartus_sta"), "-t",
+            str(ROOT / "sw" / "sta_truefmax_probe.tcl"),
+            PROJECT, REVISION, str(outstem)]
+
+
+def parse_fit_seed(tree):
+    """-> {'command_line': int|None, 'settings': int|None} -- the seed QUARTUS
+    used, read back out of its own fit report.
+
+    This is the `want_raw` lesson applied to `--seed`: verify the flag exists
+    AND that the callee honoured it.  Two independent readings, because the
+    command line proves only what was ASKED."""
+    out = {"command_line": None, "settings": None}
+    rpt = tree / f"{REVISION}.fit.rpt"
+    if not rpt.exists():
+        return out
+    txt = rpt.read_text(errors="replace")
+    m = re.search(r"Info: Command:[^\n]*--seed=(\d+)", txt)
+    if m:
+        out["command_line"] = int(m.group(1))
+    m = re.search(r";\s*Seed\s*;\s*(\d+)\s*;", txt)
+    if m:
+        out["settings"] = int(m.group(1))
+    return out
+
+
+_TF_HEAD = re.compile(r"^---\s+(.*?)\s+---\s*$")
+_TF_ROW = re.compile(r"k\s*=\s*([\d.]+)\s+slack\s*=\s*([+-][\d.]+)\s*->\s*"
+                     r"T_min\s*([\d.]+)\s*ns\s*=\s*([\d.]+)\s*MHz")
+
+
+def parse_truefmax(path):
+    """-> {class label: {k, slack, t_min_ns, fmax_mhz, from, to}}
+
+    Parses `sta_truefmax_probe.tcl`'s own text artifact.  A class the probe
+    could not populate ('(no paths)') is recorded as an entry with `fmax_mhz`
+    None rather than dropped -- absence must not read as data."""
+    out = {}
+    if not Path(path).exists():
+        return out
+    label = None
+    cur = {}
+    for ln in Path(path).read_text(errors="replace").splitlines():
+        h = _TF_HEAD.match(ln.strip())
+        if h:
+            if label:
+                out[label] = cur
+            label, cur = h.group(1), {"from": None, "to": None, "k": None,
+                                      "slack": None, "t_min_ns": None,
+                                      "fmax_mhz": None}
+            continue
+        if label is None:
+            continue
+        if ln.strip().startswith("from  :"):
+            cur["from"] = ln.split(":", 1)[1].strip()
+        elif ln.strip().startswith("to    :"):
+            cur["to"] = ln.split(":", 1)[1].strip()
+        else:
+            m = _TF_ROW.search(ln)
+            if m:
+                cur.update(k=float(m.group(1)), slack=float(m.group(2)),
+                           t_min_ns=float(m.group(3)),
+                           fmax_mhz=float(m.group(4)))
+    if label:
+        out[label] = cur
+    return out
+
+
+def input_stability_bar(pre, post):
+    """E7 -- THE INPUT-HASH ORDERING BAR.
+
+    The manifest is hashed BEFORE `quartus_map` (it must be: it has to name
+    what the compiler was handed) and re-hashed AFTER the last stage.  If a
+    tracked input moved while a ten-to-twenty-minute compile was running, the
+    receipt would name a byte set the build only partly read, and every figure
+    under it would be attributed to the wrong tree.  The CHAIN_MAX wave found
+    exactly this gap: nothing re-read the inputs, so a mid-build RTL flip was
+    undetectable after the fact.  A DIFFERENCE IS A RED, not a warning."""
+    same = pre["sha256"] == post["sha256"]
+    moved = sorted(k for k in set(pre["files"]) | set(post["files"])
+                   if pre["files"].get(k) != post["files"].get(k))
+    return {"bar": "the input manifest is IDENTICAL before quartus_map and "
+                   "after the last stage (no mid-build input flip)",
+            "value": {"pre_sha256": pre["sha256"], "post_sha256": post["sha256"],
+                      "n_moved": len(moved), "moved": moved[:20]},
+            "pass": same}
+
+
+def seed_honoured_bar(asked, seen):
+    """E8 -- the fitter used the seed it was given, read back off its own
+    report.  Without this a sweep whose `--seed` was ignored reports a spread
+    of 0.00 MHz, which reads as a REASSURING result."""
+    cl, st = seen.get("command_line"), seen.get("settings")
+    agree = [v for v in (cl, st) if v is not None]
+    return {"bar": f"quartus_fit honoured --seed={asked} (echoed by its own "
+                   f"fit.rpt: Info: Command: and the Fitter Settings row)",
+            "value": {"asked": asked, "command_line": cl, "settings": st},
+            "pass": bool(agree) and all(v == asked for v in agree)}
+
+
 def build(tree, keep_db, logpath, retention=False):
     cmds = build_commands(retention)
     for c in cmds:
@@ -617,6 +781,347 @@ def _finish(rec, receipt_path):
     return rec
 
 
+def parse_seed_spec(spec):
+    """`--seeds 8` -> [1..8];  `--seeds 1,7,99` -> [1, 7, 99].  -> sorted, unique
+
+    An integer count means seeds 1..N so that a sweep is REPRODUCIBLE by name:
+    `worst-of-8@seeds{1..8}` says exactly which eight fits it is."""
+    spec = spec.strip()
+    if re.fullmatch(r"\d+", spec):
+        n = int(spec)
+        if n < 1:
+            raise ValueError("--seeds N needs N >= 1")
+        return list(range(1, n + 1))
+    seeds = sorted({int(x) for x in re.split(r"[,\s]+", spec) if x})
+    if not seeds:
+        raise ValueError(f"--seeds {spec!r} names no seed")
+    return seeds
+
+
+def _stat(vals):
+    """min / median / max over the draws that produced a number.
+
+    The median of an even N is the mean of the two middle ORDER STATISTICS, so
+    it is a number no seed drew; `sorted` is carried beside it so a reader can
+    always see the draws themselves rather than a summary of them."""
+    s = sorted(v for v in vals if v is not None)
+    if not s:
+        return {"n": 0, "min": None, "median": None, "max": None,
+                "spread": None, "sorted": []}
+    n = len(s)
+    med = s[n // 2] if n % 2 else (s[n // 2 - 1] + s[n // 2]) / 2.0
+    return {"n": n, "min": s[0], "median": med, "max": s[-1],
+            "spread": round(s[-1] - s[0], 4), "sorted": s}
+
+
+def run_sweep(a, tree, receipt_path, logpath):
+    """THE G6 DISTRIBUTION GATE.  One mapped netlist, N fits, N receipts, one
+    distribution record.  -> exit code
+
+    THE QUOTING RULE THIS IMPLEMENTS (`standing_gates.md` §A):
+      * the quotable figure is `worst-of-N@seeds{...}` -- the MINIMUM over the
+        N draws, with N and the seed set named;
+      * a single fit is `draw@seed<S>` and is NOT promotion evidence;
+      * G6 PASS for a PROMOTION needs N >= 5.  N = 2 stays acceptable for an
+        intermediate wave measurement, WITH the caveat printed.
+    """
+    seeds = parse_seed_spec(a.seeds)
+    art_dir = Path(a.artifact_dir) if a.artifact_dir else (
+        ROOT / "sw" / "testdata" / "g6dist" /
+        (a.label or time.strftime("sweep-%Y%m%dT%H%M%SZ", time.gmtime())))
+    art_dir.mkdir(parents=True, exist_ok=True)
+    started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    for c in [map_command(a.retention)] + seed_commands(seeds[0], not a.no_asm):
+        if not Path(c[0]).exists():
+            print(f"quartus_gate: {c[0]} not found -- the gate CANNOT RUN "
+                  f"(exit 2, not a PASS and not a RED)")
+            return 2
+
+    # --- E1, before anything is compiled ----------------------------------- #
+    e1 = {"pass": None, "note": "skipped (--no-qsf-check)"}
+    if not a.no_qsf_check:
+        r = subprocess.run([sys.executable, str(ROOT / "sw" / "gen_ucore_qsf.py"),
+                            "--check"], capture_output=True, text=True)
+        e1 = {"bar": "hdl/nec_test_ucore.qsf is a faithful derivative of "
+                     "hdl/nec_test.qsf",
+              "rc": r.returncode, "out": (r.stdout + r.stderr).strip(),
+              "pass": r.returncode == 0}
+        print(f"quartus_gate: E1 gen_ucore_qsf --check -> "
+              f"{'PASS' if e1['pass'] else 'RED'}: {e1['out']}", flush=True)
+        if not e1["pass"]:
+            print("quartus_gate: RED at E1 -- nothing built, no sweep run.")
+            return 1
+
+    # --- the inputs, hashed BEFORE quartus_map (E7's `pre`) ----------------- #
+    mf_pre = input_manifest()
+    tv = tool_version()
+    print(f"quartus_gate: sweep over {len(seeds)} seed(s) {seeds}, "
+          f"{'RETENTION' if a.retention else 'CONTROL/DEFAULT'}, "
+          f"inputs {mf_pre['n_files']} files sha256 {mf_pre['sha256'][:16]}…",
+          flush=True)
+
+    if not a.keep_db:
+        for d in ("db", "incremental_db", OUTDIR):
+            shutil.rmtree(HDL / d, ignore_errors=True)
+    tree.mkdir(parents=True, exist_ok=True)
+
+    t_all = time.time()
+    stages_log = []
+
+    def stage(cmd, lf, tag):
+        print(f"quartus_gate: [{tag}] {' '.join(cmd)}", flush=True)
+        lf.write(f"\n=== quartus_gate {tag}: {' '.join(cmd)}\n")
+        lf.flush()
+        t0 = time.time()
+        rc = subprocess.run(cmd, cwd=HDL, stdout=lf,
+                            stderr=subprocess.STDOUT).returncode
+        el = round(time.time() - t0, 1)
+        print(f"quartus_gate:   [{tag}] rc={rc} in {el:.0f}s", flush=True)
+        stages_log.append({"tag": tag, "cmd": cmd, "rc": rc, "seconds": el})
+        return rc
+
+    # --- THE SINGLE SHARED MAP --------------------------------------------- #
+    with open(logpath, "w") as lf:
+        rc = stage(map_command(a.retention), lf, "map")
+    if rc != 0:
+        print(f"quartus_gate: the shared map FAILED (rc={rc}) -- no seed was "
+              f"fitted.  (exit 1)  log {logpath}")
+        return 1
+
+    # --- N FITS ------------------------------------------------------------ #
+    per_seed = []
+    for i, seed in enumerate(seeds, 1):
+        print(f"\nquartus_gate: === seed {seed}  ({i}/{len(seeds)}) ===",
+              flush=True)
+        t0 = time.time()
+        seed_rc = 0
+        with open(logpath, "a") as lf:
+            for cmd in seed_commands(seed, not a.no_asm):
+                seed_rc = stage(cmd, lf, f"seed{seed}:{Path(cmd[0]).name}")
+                if seed_rc != 0:
+                    break
+            tf_path = None
+            if seed_rc == 0 and not a.no_truefmax:
+                stem = tree / f"g6dist_seed{seed}"
+                if stage(truefmax_command(stem), lf,
+                         f"seed{seed}:truefmax") == 0:
+                    tf_path = Path(f"{stem}.truefmax.txt")
+
+        log_text = logpath.read_text(errors="replace") if logpath.exists() else ""
+        cfg, cfg_detail = parse_configuration(tree)
+        bars, figs = score(tree, log_text, a)
+        seen = parse_fit_seed(tree)
+        bars["E8_seed_honoured"] = seed_honoured_bar(seed, seen)
+        truefmax = parse_truefmax(tf_path) if tf_path else {}
+
+        rec = {"schema": art.SCHEMA, "schema_version": art.SCHEMA_VERSION,
+               "kind": "quartus_bitstream",
+               "name": art.relpath(tree / f"{REVISION}.sof"),
+               "label": f"{a.label or 'g6dist'}-seed{seed}",
+               "inputs": mf_pre,
+               "command": seed_commands(seed, not a.no_asm),
+               "env": {},
+               "tool": tv, "tool_name": "quartus_sh", "tool_probe": None,
+               "tool_sha256": None,
+               "outputs": {},
+               "git": art.git_state(),
+               "started": started, "completed": None, "rc": seed_rc,
+               "figures": figs, "verdict": None,
+               "gate": GATE_NAME, "gate_version": GATE_VERSION,
+               "ts": started, "tool_version": tv, "input_manifest": mf_pre,
+               "configuration": cfg, "configuration_detail": cfg_detail,
+               "reports": report_manifest(tree, logpath),
+               "tree": str(tree),
+               "E1_gen_ucore_qsf": e1,
+               # WHAT MAKES THIS RECEIPT A DISTRIBUTION DRAW AND NOT A BUILD.
+               # It SELF-LABELS both axes -- the configuration (derived, as
+               # always, from the reports) and the seed (asked AND echoed) --
+               # so a figure lifted out of the history can never be re-attached
+               # to the wrong config or the wrong draw.
+               "sweep": {"seed": seed, "seed_index": i, "seed_set": seeds,
+                         "n_seeds": len(seeds),
+                         "seed_echo": seen,
+                         "map_shared": True,
+                         "map_command": map_command(a.retention),
+                         "asm": not a.no_asm,
+                         "configuration_requested": ("RETENTION" if a.retention
+                                                     else "CONTROL/DEFAULT")},
+               "truefmax": truefmax,
+               "seconds": round(time.time() - t0, 1),
+               "build": {"note": "one shared quartus_map; this receipt is ONE "
+                                 "FIT of the sweep",
+                         "stages": [s for s in stages_log
+                                    if s["tag"].startswith(f"seed{seed}:")],
+                         "configuration_requested": ("RETENTION" if a.retention
+                                                     else "CONTROL/DEFAULT"),
+                         "log": str(logpath)}}
+        for ext in (".sof", ".rbf", ".sta.summary", ".fit.summary"):
+            f = tree / f"{REVISION}{ext}"
+            if f.is_file():
+                rec["outputs"][art.relpath(f)] = art.sha256_file(f)
+        ok = all(v["pass"] for v in bars.values()) and (
+            a.no_qsf_check or e1["pass"])
+        rec["bars"] = bars
+        rec["verdict"] = "PASS" if ok else "RED"
+        rp = art_dir / f"seed{seed}_quartus_gate.json"
+        _finish(rec, rp)
+
+        # The durable copies.  `hdl/output_files_ucore/` is deleted by the
+        # gate's own next clean build, so an artifact that lived only there
+        # would be a distribution of exactly one run.
+        for src, dst in ((tf_path, art_dir / f"seed{seed}.truefmax.txt"),
+                         (tree / f"{REVISION}.sta.summary",
+                          art_dir / f"seed{seed}.sta.summary")):
+            if src and Path(src).is_file():
+                shutil.copyfile(src, dst)
+
+        fm = bars["E3_fmax"]["value"]
+        print(f"quartus_gate: seed {seed}: {rec['verdict']}  "
+              f"Fmax {fm}  setup {bars['E4_worst_setup']['value']}  "
+              f"ALMs {figs['status'].get('alms')}  "
+              f"receipt {rec['id'][:16]}…", flush=True)
+        per_seed.append({"seed": seed, "verdict": rec["verdict"],
+                         "receipt_id": rec["id"],
+                         "receipt": art.relpath(rp),
+                         "fmax_mhz": fm,
+                         "worst_setup_ns": bars["E4_worst_setup"]["value"],
+                         "tns_violations": bars["E5_tns"]["value"],
+                         "alms": figs["status"].get("alms"),
+                         "seed_honoured": bars["E8_seed_honoured"]["pass"],
+                         "seed_echo": seen,
+                         "configuration": cfg,
+                         "outputs": rec["outputs"],
+                         "truefmax": {k: v.get("fmax_mhz")
+                                      for k, v in truefmax.items()},
+                         "truefmax_full": truefmax,
+                         "seconds": rec["seconds"]})
+
+    # --- E7: the inputs, re-hashed AFTER the last stage --------------------- #
+    mf_post = input_manifest()
+    e7 = input_stability_bar(mf_pre, mf_post)
+    print(f"\nquartus_gate: E7 input stability -> "
+          f"{'PASS' if e7['pass'] else 'RED'}  "
+          f"({e7['value']['n_moved']} file(s) moved during the sweep)",
+          flush=True)
+
+    subprocess.run([sys.executable, str(ROOT / "sw" / "gen_ucore_qsf.py")],
+                   capture_output=True, text=True)
+
+    # --- THE DISTRIBUTION RECORD ------------------------------------------- #
+    fmaxes = [p["fmax_mhz"] for p in per_seed]
+    classes = sorted({k for p in per_seed for k in p["truefmax"]})
+    by_class = {c: _stat([p["truefmax"].get(c) for p in per_seed])
+                for c in classes}
+    # DOES THE BINDING CONE FLIP?  The probe names the worst path per class; the
+    # question the k=0.5 wave leaves open is whether the IDENTITY of the binding
+    # cone is a property of the tree or of the draw.  Both are recorded: the
+    # CLASS that binds, and the endpoint PAIR inside it.
+    binding = []
+    for p in per_seed:
+        d = p["truefmax_full"].get("DEFAULT (whole-design worst, expect k=1)", {})
+        binding.append({"seed": p["seed"], "from": d.get("from"),
+                        "to": d.get("to"), "k": d.get("k"),
+                        "fmax_mhz": d.get("fmax_mhz")})
+    ok_fm = [f for f in fmaxes if f is not None]
+    worst = min(ok_fm) if ok_fm else None
+    worst_seed = (min(per_seed, key=lambda p: (p["fmax_mhz"] is None,
+                                               p["fmax_mhz"]))["seed"]
+                  if ok_fm else None)
+    n = len(seeds)
+    dist = {"schema": art.SCHEMA, "schema_version": art.SCHEMA_VERSION,
+            "kind": "quartus_distribution",
+            "name": art.relpath(art_dir / "distribution.json"),
+            "label": a.label,
+            "inputs": mf_pre, "inputs_post": mf_post,
+            "command": [map_command(a.retention)] + seed_commands(
+                seeds[0], not a.no_asm),
+            "env": {}, "tool": tv, "tool_name": "quartus_sh",
+            "tool_probe": None, "tool_sha256": None,
+            "outputs": {}, "git": art.git_state(),
+            "started": started, "completed": None, "rc": 0,
+            "gate": GATE_NAME, "gate_version": GATE_VERSION, "ts": started,
+            "tool_version": tv, "input_manifest": mf_pre,
+            "configuration": (per_seed[0]["configuration"] if per_seed
+                              else "UNDETERMINED -- no seed completed"),
+            "tree": str(tree), "artifact_dir": art.relpath(art_dir),
+            "E1_gen_ucore_qsf": e1,
+            "seeds": seeds, "n_seeds": n,
+            "per_seed": per_seed,
+            "fmax": _stat(fmaxes),
+            "worst_setup_ns": _stat([p["worst_setup_ns"] for p in per_seed]),
+            "alms": sorted({p["alms"] for p in per_seed}),
+            "by_class": by_class,
+            "binding_path_per_seed": binding,
+            "binding_class_flips": len({(b["from"], b["to"]) for b in binding}),
+            "bars": {"E7_input_stability": e7,
+                     "E8_all_seeds_honoured": {
+                         "bar": "every fit used the seed it was given",
+                         "value": [p["seed"] for p in per_seed
+                                   if not p["seed_honoured"]],
+                         "pass": all(p["seed_honoured"] for p in per_seed)},
+                     "E9_all_seeds_pass": {
+                         "bar": f"every one of the {n} draws is a G6 PASS "
+                                f"(E1-E5)",
+                         "value": [p["seed"] for p in per_seed
+                                   if p["verdict"] != "PASS"],
+                         "pass": all(p["verdict"] == "PASS" for p in per_seed)},
+                     "E10_promotion_width": {
+                         "bar": "N >= 5 for a PROMOTION figure (N = 2 is an "
+                                "intermediate-wave measurement and prints its "
+                                "own caveat)",
+                         "value": n,
+                         "pass": n >= 5}},
+            "worst_of_n": {"n": n, "seeds": seeds, "fmax_mhz": worst,
+                           "seed": worst_seed,
+                           "quotable_as": (f"worst-of-{n}@seeds{{"
+                                           f"{','.join(map(str, seeds))}}} "
+                                           f"= {worst} MHz"
+                                           if worst is not None else None),
+                           "promotion_grade": n >= 5}}
+    # THE VERDICT IS THE WORST DRAW'S, NOT THE BEST'S, AND NOT THE MEAN'S.
+    dist["verdict"] = "PASS" if (
+        dist["bars"]["E7_input_stability"]["pass"]
+        and dist["bars"]["E8_all_seeds_honoured"]["pass"]
+        and dist["bars"]["E9_all_seeds_pass"]["pass"]) else "RED"
+    dist["seconds"] = round(time.time() - t_all, 1)
+    dist["stages"] = stages_log
+    _finish(dist, art_dir / "distribution.json")
+    art._write_json_atomic(Path(receipt_path), dist)
+
+    print("\n  --- quartus_gate (G6) DISTRIBUTION ---")
+    print(f"  tool     : {tv}")
+    print(f"  config   : {dist['configuration']}")
+    print(f"  inputs   : {mf_pre['n_files']} files, "
+          f"sha256 {mf_pre['sha256'][:16]}…   E7 "
+          f"{'PASS' if e7['pass'] else 'RED'}")
+    print(f"  seeds    : {seeds}   (one shared quartus_map, {n} fits)")
+    print(f"  {'seed':>6}  {'Fmax':>8}  {'setup':>8}  {'ALMs':>16}  verdict")
+    for p in per_seed:
+        print(f"  {p['seed']:>6}  {str(p['fmax_mhz']):>8}  "
+              f"{str(p['worst_setup_ns']):>8}  {str(p['alms']):>16}  "
+              f"{p['verdict']}")
+    f = dist["fmax"]
+    print(f"  Fmax     : min {f['min']}  median {f['median']}  max {f['max']}"
+          f"   SPREAD {f['spread']} MHz")
+    for c in classes:
+        s = by_class[c]
+        print(f"    class   {c[:46]:<46} min {s['min']}  med {s['median']}  "
+              f"max {s['max']}  spread {s['spread']}")
+    print(f"  binding cone distinct endpoint pairs over {n} draws: "
+          f"{dist['binding_class_flips']}")
+    print(f"\n  *** THE QUOTABLE FIGURE: {dist['worst_of_n']['quotable_as']} "
+          f"(worst seed {worst_seed}) ***")
+    if n < 5:
+        print(f"  ⚠ N = {n} < 5: this is an INTERMEDIATE-WAVE measurement and "
+              f"is NOT promotion evidence.")
+    print(f"  record   : {art.relpath(art_dir / 'distribution.json')}  "
+          f"id {dist['id'][:16]}…")
+    print(f"=== quartus_gate DISTRIBUTION: {dist['verdict']}   "
+          f"{dist['seconds']:.0f}s")
+    return 0 if dist["verdict"] == "PASS" else 1
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--receipt", default="")
@@ -648,6 +1153,25 @@ def main():
     ap.add_argument("--dry-run", action="store_true",
                     help="print the stages this invocation would run, and "
                          "exit 0.  Builds nothing, writes no receipt.")
+    ap.add_argument("--seeds", default="",
+                    help="THE DISTRIBUTION GATE.  `N` means seeds 1..N; a "
+                         "comma list means exactly those seeds.  Runs ONE "
+                         "quartus_map and then N quartus_fit --seed=S, so the "
+                         "N draws are a distribution of ONE mapped netlist.  "
+                         "The quotable figure is worst-of-N@seeds{...}; a "
+                         "single draw is not promotion evidence.")
+    ap.add_argument("--artifact-dir", default="",
+                    help="where the per-seed receipts, .sta.summary and "
+                         "truefmax artifacts are kept (they must outlive "
+                         "hdl/" + OUTDIR + ", which the next clean build "
+                         "deletes).  Default sw/testdata/g6dist/<label>.")
+    ap.add_argument("--no-asm", action="store_true",
+                    help="sweep only: skip quartus_asm.  Faster, but the draw "
+                         "then has no .sof/.rbf to hash and is a TIMING "
+                         "measurement rather than a candidate bitstream.")
+    ap.add_argument("--no-truefmax", action="store_true",
+                    help="sweep only: skip sta_truefmax_probe.tcl, i.e. record "
+                         "no per-k-class ceilings for the draw.")
     a = ap.parse_args()
 
     # --- THE ENV-VAR REFUSAL ------------------------------------------------ #
@@ -692,7 +1216,51 @@ def main():
               f"  --no-qsf-check to re-gate a retention tree built earlier.  "
               f"(exit 2)")
         return 2
+    if a.seeds and a.parse_only:
+        print("quartus_gate: REFUSING TO RUN.  --seeds BUILDS (one map, N "
+              "fits) and --parse-only\n"
+              "  does not build.  A run that is both would report a "
+              "DISTRIBUTION over N draws while\n"
+              "  having taken exactly one -- a spread of 0.00 MHz that reads "
+              "as a reassuring\n"
+              "  result.  Use --seeds alone.  (exit 2)")
+        return 2
+    if a.seeds:
+        try:
+            parse_seed_spec(a.seeds)
+        except ValueError as e:
+            print(f"quartus_gate: REFUSING TO RUN.  --seeds: {e}  (exit 2)")
+            return 2
+    if (a.no_asm or a.no_truefmax or a.artifact_dir) and not a.seeds:
+        print("quartus_gate: REFUSING TO RUN.  --no-asm / --no-truefmax / "
+              "--artifact-dir are\n"
+              "  SWEEP-ONLY flags and this invocation has no --seeds, so they "
+              "would be\n"
+              "  ACCEPTED AND IGNORED -- the exact trap `--retention` was "
+              "built to close\n"
+              "  (docs/notes/fz2_flash18_results_2026-08-11.md §1.2).  "
+              "(exit 2)")
+        return 2
+
     if a.dry_run:
+        if a.seeds:
+            seeds = parse_seed_spec(a.seeds)
+            print(f"quartus_gate --dry-run: DISTRIBUTION, "
+                  f"{'RETENTION' if a.retention else 'CONTROL/DEFAULT'}, "
+                  f"{len(seeds)} seed(s) {seeds}, cwd {HDL}")
+            print("  " + " ".join(map_command(a.retention)) + "     # ONCE")
+            for c in seed_commands(seeds[0], not a.no_asm):
+                print("  " + " ".join(c) + "     # per seed")
+            if not a.no_truefmax:
+                print("  " + " ".join(truefmax_command("<tree>/g6dist_seed<S>"))
+                      + "     # per seed")
+            print(f"  (nothing built, no receipt written.  The quotable "
+                  f"figure would be\n"
+                  f"   worst-of-{len(seeds)}@seeds"
+                  f"{{{','.join(map(str, seeds))}}}"
+                  + ("" if len(seeds) >= 5 else
+                     "  -- N < 5, NOT promotion evidence") + ".)")
+            return 0
         cmds = build_commands(a.retention)
         print(f"quartus_gate --dry-run: "
               f"{'RETENTION' if a.retention else 'CONTROL/DEFAULT'}, "
@@ -718,6 +1286,9 @@ def main():
               f"(a receipt is an OUTPUT; the history is "
               f"{art.RECEIPT_DIR / 'quartus_bitstream.jsonl'})", flush=True)
         receipt_path.unlink()
+
+    if a.seeds:
+        return run_sweep(a, tree, receipt_path, logpath)
 
     started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     mf = input_manifest()
@@ -833,6 +1404,14 @@ def main():
     print(f"quartus_gate: configuration {rec['configuration']}", flush=True)
 
     bars, figs = score(tree, log_text, a)
+    # E7 -- THE INPUT-HASH ORDERING BAR.  `mf` above was taken BEFORE the
+    # compile, which is the only order that can name what the compiler was
+    # handed; this re-reads the same closed list AFTER the last stage.  Only on
+    # a path that actually built: with `--parse-only` there is no interval to
+    # bracket, and a bar that passes vacuously is worse than an absent one.
+    if not a.parse_only:
+        rec["inputs_post"] = input_manifest()
+        bars["E7_input_stability"] = input_stability_bar(mf, rec["inputs_post"])
     rec["bars"] = bars
     rec["figures"] = figs
     ok = all(v["pass"] for v in bars.values())
