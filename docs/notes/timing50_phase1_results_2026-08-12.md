@@ -59,6 +59,26 @@ All builds from a clean `db` via `sw/quartus_gate.py`, Quartus 17.1.0 Lite,
 Successful, TNS 0.000 setup **and** hold on every domain.  **Every pair of draws
 was identical in Fmax, worst setup and ALMs.**
 
+### 2.0 ⚠ ERRATUM E-1 — DRAWS 4-9 WERE TAKEN ON AN LF-NORMALISED `.qsf`
+
+`hdl/nec_test.qsf` has **CRLF** line terminators (it is MiSTer's file).  The
+Python edit that removed the SignalTap lines rewrote the whole file with **LF**,
+so draws 4-9 were taken on a `.qsf` that differs from the committed one **in
+every line terminator and in nothing else**.  Draws 1-3 were taken on the
+original CRLF file, and draws 10-11 were re-taken on the corrected one.
+
+**IT CANNOT HAVE CHANGED A BUILD.**  Quartus's settings parser is
+line-ending-agnostic, and the measured evidence is in this table: draws 8-9
+(LF) and the re-taken pair on the corrected CRLF file agree exactly.
+
+**BUT IT DOES CHANGE `input_manifest`,** which hashes bytes — so a receipt from
+draws 4-9 will not match a rebuild of the committed tree, and that is the whole
+point of the manifest.  **The line endings are restored** (the file's diff
+against `master` is now the intended 3 removed + 28 added lines and nothing
+else), and **the quoted band was RE-TAKEN on the corrected tree** rather than
+inherited.  Stated rather than hidden; the attribution figures in §7.2 are
+deltas between builds and are unaffected either way.
+
 ⚠ **`standing_gates.md` §A governs**: identical pairs are two draws, not
 closure.  The same tree has drawn 19.42 and 45.91 MHz.
 
