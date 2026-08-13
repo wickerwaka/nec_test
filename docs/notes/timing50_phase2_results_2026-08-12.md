@@ -19,7 +19,7 @@ committed BEFORE the edit and BEFORE every build that scores it; the edit
 | **THE FINDING** | **the INT cone is TAIL-limited, not prefix-limited.** Removing three levels at the head buys nothing, because the 35 levels behind it re-place to fill the space. This is measured, not argued: the two figures agree to 0.04 ns. |
 | **THE BAND** | CONTROL worst-of-2 **45.54 → 45.79** (**+0.25**); RETENTION, one draw, **45.57 → 45.48** (**−0.09**) — against **R-a's ≥ 1.5 on both** |
 | **DISPOSITION** | **REVERTED, by the pre-registered rule R-a.** Not by judgement, not after re-reading the bar. |
-| **ZERO BEHAVIOUR CHANGE — PROVEN TWICE** | the Shannon identity exhaustively over **8,388,608** assignments (0 mismatches, non-vacuity control 4,194,304), and the ie-pinfall column **2,200 / 2,200 cells BYTE-IDENTICAL** on this tree's own baseline |
+| **ZERO BEHAVIOUR CHANGE — PROVEN THREE WAYS** | the Shannon identity exhaustively over **8,388,608** assignments (0 mismatches, non-vacuity control 4,194,304); the ie-pinfall column **2,200 / 2,200 cells BYTE-IDENTICAL** on this tree's own baseline; and `fz2_replay` **0 of 107 rows differ** before-vs-after on independently built binaries |
 | **WHAT PHASE 2 HANDS FORWARD** | the tail is **~23 BIU next-state levels + 12 EU levels**, of which the EU's `row_posted_n~1…~9` cascade is the twelve-position chain. **`CHAIN_MAX` is now the named, measured next lever** — and the ceiling behind the whole cone is **57.35 MHz (CONTROL) / 54.42 (RETENTION)**, so the headroom is real and unclaimed. |
 | **⚠ A CORPUS EVENT, NOT THIS PHASE'S** | **0 of 114** fz2 ledger captures in the main checkout still match the ledger's `capture_sha256`; 107 were rewritten 2026-08-12 04:56–05:06 PDT and 7 are absent. `fz2_immaterial falsify` **cannot run** and is **owed, not claimed**. §6.3. |
 
@@ -244,9 +244,9 @@ Draw 2 then reproduced 45.79 exactly, and the RETENTION draw came in at
 | CONTROL worst-of-2 | 45.54 | **45.79** | **+0.25** | ≥ +1.5 |
 | RETENTION (one draw) | 45.57 | **45.48** | **−0.09** | ≥ +1.5 |
 
-**R-a is MISSED on both configurations.  P2-A IS REVERTED** — `9a0b…` below,
-a `git revert` whose result is **byte-identical to `1e554257b6`'s RTL**
-(`git diff --cached 1e554257b6 -- hdl/rtl/` is empty).
+**R-a is MISSED on both configurations.  P2-A IS REVERTED** — this commit is a
+`git revert` of `c137e8c105` whose result is **byte-identical to
+`1e554257b6`'s RTL** (`git diff 1e554257b6 HEAD -- hdl/rtl/` is empty).
 
 It is reverted with its mechanism **confirmed** (§3.2) and its benefit
 **measured at +0.25 / −0.09 MHz** — one sixth of the registered bar in the good
@@ -275,7 +275,7 @@ Run on the P2-A tree `c137e8c105`, i.e. on the RTL that was built.
 | `ulockstep --golden all --cases 50` | 17,350/17,350 | **17,350/17,350 ALL LOCKSTEP** | ✓ |
 | `ghost_launch_law.py score` | 200/200 | **200/200 = 100.0 %** | ✓ |
 | **`ie_pinfall_cell core`** | 2,200 cells byte-identical | **2,200 / 2,200 — 0 row-byte differences, 0 scalar columns moved** | ✓ |
-| `fz2_replay --all-failures --leg ret` | — | **106 seeds, first-bad-row agreement 106/106 = 100 %** across all 15 ledger families (§6.3 caveat) | ✓ |
+| `fz2_replay --all-failures --leg ret` | — | **107 replayed seeds, 0 rows differ BEFORE vs AFTER** (§6.4); first-bad-row agreement **106/106 = 100 %** across all 15 ledger families (§6.3 caveat) | ✓ |
 | `r7_lint.py` | PASS, 0 violations | **PASS** — 20 nets / 1 carrier / 3 tainted / 51 `stop` sites / 0 violations | ✓ |
 | `ss_lint.py --core ucore` | 0x8E / 232 / 220 flops / 0 UNMAPPED | **PASS** — 109×2 BIU + 122×2 EU + tag = **232**, **220** flops, 0 UNMAPPED | ✓ |
 | `test_artifact.py` | 45/45 | **45/45** | ✓ |
@@ -355,6 +355,21 @@ first command.
 * **The behaviour claim does not rest on it.**  The identity proof and the
   2,200-cell ie-pinfall byte-identity are both independent of the fz2 corpus.
 
+### 6.4 The `fz2_replay` A/B — run as an A/B, because a one-sided figure is not one
+
+The corpus event in §6.3 makes an *absolute* `fz2_replay` figure a statement
+about a snapshot rather than about an era.  What it does **not** spoil is a
+**before-vs-after on the same snapshot**, so that is what was run:
+
+| leg | tree | `tb_sys ret` receipt | seeds |
+|---|---|---|---:|
+| AFTER | P2-A `c137e8c105` | `d37bf61ee032d2f6…` | 107 |
+| BEFORE | the reverted tree (RTL byte-identical to `1e554257b6`) | `cc914a519982d33c…` | 107 |
+
+**Same seed set; 0 of 107 replay rows differ.**  The two legs were produced by
+**independently compiled binaries with different receipts**, which is what makes
+this a check on the RTL and not on a cached result.
+
 ---
 
 ## §7 WHAT PHASE 2 ESTABLISHES, AND WHAT IT HANDS FORWARD
@@ -400,3 +415,38 @@ first command.
   draw was not spent. **The retention figure is one draw and is NOT a band.**
 * `CHAIN_MAX`, `v30u_ucrom` as an M10K, and the `div_cnt → t1_half2` enable arc
   — all three still booked with their own owners, none touched.
+
+---
+
+## §8 THE TREE THIS SITTING LEAVES
+
+**RTL byte-identical to `1e554257b6`** — `git diff 1e554257b6 HEAD -- hdl/rtl/`
+is empty.  Confirmed on the reverted tree, on freshly built binaries
+(`Vtb_v30_core` receipt `a355a594451f4d78…`, `Vtb_sys ret` receipt
+`cc914a519982d33c…`):
+
+| gate | measured |
+|---|---|
+| `check_core --core ucore --opcodes all --cases 0` | **169,000/169,000** |
+| `r7_lint.py` | **PASS**, 0 violations |
+| `ss_lint.py --core ucore` | **PASS**, 232 addresses / 220 flops |
+| `timing50_p2a_identity.py` | 8,388,608 / **0 mismatches** (it is tree-independent — it re-derives both forms in Python) |
+
+**Left in the repository** — three instruments and two documents, and nothing
+else:
+
+* `sw/sta_fmax_attrib.tcl` — the own-Fmax attributor (§1). **The campaign should
+  rank cones with this, not with `Setup Summary`.**
+* `sw/sta_intcone_probe.tcl` — the per-launch-register cone/ceiling probe.
+* `sw/timing50_p2a_identity.py` — the Shannon falsifier, retained because the
+  transform is the obvious thing to re-propose and this is the proof it has to
+  carry.
+* `timing50_phase2_prereg_2026-08-12.md` and this document.
+
+**Removed after use, so nothing dangles**: the two read-only capture symlinks
+into the main checkout (§6.3), and `hdl/quartus_gate_build.log`.
+`sw/testdata/ie-pinfall/` was measured and then restored with `git checkout` —
+its committed bytes never moved (§6.2).
+The only tracked files this sitting changes outside `docs/` are the three
+append-only **receipt histories** (`quartus_bitstream.jsonl`,
+`verilator_binary.jsonl`, `cxx_binary.jsonl`), which is what they are for.
