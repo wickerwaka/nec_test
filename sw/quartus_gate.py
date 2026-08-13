@@ -469,6 +469,57 @@ def report_manifest(tree, logpath):
 # WHAT THE GATE ACTUALLY RUNS -- one function, so a reviewer and a test can
 # both read the command list without starting a ten-minute compile.
 # --------------------------------------------------------------------------- #
+def preflow_command():
+    """The project's own `PRE_FLOW_SCRIPT_FILE`, run explicitly.  -> argv
+
+    ⚠ A RIG DEFECT FOUND BY THIS WAVE, AND IT IS NOT THE SWEEP'S.
+    `hdl/sys/sys.tcl:211` sets
+
+        set_global_assignment -name PRE_FLOW_SCRIPT_FILE "quartus_sh:sys/build_id.tcl"
+
+    and that hook is honoured by `quartus_sh --flow compile` and by NOTHING
+    ELSE.  Any path that invokes `quartus_map` directly skips it, so
+    `hdl/build_id.v` -- which `nec_test.sv:200` ``include`s -- is never
+    generated and Analysis & Synthesis dies with
+
+        Error (10054): ... can't open Verilog Design File "build_id.v"
+
+    **That defect is in the RECORDED FOUR-STEP `--retention` RECIPE too**, and
+    it has been latent since that recipe was first written: `build_id.v` is
+    gitignored (`hdl/.gitignore:32`) and left behind by any previous CONTROL
+    `--flow compile`, so every retention build ever taken found one already
+    there.  On a FRESH tree -- a new clone, a new worktree, or a `db` clean
+    that also removed it -- `--retention` fails at map.  Measured here, on this
+    worktree, exit 3 in 11 s.  The fix is to run the hook explicitly rather
+    than to depend on a leftover.
+
+    `$quartus(args)` 1 and 2 are the project and the revision (index 0 is the
+    flow name), which is how `--flow compile` calls it."""
+    return [str(QUARTUS_BIN / "quartus_sh"), "-t", "sys/build_id.tcl",
+            "preflow", PROJECT, REVISION]
+
+
+def build_id_state():
+    """What `build_id.v` holds -- RECORDED, deliberately NOT in the manifest.
+
+    It is a genuine build input (`nec_test.sv:200` includes it) that
+    `input_files()` does not name, and it CANNOT be added without cost: it
+    carries `BUILD_DATE` as a `%y%m%d` stamp, so folding it into the manifest
+    would move the input hash every midnight and destroy the comparability that
+    lets this wave say its 88-file manifest `c23e63aa4cf19684…` is the same one
+    the k=0.5 wave and the CHAIN_MAX draws were taken on.  So it is recorded
+    beside the manifest instead of inside it, and the gap is named rather than
+    closed silently."""
+    p = HDL / "build_id.v"
+    if not p.is_file():
+        return {"present": False, "text": None, "sha256": None,
+                "note": "absent -- the PRE_FLOW script has not run"}
+    return {"present": True, "text": p.read_text(errors="replace").strip(),
+            "sha256": art.sha256_file(p),
+            "note": "a build input NOT in input_manifest: it is a %y%m%d date "
+                    "stamp and would move the manifest hash daily"}
+
+
 def build_commands(retention=False):
     """-> [[argv], ...].  The stages, in order, as they will be run.
 
@@ -500,7 +551,16 @@ def build_commands(retention=False):
     # `configuration_detail.command_line` as
     #     quartus_map --verilog_macro=X1_AD_RETENTION=1 nec_test -c nec_test_ucore
     # i.e. UNQUOTED is what Quartus actually received, every time.
+    #
+    # ⚠ THE PRE_FLOW STAGE IS PREPENDED, AND IT IS A FIX, NOT A DEVIATION.
+    # The four recorded stages below are UNCHANGED in content and in order.
+    # What precedes them is the project's own `PRE_FLOW_SCRIPT_FILE`, which
+    # `quartus_sh --flow compile` runs and a direct `quartus_map` does not --
+    # see `preflow_command()`.  Without it this recipe cannot build on a tree
+    # that has no leftover `hdl/build_id.v`, which every previous retention
+    # build silently relied on.
     return [
+        preflow_command(),
         [q("quartus_map"), f"--verilog_macro={RETENTION_MACRO}=1",
          PROJECT, "-c", REVISION],
         [q("quartus_fit"), PROJECT, "-c", REVISION],
@@ -792,9 +852,13 @@ def parse_seed_spec(spec):
         if n < 1:
             raise ValueError("--seeds N needs N >= 1")
         return list(range(1, n + 1))
-    seeds = sorted({int(x) for x in re.split(r"[,\s]+", spec) if x})
-    if not seeds:
-        raise ValueError(f"--seeds {spec!r} names no seed")
+    toks = [x for x in re.split(r"[,\s]+", spec) if x]
+    if not toks or not all(re.fullmatch(r"\d+", t) for t in toks):
+        raise ValueError(f"--seeds {spec!r} is not a count or a list of "
+                         f"non-negative integers")
+    seeds = sorted({int(t) for t in toks})
+    if any(s < 1 for s in seeds):
+        raise ValueError("--seeds: a fitter seed must be >= 1")
     return seeds
 
 
@@ -881,11 +945,20 @@ def run_sweep(a, tree, receipt_path, logpath):
         stages_log.append({"tag": tag, "cmd": cmd, "rc": rc, "seconds": el})
         return rc
 
-    # --- THE SINGLE SHARED MAP --------------------------------------------- #
+    # --- THE PRE_FLOW HOOK, THEN THE SINGLE SHARED MAP ---------------------- #
+    # `quartus_map` invoked directly does NOT run PRE_FLOW_SCRIPT_FILE, so
+    # `hdl/build_id.v` would be missing and A&S would die at nec_test.sv:200.
+    # See `preflow_command()`.
     with open(logpath, "w") as lf:
-        rc = stage(map_command(a.retention), lf, "map")
+        rc = stage(preflow_command(), lf, "preflow")
+        if rc == 0:
+            rc = stage(map_command(a.retention), lf, "map")
+    bid = build_id_state()
+    print(f"quartus_gate: build_id.v {bid['text']!r} "
+          f"(recorded beside the manifest, not inside it)", flush=True)
     if rc != 0:
-        print(f"quartus_gate: the shared map FAILED (rc={rc}) -- no seed was "
+        print(f"quartus_gate: the shared preflow/map FAILED (rc={rc}) -- no "
+              f"seed was "
               f"fitted.  (exit 1)  log {logpath}")
         return 1
 
@@ -948,6 +1021,7 @@ def run_sweep(a, tree, receipt_path, logpath):
                          "configuration_requested": ("RETENTION" if a.retention
                                                      else "CONTROL/DEFAULT")},
                "truefmax": truefmax,
+               "build_id": bid,
                "seconds": round(time.time() - t0, 1),
                "build": {"note": "one shared quartus_map; this receipt is ONE "
                                  "FIT of the sweep",
@@ -1045,7 +1119,7 @@ def run_sweep(a, tree, receipt_path, logpath):
             "configuration": (per_seed[0]["configuration"] if per_seed
                               else "UNDETERMINED -- no seed completed"),
             "tree": str(tree), "artifact_dir": art.relpath(art_dir),
-            "E1_gen_ucore_qsf": e1,
+            "E1_gen_ucore_qsf": e1, "build_id": bid,
             "seeds": seeds, "n_seeds": n,
             "per_seed": per_seed,
             "fmax": _stat(fmaxes),
@@ -1248,6 +1322,9 @@ def main():
             print(f"quartus_gate --dry-run: DISTRIBUTION, "
                   f"{'RETENTION' if a.retention else 'CONTROL/DEFAULT'}, "
                   f"{len(seeds)} seed(s) {seeds}, cwd {HDL}")
+            print("  " + " ".join(preflow_command())
+                  + "     # ONCE (PRE_FLOW_SCRIPT_FILE; a direct "
+                    "quartus_map does not run it)")
             print("  " + " ".join(map_command(a.retention)) + "     # ONCE")
             for c in seed_commands(seeds[0], not a.no_asm):
                 print("  " + " ".join(c) + "     # per seed")

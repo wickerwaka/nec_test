@@ -133,25 +133,43 @@ def check_refused(tag, rc, out):
 
 # --------------------------------------------------------------------------- #
 def q1_retention_commands():
-    print("\nQ1  --retention builds the RECORDED four-stage recipe")
+    print("\nQ1  --retention builds the RECORDED four-stage recipe, "
+          "PRECEDED by the PRE_FLOW hook")
     cmds = qg.build_commands(retention=True)
-    check("four stages", len(cmds) == 4, f"got {len(cmds)}")
+    # ⚠ THE RECIPE GAINED A STAGE ON 2026-08-13, AND THE FOUR RECORDED ONES ARE
+    # UNCHANGED.  `hdl/sys/sys.tcl:211` sets PRE_FLOW_SCRIPT_FILE, which
+    # `quartus_sh --flow compile` honours and a direct `quartus_map` does not --
+    # so on a tree with no leftover `hdl/build_id.v` the recorded four-step
+    # recipe CANNOT BUILD (measured: A&S Error 10054, exit 3 in 11 s).  Every
+    # retention build ever taken found a `build_id.v` left behind by an earlier
+    # CONTROL `--flow compile`.  The hook now runs explicitly.
+    check("five stages: the PRE_FLOW hook + the recorded four",
+          len(cmds) == 5, f"got {len(cmds)}")
     names = [Path(c[0]).name for c in cmds]
-    check("stages in order: map, fit, asm, sta",
-          names == ["quartus_map", "quartus_fit", "quartus_asm", "quartus_sta"],
-          str(names))
+    check("the PRE_FLOW hook runs FIRST",
+          names[0] == "quartus_sh" and "sys/build_id.tcl" in cmds[0],
+          str(cmds[0]))
+    check("the RECORDED four are unchanged and in order: map, fit, asm, sta",
+          names[1:] == ["quartus_map", "quartus_fit", "quartus_asm",
+                        "quartus_sta"], str(names))
+    check("the PRE_FLOW hook is the project's own script, not a reimplementation",
+          (ROOT / "hdl" / "sys" / "build_id.tcl").is_file()
+          and "sys/build_id.tcl" in " ".join(cmds[0]))
     macro = f"--verilog_macro={qg.RETENTION_MACRO}=1"
-    check("the macro is on quartus_map", macro in cmds[0], str(cmds[0]))
+    check("the macro is on quartus_map", macro in cmds[1], str(cmds[1]))
     # UNQUOTED, because this runs without a shell.  Checked against the
     # artifact: all twelve archived retention receipts record
     # `--verilog_macro=X1_AD_RETENTION=1` as what Quartus received.
     check("the macro is UNQUOTED (no shell in the loop)",
-          all('"' not in tok for tok in cmds[0]), str(cmds[0]))
+          all('"' not in tok for tok in cmds[1]), str(cmds[1]))
     check("the macro is on NO other stage",
-          not any(any("verilog_macro" in t for t in c) for c in cmds[1:]))
-    for c in cmds:
+          not any(any("verilog_macro" in t for t in c)
+                  for c in cmds[:1] + cmds[2:]))
+    for c in cmds[1:]:
         check(f"{Path(c[0]).name} names the project and revision",
               c[-3:] == [qg.PROJECT, "-c", qg.REVISION], str(c))
+    check("the PRE_FLOW hook names the project and revision too",
+          cmds[0][-2:] == [qg.PROJECT, qg.REVISION], str(cmds[0]))
     # ...and the dry run prints exactly that.
     rc, out = run_gate(["--dry-run", "--retention"])
     check("--dry-run --retention exits 0", rc == 0, out.strip()[-200:])
@@ -264,14 +282,255 @@ def q7_configuration_still_derived():
               cfg.startswith("UNDETERMINED"), cfg)
 
 
+# =========================================================================== #
+# THE DISTRIBUTION GATE (`--seeds N`) -- Q9-Q15.
+#
+# Same charter as Q1-Q7 and the same reason: the sweep's whole claim is that
+# its N numbers are N DIFFERENT FITS OF ONE MAPPED NETLIST.  Every way that
+# claim can be false while the tool still prints a tidy table is a check here.
+# =========================================================================== #
+def q9_sweep_commands():
+    print("\nQ9  --seeds builds ONE map and N fits, and the seed is ON THE FIT")
+    mp = qg.map_command()
+    check("the shared map is quartus_map",
+          Path(mp[0]).name == "quartus_map", str(mp))
+    check("the CONTROL map carries no macro", "verilog_macro" not in " ".join(mp))
+    mpr = qg.map_command(retention=True)
+    check("the RETENTION map carries the macro",
+          f"--verilog_macro={qg.RETENTION_MACRO}=1" in mpr, str(mpr))
+    check("...unquoted (no shell in the loop)",
+          all('"' not in t for t in mpr), str(mpr))
+
+    cmds = qg.seed_commands(7)
+    names = [Path(c[0]).name for c in cmds]
+    check("per-seed stages are fit, asm, sta",
+          names == ["quartus_fit", "quartus_asm", "quartus_sta"], str(names))
+    check("the seed is on quartus_fit", "--seed=7" in cmds[0], str(cmds[0]))
+    # PINNED, not defaulted: the project carries SMART_RECOMPILE ON, and a fit
+    # that started from the previous fit's placement would make the measured
+    # spread an artefact of seed ORDER.
+    check("--recompile=off is PINNED on the fit",
+          "--recompile=off" in cmds[0], str(cmds[0]))
+    check("the seed is on NO other stage",
+          not any(any("--seed=" in t for t in c) for c in cmds[1:]))
+    # ⚠ THE ONE THAT WOULD SILENTLY RUIN THE SWEEP.  A macro on a per-seed
+    # stage would mean each draw re-elaborated -- N trees, not N fits of one.
+    check("NO stage re-maps, on either configuration",
+          not any(Path(c[0]).name == "quartus_map"
+                  for s in (qg.seed_commands(1), qg.seed_commands(1, asm=False))
+                  for c in s))
+    check("no verilog_macro on any per-seed stage",
+          not any("verilog_macro" in t for c in cmds for t in c))
+    check("--no-asm drops exactly quartus_asm",
+          [Path(c[0]).name for c in qg.seed_commands(7, asm=False)]
+          == ["quartus_fit", "quartus_sta"])
+    for c in cmds:
+        check(f"{Path(c[0]).name} names the project and revision",
+              c[-3:] == [qg.PROJECT, "-c", qg.REVISION], str(c))
+    # ...and the DEFAULT single-build path is still untouched by all of this.
+    check("build_commands() is still the historical one-stage compile",
+          qg.build_commands() == [[str(qg.QUARTUS_BIN / "quartus_sh"),
+                                   "--flow", "compile", qg.PROJECT, "-c",
+                                   qg.REVISION]])
+
+    rc, out = run_gate(["--dry-run", "--seeds", "8"])
+    check("--dry-run --seeds 8 exits 0", rc == 0, out.strip()[-200:])
+    cmdlines = [ln for ln in out.splitlines() if "/bin/quartus_" in ln]
+    check("...prints the map ONCE",
+          sum(1 for ln in cmdlines if "bin/quartus_map" in ln) == 1,
+          "\n".join(cmdlines))
+    check("...and the PRE_FLOW hook ONCE, before it",
+          [i for i, ln in enumerate(cmdlines) if "sys/build_id.tcl" in ln]
+          == [0], "\n".join(cmdlines))
+    check("...says worst-of-8", "worst-of-8@seeds{1,2,3,4,5,6,7,8}" in out, out)
+    check("...builds nothing", "compile rc=" not in out and "[map]" not in out)
+    rc, out2 = run_gate(["--dry-run", "--seeds", "2"])
+    check("--dry-run --seeds 2 prints the N<5 caveat",
+          "NOT promotion evidence" in out2, out2)
+    check("--dry-run --seeds 8 does NOT print it",
+          "NOT promotion evidence" not in out)
+
+
+def q10_seed_spec():
+    print("\nQ10 --seeds parses to a NAMED seed set (so a sweep is reproducible)")
+    check("`8` means 1..8", qg.parse_seed_spec("8") == list(range(1, 9)))
+    check("`1` means [1]", qg.parse_seed_spec("1") == [1])
+    check("a list is taken literally",
+          qg.parse_seed_spec("1,7,99") == [1, 7, 99])
+    check("a list is de-duplicated and sorted",
+          qg.parse_seed_spec("9,3,3,1") == [1, 3, 9])
+    for bad in ("0", "-3", "", "   ", "abc"):
+        try:
+            qg.parse_seed_spec(bad)
+            check(f"--seeds {bad!r} is refused", False, "it was accepted")
+        except ValueError:
+            check(f"--seeds {bad!r} is refused", True)
+        except Exception as e:                               # noqa: BLE001
+            check(f"--seeds {bad!r} is refused with ValueError", False, repr(e))
+
+
+def q11_e7_input_ordering():
+    print("\nQ11 E7: the inputs are re-hashed AFTER the build and must match")
+    pre = {"sha256": "aaa", "files": {"hdl/a.sv": "1", "hdl/b.sv": "2"}}
+    same = {"sha256": "aaa", "files": dict(pre["files"])}
+    b = qg.input_stability_bar(pre, same)
+    check("identical manifests PASS", b["pass"] is True, str(b["value"]))
+    check("...and report 0 moved", b["value"]["n_moved"] == 0)
+
+    # THE MID-BUILD RTL FLIP, AS A UNIT TEST.
+    moved = {"sha256": "bbb", "files": {"hdl/a.sv": "1", "hdl/b.sv": "CHANGED"}}
+    b = qg.input_stability_bar(pre, moved)
+    check("a file that moved mid-build is a RED", b["pass"] is False)
+    check("...and the RED NAMES the file",
+          "hdl/b.sv" in b["value"]["moved"], str(b["value"]["moved"]))
+    check("...and carries both hashes",
+          b["value"]["pre_sha256"] == "aaa" and b["value"]["post_sha256"] == "bbb")
+    # An input that APPEARED or VANISHED is a move too -- absence is a value.
+    gone = {"sha256": "ccc", "files": {"hdl/a.sv": "1"}}
+    check("a vanished input is a RED", qg.input_stability_bar(pre, gone)["pass"]
+          is False)
+    added = {"sha256": "ddd", "files": dict(pre["files"], **{"hdl/c.sv": "3"})}
+    b = qg.input_stability_bar(pre, added)
+    check("a NEW input is a RED", b["pass"] is False)
+    check("...and names it", "hdl/c.sv" in b["value"]["moved"])
+    # ORDER, not just presence: `mf` must be taken before the compile.  The
+    # structural guarantee is that `input_manifest()` is called before `build()`
+    # in main(); this reads the source so a reordering edit trips the test.
+    src = (SW / "quartus_gate.py").read_text()
+    i_pre = src.index("mf = input_manifest()")
+    i_build = src.index("b, rc = build(tree, a.keep_db")
+    i_post = src.index('rec["inputs_post"] = input_manifest()')
+    check("main() hashes inputs BEFORE build() and again AFTER",
+          i_pre < i_build < i_post, f"{i_pre} {i_build} {i_post}")
+    # ...and NOT on --parse-only, where there is no interval to bracket and the
+    # bar would pass vacuously.  A vacuous bar is worse than an absent one.
+    check("E7 is guarded by `not a.parse_only`",
+          "if not a.parse_only:" in src[i_build:i_post + 200], "guard missing")
+
+
+def q12_e8_seed_honoured():
+    print("\nQ12 E8: the fitter HONOURED the seed  (the accepted-and-ignored trap)")
+    check("both readings agree -> PASS",
+          qg.seed_honoured_bar(5, {"command_line": 5, "settings": 5})["pass"])
+    check("one reading present and agreeing -> PASS",
+          qg.seed_honoured_bar(5, {"command_line": 5, "settings": None})["pass"])
+    check("a DISAGREEING settings echo -> RED",
+          qg.seed_honoured_bar(5, {"command_line": 5, "settings": 1})["pass"]
+          is False)
+    check("a DISAGREEING command line -> RED",
+          qg.seed_honoured_bar(5, {"command_line": 1, "settings": 5})["pass"]
+          is False)
+    # ⚠ NO ECHO AT ALL IS A RED, NOT A PASS.  If it passed, a Quartus that
+    # silently dropped --seed would give 8 identical fits, a spread of 0.00 MHz
+    # and a green gate -- the reassuring-result failure mode.
+    check("NO echo at all -> RED (absence is not agreement)",
+          qg.seed_honoured_bar(5, {"command_line": None, "settings": None})
+          ["pass"] is False)
+
+    with tempfile.TemporaryDirectory(prefix="qgtest-") as d:
+        tree = Path(d)
+        rpt = tree / f"{qg.REVISION}.fit.rpt"
+        check("no fit.rpt -> both readings None",
+              qg.parse_fit_seed(tree) == {"command_line": None,
+                                          "settings": None})
+        rpt.write_text(
+            "Info: Command: quartus_fit --seed=42 --recompile=off nec_test "
+            "-c nec_test_ucore\n"
+            "; Fitter Settings                    ;\n"
+            "; Seed                               ; 42        ;\n")
+        check("both readings are recovered",
+              qg.parse_fit_seed(tree) == {"command_line": 42, "settings": 42},
+              str(qg.parse_fit_seed(tree)))
+        # The case that matters: asked 42, Quartus settled on 1.
+        rpt.write_text("Info: Command: quartus_fit --seed=42 nec_test\n"
+                       "; Seed ; 1 ;\n")
+        seen = qg.parse_fit_seed(tree)
+        check("a fitter that IGNORED the seed is visible",
+              seen == {"command_line": 42, "settings": 1}, str(seen))
+        check("...and E8 goes RED on it",
+              qg.seed_honoured_bar(42, seen)["pass"] is False)
+
+
+def q13_sweep_refusals():
+    print("\nQ13 the sweep's REFUSALS (sweep-only flags cannot be ignored)")
+    rc, out = run_gate(["--seeds", "4", "--parse-only"])
+    check_refused("--seeds --parse-only", rc, out)
+    check("explains the 0.00 MHz failure mode",
+          "0.00 MHz" in out or "DISTRIBUTION" in out, out[:300])
+    # THE ACCEPTED-AND-IGNORED TRAP, CLOSED IN ADVANCE FOR THE NEW FLAGS.
+    for flag in (["--no-asm"], ["--no-truefmax"], ["--artifact-dir", "/tmp/x"]):
+        rc, out = run_gate(flag)
+        check_refused(f"{flag[0]} without --seeds", rc, out)
+        check(f"{flag[0]}: names the trap",
+              "ACCEPTED AND IGNORED" in out.upper(), out[:300])
+    # ...and WITH --seeds they are accepted.
+    rc, out = run_gate(["--dry-run", "--seeds", "3", "--no-asm"])
+    check("--no-asm WITH --seeds is accepted", rc == 0, out.strip()[-200:])
+    check("...and quartus_asm is gone", "quartus_asm" not in out, out)
+    for bad in ("0", "abc"):
+        rc, out = run_gate(["--seeds", bad])
+        check(f"--seeds {bad} is refused", rc == 2, f"rc={rc}")
+        check(f"--seeds {bad} says REFUSING", "REFUS" in out.upper())
+
+
+def q14_truefmax_parse():
+    print("\nQ14 the per-k-class ceilings are parsed off the probe's own artifact")
+    art_txt = ROOT / "docs" / "notes" / "t1half2" / "ctl_baseline.truefmax.txt"
+    if not art_txt.exists():
+        check("the committed truefmax artifact exists", False, str(art_txt))
+        return
+    tf = qg.parse_truefmax(art_txt)
+    check("the five exception classes are all present",
+          sum(1 for k in tf if k.startswith(("DEFAULT", "k="))) == 5,
+          str(sorted(tf)))
+    d = tf["DEFAULT (whole-design worst, expect k=1)"]
+    check("DEFAULT is 42.09 MHz at k=1", d["fmax_mhz"] == 42.09 and d["k"] == 1.0,
+          str(d))
+    check("...and its endpoints are recovered",
+          "upc_opc[6]" in (d["from"] or "") and "ad_in_q[16]" in (d["to"] or ""),
+          str(d))
+    e = tf["k=0.5  (not $v30u_ce) -> t1_half2   -- the ENABLE arc"]
+    check("the k=0.5 ENABLE arc is 90.91 MHz at k=0.5",
+          e["fmax_mhz"] == 90.91 and e["k"] == 0.5, str(e))
+    check("...which is the wave's whole finding: it does NOT bind",
+          e["fmax_mhz"] > d["fmax_mhz"])
+    check("a missing artifact parses to {}, not a crash",
+          qg.parse_truefmax(ROOT / "no" / "such" / "file.txt") == {})
+
+
+def q15_summary_stats():
+    print("\nQ15 the distribution summary, and WHICH number is the quotable one")
+    s = qg._stat([42.09, 39.79, 40.5, 41.0])
+    check("min/max are draws that happened",
+          s["min"] == 39.79 and s["max"] == 42.09, str(s))
+    check("spread is max-min", s["spread"] == round(42.09 - 39.79, 4), str(s))
+    check("the median of an even N is the mean of the middle two",
+          s["median"] == (40.5 + 41.0) / 2.0, str(s))
+    check("the draws themselves are carried, not just the summary",
+          s["sorted"] == [39.79, 40.5, 41.0, 42.09])
+    check("an odd N takes the middle draw",
+          qg._stat([3.0, 1.0, 2.0])["median"] == 2.0)
+    check("no draws -> None, not 0", qg._stat([])["min"] is None)
+    check("None draws are dropped, not counted as 0",
+          qg._stat([5.0, None])["n"] == 1)
+    # THE QUOTING RULE ITSELF: the WORST draw is the one that may be quoted.
+    src = (SW / "quartus_gate.py").read_text()
+    check("`worst_of_n` is the MIN over the draws, not the mean or the max",
+          "worst = min(ok_fm)" in src)
+    check("N >= 5 is required for a PROMOTION grade",
+          '"promotion_grade": n >= 5' in src)
+    check("the sweep's verdict does not depend on the BEST draw",
+          "max(ok_fm)" not in src)
+
+
 def main():
     global VERBOSE
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("-v", "--verbose", action="store_true")
     VERBOSE = ap.parse_args().verbose
 
-    print("== test_quartus_gate: the --retention flag's falsifier "
-          "(no Quartus binary required)")
+    print("== test_quartus_gate: the --retention flag's and the DISTRIBUTION "
+          "gate's falsifier (no Quartus binary required)")
     q1_retention_commands()
     q2_control_unchanged()
     q3_env_refused()
@@ -279,6 +538,13 @@ def main():
     q5_unset_ok()
     q6_retention_parse_only_refused()
     q7_configuration_still_derived()
+    q9_sweep_commands()
+    q10_seed_spec()
+    q11_e7_input_ordering()
+    q12_e8_seed_honoured()
+    q13_sweep_refusals()
+    q14_truefmax_parse()
+    q15_summary_stats()
 
     print(f"\n{NCHECK - len(FAILS)} / {NCHECK} checks pass")
     for f in FAILS:
