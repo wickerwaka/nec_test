@@ -210,19 +210,41 @@ set obs_regs [add_to_collection \
                                       [add_to_collection \
                                            [get_registers -nowarn {*|nec_bus:*|buslock_n_q}] \
                                            [get_registers -nowarn {*|core_ad_hold[*]}]]]]]]]
-# ⚠ AMENDMENT A-1, 2026-08-12 -- THE `-from` IS `$v30u_ce`, NOT `$v30u_regs`.
-# E-1 was written before the core's two enable phases were separated, so its
-# `-from` collection included `t1_half2`, the one `ce_half`-gated flop.  Its
-# derivation above is entirely about registers that launch at a `ce`: "the core
-# launches its pins at E0".  A `ce_half`-launched flop reaches the observation
-# registers HALF A CYCLE LATER, so the same reasoning grants it strictly less,
-# not the same -- and `t1_half2` does reach them, through `ad_oe_data` -> `ad_o`
-# -> the pads -> `ad_in_q`.  Scoping the `-from` to the `ce`-gated phase removes
-# an arc this derivation never covered.  It is a TIGHTENING, in the safe
-# direction, and it is the same defect class as the 4/3 split above.
-if {[get_collection_size $v30u_ce] > 0 && [get_collection_size $obs_regs] > 0} {
-    set_multicycle_path -setup 2 -from $v30u_ce -to $obs_regs
-    set_multicycle_path -hold  1 -from $v30u_ce -to $obs_regs
+# ⚠ AMENDMENT A-1 WAS BUILT, MEASURED AND **WITHDRAWN**, 2026-08-12.  THE
+# `-from` IS DELIBERATELY THE FULL `$v30u_regs`, AND THAT IS A BOOKED USER
+# DECISION, NOT AN OVERSIGHT.  Read this before "fixing" it.
+#
+# A-1 proposed scoping this `-from` to `$v30u_ce`, on the argument that E-1's
+# derivation is written entirely about registers that launch at a `ce` ("the
+# core launches its pins at E0"), while `t1_half2` launches at a `ce_half` and
+# does reach these registers, through `ad_oe_data` -> `ad_o` -> the pads ->
+# `ad_in_q`.  Under the sec.0 contract read strictly, that arc gets 0.5 periods
+# and this exception's 2 is optimistic.
+#
+# IT WAS BUILT BOTH WAYS.  CONTROL worst-of-2, clean db, two draws each:
+#     with A-1     43.13 MHz   (+8.063, 12,279 ALMs)
+#     without A-1  45.54 MHz   (+9.403, 12,253 ALMs)
+# **A-1 COSTS 2.41 MHz** -- and the CE-phase split above costs only 0.07
+# (45.61 -> 45.54), which is how we know the two are separable.
+#
+# WHY IT IS NOT LANDED.  The contract governs the CORE's portable surface;
+# every register in `$obs_regs` is in `nec_bus`/`system_large`, which IS this
+# rig's CE generator and is not shipped downstream (M72 replaces it wholesale).
+# On the rig's own divider this arc has 3.5 periods available, not 0.5 -- a
+# `ce_half` write at E3.5 is not read by the E4 `tick_fall` consumer at all
+# (that one reads the sample written at E3) but by the E8 `tick_rise` one,
+# reading the sample written at E7.  So E-1's `-setup 2` is CONSERVATIVE here
+# on the rig-local reading and optimistic on the strict one, the two readings
+# differ by 2.41 MHz, and CHOOSING BETWEEN THEM IS THE USER'S CALL.
+# `timing50_census_2026-08-12.md` sec.5.2 states the question; sec.7.3 of
+# `timing50_phase1_results_2026-08-12.md` carries this measurement.
+#
+# E-1 IS FABRIC-CONFIRMED (`c59c2caf30`, FLASH #19) and is left exactly as it
+# was landed.  To take A-1: change `$v30u_regs` to `$v30u_ce` on the three
+# lines below and expect ~2.4 MHz.
+if {[get_collection_size $v30u_regs] > 0 && [get_collection_size $obs_regs] > 0} {
+    set_multicycle_path -setup 2 -from $v30u_regs -to $obs_regs
+    set_multicycle_path -hold  1 -from $v30u_regs -to $obs_regs
     post_message -type info \
         "nec_test.sdc: E-1 observation multicycle 2/1 applied to\
          [get_collection_size $obs_regs] nec_bus/system_large observation registers"

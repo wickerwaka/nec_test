@@ -84,6 +84,40 @@ pattern one level down).
 
 ### THE QUARTUS LEG (G6) — **NEW, SM3 SITTING 13.  IT IS TRIGGERED, NOT ALWAYS-ON.**
 
+⚠ **CURRENT BAND, RE-REGISTERED 2026-08-12 (timing50 Phase 1): CONTROL 45.54 /
+RETENTION 45.57**, worst-of-2 from a clean `db`, both draws identical in each
+configuration, TNS 0.000 setup AND hold on every domain, ALMs 12,253 / 12,213
+(29 %).  Receipts `cc878e4019cbdcd3…` / `e01e03ee28109e0e…` (CONTROL) and
+`428ae804577cabf8…` / `60d6bf83dc6da055…` (RETENTION).  It was CONTROL 45.61 /
+RETENTION 44.32 at `82d7561c4b`.
+
+**THE BAND MOVED FOR A REASON THAT IS NOT A TIMING WIN**, and it must be quoted
+with that reason: `hdl/nec_test.sdc`'s CE multicycle was **SPLIT BY ENABLE
+PHASE** because the uniform `-setup 4 -hold 3` was **DISHONEST** on the core's
+one `ce_half`-gated flop — `v30u_biu|t1_half2`, measured at
+`setup_end_multicycle 4` / latch time **109.375 ns** where the CE/CE_HALF
+portability contract warrants **46.875**.  See
+`docs/notes/timing50_census_2026-08-12.md` **§0 (the contract, verbatim)** and
+**§6 (the audit)**, and `timing50_phase1_results_2026-08-12.md` §4.
+**NO STANDING GATE COULD SEE IT**: `r7_lint` does not model exceptions,
+Verilator does not see them, and G6 *believes* the SDC.
+
+⚠ **AND TWO CAVEATS ON THE NUMBERS THEMSELVES.**  (a) **RETENTION (45.57) IS
+ABOVE CONTROL (45.54)** — the sign inversion this section has recorded and
+declined to explain before; reported, not explained.  (b) **A DECISION IS OWED
+AND IT IS WORTH 2.41 MHz**: amendment **A-1** (scoping E-1's `-from` to the
+`ce`-gated phase) was built, measured at **CONTROL 43.13 vs 45.54**, and
+**WITHDRAWN** because it changes a fabric-confirmed exception on a *reading* of
+the ruling — `timing50_phase1_results_2026-08-12.md` §7.  **A FIGURE FROM
+BEFORE 2026-08-12 MAY NOT BE QUOTED AGAINST THIS TREE'S SDC.**
+
+⚠ **SIGNALTAP IS OFF BY DEFAULT SINCE 2026-08-12**, and it cost nothing to turn
+off: the `.rbf` is **BYTE-IDENTICAL** with and without it (`277e7de5f8fcfcde…`),
+because `hdl/stp1.stp` has never existed in this repository.  `--signaltap`
+opts back in.  The JTAG hub in CONTROL's critical path is **NOT** SignalTap's —
+it is the In-System Memory Content Editor's, from three `ENABLE_RUNTIME_MOD`
+`lpm_hint`s in `capture_buf.sv`/`test_mem.sv` — and it **survives**.
+
 `python3 sw/quartus_gate.py`
 
 **Why it exists**: `ucore_provenance.md` §73.1. Sitting 11 landed RTL, ran no

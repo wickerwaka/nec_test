@@ -229,9 +229,45 @@ this is written before the build.
 the hub: the census's next-worst path is `div_cnt[4] → t1_half2` at **+8.996**
 against the hub's **+8.892**.  Worth roughly **+0.2 MHz**, and no more.
 
-### 3.4 The measurement
+### 3.4 The measurement — **ALL THREE PREDICTIONS MET, AND THE ANSWER IS ZERO**
 
-PLACEHOLDER-3.4
+A CONTROL draw from a clean `db` with the three assignments stripped from a
+**scratch** `.qsf` variant (`hdl/nec_test.qsf` edited, `gen_ucore_qsf.py`
+re-run so E1 stays green, both files reverted immediately afterwards — the tree
+was left byte-identical).  Receipt `1820d66c0f23f784…`, input manifest
+`e16f517983cbb361…` (**different** from `304b5d67ccd2cd5c…`, which is the check
+that the strip actually reached the compiler).
+
+| | SignalTap **ON** (HEAD) | SignalTap **OFF** (scratch) | Δ |
+|---|---:|---:|---:|
+| Fmax | 45.61 | **45.61** | **0.00** |
+| worst setup | +8.892 | **+8.892** | **0.000** |
+| ALMs | 12,282 | **12,282** | **0** |
+| `CORE→CORE` | +38.626 | **+38.626** | 0 |
+| `ANY→CORE` | +8.996 | **+8.996** | 0 |
+| `CORE→ANY` | +27.751 | **+27.751** | 0 |
+| `ANY→ANY` | +8.892 | **+8.892** | 0 |
+| `sld_jtag_hub` in latch histogram | 4 | **4** | 0 |
+| **`nec_test_ucore.rbf`** | `277e7de5f8fcfcde…` | **`277e7de5f8fcfcde…`** | **BYTE-IDENTICAL** |
+
+* **S-1 MET.** `sld_mod_ram_rom → sld_jtag_hub|tdo` **survives**, at the same
+  +8.892 over the same 8 levels, with `sld_mod_ram_rom` still 4 in the launch
+  histogram and `sld_jtag_hub` still 4 in the latch histogram.  The hub is
+  `ENABLE_RUNTIME_MOD`'s, exactly as §3.2 derived.
+* **S-2 MET.** 45.61 ∈ [45.0, 46.5].
+* **S-3 MET.** ALMs moved **0**, against a < 200 bar.
+
+**AND ONE STRONGER RESULT THAN ANY PREDICTION ASKED FOR: the configuration
+bitstream is BYTE-IDENTICAL.**  `ENABLE_SIGNALTAP ON` naming an `stp1.stp` that
+does not exist contributes **nothing** to the `.rbf`.  (The `.sof` differs —
+`f3351eb6f0c7e252…` vs `de6a89d32d8b6d3e…` — because it carries `.qsf`-derived
+settings metadata that the `.rbf` does not.)
+
+**CONSEQUENCE FOR P-1, and it resolves the capability question in §7.1:
+removing these lines gives up NO debug capability, because there was none.**
+Item 1 lands as **hygiene** — the `.qsf` no longer claims a debug fabric it
+does not build and no longer names a file that has never existed — and it may
+not be quoted as a timing result of any size.
 
 ---
 
