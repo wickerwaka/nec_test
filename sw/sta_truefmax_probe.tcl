@@ -112,6 +112,14 @@ set obs [get_registers -nowarn {*|nec_bus:*|ad_in_q[*]}]
 foreach nm {ad_in_q2[*] bs_q[*] qs_q[*] ube_n_q rd_n_q buslock_n_q} {
     set obs [add_to_collection $obs [get_registers -nowarn "*|nec_bus:*|$nm"]]
 }
+# RETENTION only: `core_ad_hold` is an observation register too -- it exists
+# solely to model the pad float on the path nec_bus samples, and
+# `timing50_e1_rederivation_2026-08-12.md` §6.3 counted it in the observation
+# set (28 nec_bus + 20 core_ad_hold = 48).  Absent in CONTROL, where the
+# collection is empty and this line is a no-op.
+set obs [add_to_collection $obs [get_registers -nowarn {*|system_large:*|core_ad_hold[*]}]]
+emit $fh ""
+emit $fh "  observation endpoints (incl. core_ad_hold if RETENTION): [get_collection_size $obs]"
 set rung1 [remove_from_collection $allreg $obs]
 emit $fh ""
 emit $fh "=========================================================================="
@@ -128,6 +136,13 @@ emit $fh "   that reason, and this note is why."
 set dc [get_clocks $divclk_name]
 klass $fh "RUNG 1: not latching in an observation register" $T0 \
     -from_clock $dc -to_clock $dc -to $rung1
+# ⚠ The rung queries return the worst path by SLACK, which is exactly the
+# ordering §2 says cannot find the binding path.  RUNG 1a drops t1_half2 as a
+# destination as well, so the worst SINGLE-CYCLE survivor is named -- on
+# RETENTION the raw-slack survivor is the k=0.5 ENABLE arc, which is precisely
+# the substitution the campaign's ceiling made.
+klass $fh "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)" $T0 \
+    -from_clock $dc -to_clock $dc -to [remove_from_collection $rung1 $v30u_half]
 set cint [get_registers -nowarn {*|system_large:*|c_int_q}]
 set rung2f [remove_from_collection $allreg $cint]
 klass $fh "RUNG 2: ...and not launching from c_int_q" $T0 \

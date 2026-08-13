@@ -1,0 +1,116 @@
+=== sta_halfarc_probe: nec_test / nec_test_ucore ===
+
+--- CLOCKS ---
+  altera_reserved_tck                                                    period    33.333  target altera_reserved_tck
+  FPGA_CLK1_50                                                           period    20.000  target FPGA_CLK1_50
+  FPGA_CLK2_50                                                           period    20.000  target FPGA_CLK2_50
+  FPGA_CLK3_50                                                           period    20.000  target FPGA_CLK3_50
+  sysmem|fpga_interfaces|clocks_resets|h2f_user0_clk                     period    10.000  target sysmem|fpga_interfaces|clocks_resets|h2f_user0_clk
+  hdmi_sck                                                               period   100.000  target hdmi_i2c|out_clk
+  pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0] period     2.393  target pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]
+  pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk period    40.682  target pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk
+  emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]  period     3.125  target emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]
+  emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk period    31.250  target emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk
+
+  divclk clock : emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk
+  divclk target: emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk
+  T0           : 31.250 ns
+
+  core register collection : 1866
+  t1_half2 collection      : 1
+  div_cnt collection       : 6
+
+==========================================================================
+ 1.  THE CLASSES, WITH THEIR LAUNCH-TO-LATCH DISTANCE
+==========================================================================
+
+--- WHOLE DESIGN worst setup path ---
+  from            : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[5]~DUPLICATE
+  to              : emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[7]
+  dest inverted   : 0      setup_end_multicycle: 1
+  launch / latch  :     0.000 /    31.250 ns   DISTANCE    31.250 ns
+  k (distance/T0) :    1.0000 periods
+  slack           :    +6.242 ns
+  CAMPAIGN FORMULA 1/(T0-slack)      : T_min   25.008 ns ->   39.99 MHz
+  CORRECTED        1/(T0-slack/k)    : T_min   25.008 ns ->   39.99 MHz
+
+--- CORE->CORE   (the 4/3 CE multicycle class) ---
+  from            : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE
+  to              : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  dest inverted   : 1      setup_end_multicycle: 2
+  launch / latch  :     0.000 /    46.875 ns   DISTANCE    46.875 ns
+  k (distance/T0) :    1.5000 periods
+  slack           :   +30.580 ns
+  CAMPAIGN FORMULA 1/(T0-slack)      : T_min    0.670 ns -> 1492.54 MHz
+  CORRECTED        1/(T0-slack/k)    : T_min   10.863 ns ->   92.05 MHz
+
+--- ANY->t1_half2  (all sources) ---
+  from            : emu:emu|system_large:system_large|nec_bus:bus|div_cnt[4]
+  to              : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  dest inverted   : 1      setup_end_multicycle: 1
+  launch / latch  :     0.000 /    15.625 ns   DISTANCE    15.625 ns
+  k (distance/T0) :    0.5000 periods
+  slack           :    +9.632 ns
+  CAMPAIGN FORMULA 1/(T0-slack)      : T_min   21.618 ns ->   46.26 MHz
+  CORRECTED        1/(T0-slack/k)    : T_min   11.986 ns ->   83.43 MHz
+
+--- ENABLE arc   div_cnt -> t1_half2 ---
+  from            : emu:emu|system_large:system_large|nec_bus:bus|div_cnt[4]
+  to              : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  dest inverted   : 1      setup_end_multicycle: 1
+  launch / latch  :     0.000 /    15.625 ns   DISTANCE    15.625 ns
+  k (distance/T0) :    0.5000 periods
+  slack           :    +9.632 ns
+  CAMPAIGN FORMULA 1/(T0-slack)      : T_min   21.618 ns ->   46.26 MHz
+  CORRECTED        1/(T0-slack/k)    : T_min   11.986 ns ->   83.43 MHz
+
+--- DATA arc     core -> t1_half2 ---
+  from            : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE
+  to              : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  dest inverted   : 1      setup_end_multicycle: 2
+  launch / latch  :     0.000 /    46.875 ns   DISTANCE    46.875 ns
+  k (distance/T0) :    1.5000 periods
+  slack           :   +30.580 ns
+  CAMPAIGN FORMULA 1/(T0-slack)      : T_min    0.670 ns -> 1492.54 MHz
+  CORRECTED        1/(T0-slack/k)    : T_min   10.863 ns ->   92.05 MHz
+
+--- CORE->ANY    (core launch, any latch) ---
+  from            : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[5]~DUPLICATE
+  to              : emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[7]
+  dest inverted   : 0      setup_end_multicycle: 1
+  launch / latch  :     0.000 /    31.250 ns   DISTANCE    31.250 ns
+  k (distance/T0) :    1.0000 periods
+  slack           :    +6.242 ns
+  CAMPAIGN FORMULA 1/(T0-slack)      : T_min   25.008 ns ->   39.99 MHz
+  CORRECTED        1/(T0-slack/k)    : T_min   25.008 ns ->   39.99 MHz
+
+  observation-endpoint collection : 44
+
+--- CEILING: worst path NOT latching in an observation register ---
+  from            : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[5]~DUPLICATE
+  to              : emu:emu|system_large:system_large|core_ad_hold[3]
+  dest inverted   : 0      setup_end_multicycle: 1
+  launch / latch  :     0.000 /    31.250 ns   DISTANCE    31.250 ns
+  k (distance/T0) :    1.0000 periods
+  slack           :    +6.742 ns
+  CAMPAIGN FORMULA 1/(T0-slack)      : T_min   24.508 ns ->   40.80 MHz
+  CORRECTED        1/(T0-slack/k)    : T_min   24.508 ns ->   40.80 MHz
+
+==========================================================================
+ 2.  PERIOD SWEEP -- slack(T) on the SAME fitted netlist
+==========================================================================
+
+  PRE-REGISTERED PREDICTION (written into this script before it was run):
+    d(slack)/dT must equal the k reported in section 1 for each path.
+    A single-cycle path moves 1.000 ns of slack per 1.000 ns of period;
+    the ENABLE arc must move 0.500; the CE-multicycle class 4.000.
+
+  path                                             T=31.250   T=28.125   T=25.000
+  whole                                               6.242      3.167      0.042
+                                                 MEASURED d(slack)/dT =  0.9920
+  corecore                                           30.580     25.942     21.255
+                                                 MEASURED d(slack)/dT =  1.4920
+  enable                                              9.632      8.119      6.557
+                                                 MEASURED d(slack)/dT =  0.4920
+  ceiling                                             6.742      3.667      0.542
+                                                 MEASURED d(slack)/dT =  0.9920
