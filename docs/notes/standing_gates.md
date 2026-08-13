@@ -84,6 +84,43 @@ pattern one level down).
 
 ### THE QUARTUS LEG (G6) — **NEW, SM3 SITTING 13.  IT IS TRIGGERED, NOT ALWAYS-ON.**
 
+⚠⚠ **CURRENT BAND, RE-REGISTERED 2026-08-12 AT `a1c63e78e4` — E-1 IS DELETED
+AND THE BAND FELL: CONTROL 41.18 MHz / +6.964 ns / 12,271 ALMs (29 %) ·
+RETENTION 42.28 MHz / +7.600 ns / 12,317 ALMs (29 %)**, worst-of-2 from a clean
+`db`, TNS 0.000 setup AND hold on all four domains, 0 errors / 0 latches /
+0 `lpm_divide`, both draws identical in each configuration **including the
+`.rbf` hash** (CTL `ebae5fbfeb280ab8…`, RET `65f10e13d23379cb…` — different, so
+`--verilog_macro` reached the compiler).  Receipts `f57235437d33ae02…` /
+`e0ddd68d0aaf7b38…` (CONTROL; a third census draw `d89edb0c6f805abd…` read
+41.18 again) and `f26ea5ae09317125…` / `f6a5a77611f22e8f…` (RETENTION), all on
+the 88-file input manifest **`837b0c700ac2138b…`**.
+
+**WHY IT FELL, and it is not a regression**: the **USER RULING of 2026-08-12,
+part 2 — the ce/ce_half portability contract is UNIVERSAL, rig-side included**.
+E-1's `-setup 2` was derived from `div/2 − 1`, and re-derived from C-a/C-b/C-c
+alone it is **short by exactly one fabric clock** (the binding consumers are
+`ce_half`-gated; C-b puts the earliest `ce_half` two clocks after the launching
+`ce`; the sample actually read had ONE period).  **E-1 IS DELETED**
+(`a1c63e78e4`, re-derivation committed first at `1b4b3d3f67`,
+`docs/notes/timing50_e1_rederivation_2026-08-12.md`).  Cost **−4.36 / −3.29
+MHz**, reported as measured.  **AMENDMENT A-1 IS PERMANENTLY WITHDRAWN** — the
+deletion is strictly tighter than A-1 was, so *"a decision is owed and it is
+worth 2.41 MHz"* below is **DISCHARGED, against A-1**.
+
+⚠ **WHAT BINDS NOW, BOTH CONFIGURATIONS: `v30u_eu|upc_opc[*] →
+nec_bus|ad_in_q[*]`, 29-40 logic levels, `CORE→ANY`, single-cycle, 60 of the
+top 60.**  ⚠ **AND `c_int_q` NO LONGER BINDS** — measured **+9.233 (CTL) /
++9.374 (RET)** against the binding +6.964 / +7.600, so a Phase-2 wave scoped to
+it would measure a benefit of **0.00 MHz**.  ⚠ **THE CEILING BEHIND THE WHOLE
+OBSERVATION CLASS IS MEASURED: 45.17 / 44.10 MHz** (`div_cnt[4] → t1_half2`,
+the half-period ENABLE arc, RTL-only), so **50 MHz is not reachable by any
+constraint work and not by `c_int_q` either**.
+
+⚠ **THE BOARD STILL CARRIES FLASH #19, WHICH HAS E-1 IN ITS SDC.**  The tree and
+the board now disagree about the constraint set; a fabric figure taken on
+FLASH #19 is a figure taken **with** E-1 in force.
+
+*Superseded, kept because a ratchet is only readable against its own history:*
 ⚠ **CURRENT BAND, RE-REGISTERED 2026-08-12 (timing50 Phase 1): CONTROL 45.54 /
 RETENTION 45.57**, worst-of-2 from a clean `db`, both draws identical in each
 configuration, TNS 0.000 setup AND hold on every domain, ALMs 12,253 / 12,213
@@ -105,8 +142,11 @@ Verilator does not see them, and G6 *believes* the SDC.
 
 ⚠ **AND TWO CAVEATS ON THE NUMBERS THEMSELVES.**  (a) **RETENTION (45.57) IS
 ABOVE CONTROL (45.54)** — the sign inversion this section has recorded and
-declined to explain before; reported, not explained.  (b) **A DECISION IS OWED
-AND IT IS WORTH 2.41 MHz**: amendment **A-1** (scoping E-1's `-from` to the
+declined to explain before; reported, not explained.  **It survived the E-1
+deletion and got bigger: 42.28 against 41.18, +1.10.**  (b) ⚠ **DISCHARGED
+2026-08-12 — the decision was taken and it went AGAINST A-1: E-1 was deleted
+outright, which is strictly tighter.  The clause that follows is history.**
+**A DECISION IS OWED AND IT IS WORTH 2.41 MHz**: amendment **A-1** (scoping E-1's `-from` to the
 `ce`-gated phase) was built, measured at **CONTROL 43.13 vs 45.54**, and
 **WITHDRAWN** because it changes a fabric-confirmed exception on a *reading* of
 the ruling — `timing50_phase1_results_2026-08-12.md` §7.  **A FIGURE FROM
@@ -154,6 +194,17 @@ accepted or any bitstream is flashed.** The FAST LADDER does not wait on it —
 Verilator, the goldens and the fuzz bank run as they do today; the RTL
 PROMOTION does. That is the line where the ~9-minute cost is paid once.
 
+> ### ⚠⚠ **THE WHOLE OF THIS BLOCK IS THE E-1 ERA AND E-1 WAS DELETED ON
+> ### 2026-08-12 (`a1c63e78e4`).  IT IS HISTORY — NOT ONE FIGURE IN IT IS
+> ### THIS TREE'S, AND ITS THREE ⚠ CLAUSES ARE DISCHARGED OR MOOT:**
+> ### the band (superseded, see the top of this section), the *"decision owed,
+> ### 2.41 MHz"* (**DISCHARGED against A-1**), and *"E-1 IS NOT PROMOTED TO A
+> ### FLASH … the registered fabric bar"* (**MOOT** — FLASH #19 carried it and
+> ### met that bar; no future bitstream carries it, and no fabric debt is owed
+> ### for it).  Kept verbatim because a ratchet is only readable against its
+> ### own history.  The re-derivation that retired it:
+> ### `docs/notes/timing50_e1_rederivation_2026-08-12.md`.
+>
 > ### ⚠ THE BAND MOVED 2026-08-11 — **E-1, THE OBSERVATION-PATH MULTICYCLE.
 > ### READ THIS BEFORE QUOTING ANY Fmax ON THIS BRANCH.**
 >

@@ -291,6 +291,28 @@ the top 60 paths in RETENTION and 48 of 60 in CONTROL.**
 
 ## §7 A-1 — BUILT, MEASURED, **WITHDRAWN**, AND BOOKED AS A USER DECISION
 
+> ## ⚠⚠ **THE DECISION §7.3 AND §8 BOOK AS "OWED BY THE USER" WAS TAKEN ON
+> ## 2026-08-12, AND IT WENT AGAINST A-1 — READ THIS BEFORE QUOTING 2.41 MHz.**
+>
+> **USER RULING, part 2: the ce/ce_half contract is UNIVERSAL** — the *strict*
+> reading of §7.3, extended to every arc the SDC writes, rig-side included.
+> **So E-1 was not narrowed to `$v30u_ce`; it was DELETED** (`a1c63e78e4`,
+> re-derivation `1b4b3d3f67`,
+> `docs/notes/timing50_e1_rederivation_2026-08-12.md`).
+>
+> * **A-1 IS PERMANENTLY WITHDRAWN.**  It fixed only the negedge
+>   `t1_half2 → obs` arc; the deletion fixes that arc **and** the `ce` arcs,
+>   so it is strictly tighter and A-1's **−2.41 MHz** is a lower bound on the
+>   deletion's cost, not a substitute for it.
+> * **THE 45.54 / 45.57 BAND IN §0 AND §2.1 IS SUPERSEDED** — it was measured
+>   with E-1 in the SDC.  It remains true of the tree it was taken on.
+> * **§8's "one decision is owed by the user … worth 2.41 MHz" is
+>   DISCHARGED**, and the Phase-2 recommendation is unaffected: `c_int_q` was
+>   the binding cone with E-1 in force, and §6.3 of
+>   `ghost_preflash20_results_2026-08-12.md` — which offered an *"E-1
+>   analogue"* as the SDC form of it — is **void**: it names a divider, and the
+>   claim it offered to be the same as no longer exists.
+
 ### 7.1 What A-1 was
 
 E-1's `-from` collection was also `$v30u_regs`, so E-1's 2-period relaxation

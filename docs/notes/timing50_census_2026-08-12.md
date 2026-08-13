@@ -332,6 +332,36 @@ RETENTION by the INT cone**, which is
 this tree's own builds.  The 1.29 MHz gap is *which of two unrelated cones
 happens to bind*, not a cost of the retention model.
 
+### 4.3a ⚠ **THE CENSUS AS RE-TAKEN AFTER E-1 WAS DELETED (2026-08-12,
+### `a1c63e78e4`) — §4.1 AND §4.2 ARE THE E-1 ERA AND ARE SUPERSEDED**
+
+Same instruments (`sta_census.tcl`, `sta_probe.tcl`, and the new
+`sta_e1_probe.tcl`), same corner, each on its **own** fitted `db`.  Full
+treatment: `timing50_e1_rederivation_2026-08-12.md` §6.
+
+| worst path per class | CONTROL (E-1) | **CONTROL (deleted)** | RETENTION (E-1) | **RETENTION (deleted)** |
+|---|---:|---:|---:|---:|
+| `CORE→CORE` | +38.626 | **+30.696** | +36.355 | **+30.789** |
+| `CORE→ANY` (**the E-1 cone**) | +27.751 | **+6.964** ⟵ **BINDS** | +25.579 | **+7.600** ⟵ **BINDS** |
+| `ANY→CORE` | +8.996 | +9.114 | **+8.689** (`c_int_q`) | +8.573 (`div_cnt→t1_half2`) |
+| `ANY→ANY` | **+8.892** (JTAG hub) | +6.964 | +8.689 | +7.600 |
+
+**Top-60 population, BOTH configurations: `CORE→OUT` 60 of 60**, launch
+`v30u_eu` 60, latch `nec_bus` 60 — one cone, `upc_opc[*] → ad_in_q[*]` at 29-40
+logic levels.  **This is F-2's class, restored to visibility.**
+
+**THREE THINGS §4.1/§4.2's readings no longer support:**
+
+1. **"E-1's cone is not binding"** (§4.1's `sta_probe` ceiling leg) — it is now
+   the binding cone in both configurations, and the ceiling behind it is
+   `div_cnt[4] → t1_half2` at **+9.114 (CTL) / +8.573 (RET)**, i.e. **45.17 /
+   44.10 MHz** for a perfect fix of the whole observation class.
+2. **"CONTROL is bound by the debug fabric"** (§4.2) — the JTAG hub is at
+   **+9.522** here and does not bind.
+3. **"`c_int_q → row_posted` is the Phase-2 cone"** (§4.2, §8.1) — measured
+   **+9.233 (CTL) / +9.374 (RET)** on the E-1-less tree: **it does not bind,
+   and closing it entirely would move Fmax by zero.**
+
 ### 4.3 The single sentence the census produces
 
 **Both configurations are floored by single-cycle boundary crossings whose
@@ -374,6 +404,29 @@ honest exception is `-setup 1` — no relaxation at all.**
 **So `-setup 3` is not derivable, and P-2 is WITHDRAWN rather than scored.**
 
 ### 5.2 ⚠ AND AN OPEN QUESTION FOR THE USER, REPORTED NOT ACTED ON
+
+> ## ⚠⚠ **THIS QUESTION WAS ANSWERED THE SAME DAY, AND THE ANSWER IS "B" —
+> ## THE SECTION BELOW IS HISTORY, NOT AN OPEN ITEM.**
+>
+> **USER RULING, 2026-08-12, part 2:** the contract is **UNIVERSAL**.  It
+> governs **every arc the SDC writes**, rig-side included — the second of the
+> two readings §5.2 offers.  Consequences, all of them taken:
+>
+> * **E-1 IS DELETED** (`a1c63e78e4`).  Not narrowed — deleted.  The
+>   re-derivation from C-a/C-b/C-c alone is short by **exactly one fabric
+>   clock**: the binding consumers are `ce_half`-gated, C-b puts the earliest
+>   `ce_half` two clocks after the launching `ce`, and the sample that is
+>   actually read had **one** period.  Full attempt, the four closed escapes,
+>   and the one surviving fragment (`core_ad_hold[19:16]`, booked not landed):
+>   **`docs/notes/timing50_e1_rederivation_2026-08-12.md`**.
+> * **AMENDMENT A-1 IS PERMANENTLY WITHDRAWN.**  The deletion is strictly
+>   tighter than A-1 was, in both directions.
+> * ⚠ **§5.2's closing sentence — *"Either answer is cheap"* — WAS WRONG, and
+>   this document said the wrong thing for the right reason.**  It reasoned
+>   from the E-1 cone's +27.751 / +25.579 ns of slack *as measured with E-1 in
+>   force*; removing the exception halves that cone's budget, and the measured
+>   cost is in §5 of the re-derivation note.  **A slack figure measured under an
+>   exception is not evidence about the tree without it.**
 
 The same derivation says the **landed** `-setup 2` is not derivable from the
 contract either.  It is derivable only on a **rig-local** reading:
