@@ -1,0 +1,184 @@
+quartus_gate: E1 gen_ucore_qsf --check -> PASS: gen_ucore_qsf: nec_test_ucore.qsf is up to date
+quartus_gate: sweep over 5 seed(s) [1, 2, 3, 4, 5], CONTROL/DEFAULT, inputs 88 files sha256 d47c1d003d64c4c5…
+quartus_gate: [preflow] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sh -t sys/build_id.tcl preflow nec_test nec_test_ucore
+quartus_gate:   [preflow] rc=0 in 1s
+quartus_gate: [map] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_map nec_test -c nec_test_ucore
+quartus_gate:   [map] rc=0 in 185s
+quartus_gate: build_id.v '`define BUILD_DATE "260813"' (recorded beside the manifest, not inside it)
+
+quartus_gate: === seed 1  (1/5) ===
+quartus_gate: [seed1:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=1 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed1:quartus_fit] rc=0 in 448s
+quartus_gate: [seed1:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed1:quartus_asm] rc=0 in 19s
+quartus_gate: [seed1:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed1:quartus_sta] rc=0 in 12s
+quartus_gate: [seed1:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed1
+quartus_gate:   [seed1:truefmax] rc=0 in 27s
+quartus_gate: seed 1: PASS  Fmax 41.71  setup 7.276  ALMs 10,154 / 41,910 ( 24 % )  receipt 30d4f7773f10c58c…
+
+quartus_gate: === seed 2  (2/5) ===
+quartus_gate: [seed2:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=2 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed2:quartus_fit] rc=0 in 494s
+quartus_gate: [seed2:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed2:quartus_asm] rc=0 in 19s
+quartus_gate: [seed2:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed2:quartus_sta] rc=0 in 14s
+quartus_gate: [seed2:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed2
+quartus_gate:   [seed2:truefmax] rc=0 in 40s
+quartus_gate: seed 2: PASS  Fmax 42.48  setup 7.71  ALMs 10,105 / 41,910 ( 24 % )  receipt c7c46f51cf2d0512…
+
+quartus_gate: === seed 3  (3/5) ===
+quartus_gate: [seed3:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=3 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed3:quartus_fit] rc=0 in 467s
+quartus_gate: [seed3:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed3:quartus_asm] rc=0 in 18s
+quartus_gate: [seed3:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed3:quartus_sta] rc=0 in 12s
+quartus_gate: [seed3:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed3
+quartus_gate:   [seed3:truefmax] rc=0 in 37s
+quartus_gate: seed 3: PASS  Fmax 42.57  setup 7.758  ALMs 10,116 / 41,910 ( 24 % )  receipt ebf58d433c79e632…
+
+quartus_gate: === seed 4  (4/5) ===
+quartus_gate: [seed4:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=4 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed4:quartus_fit] rc=0 in 469s
+quartus_gate: [seed4:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed4:quartus_asm] rc=0 in 18s
+quartus_gate: [seed4:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed4:quartus_sta] rc=0 in 12s
+quartus_gate: [seed4:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed4
+quartus_gate:   [seed4:truefmax] rc=0 in 27s
+quartus_gate: seed 4: PASS  Fmax 42.5  setup 7.722  ALMs 10,115 / 41,910 ( 24 % )  receipt ff66c45955d19a1f…
+
+quartus_gate: === seed 5  (5/5) ===
+quartus_gate: [seed5:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=5 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed5:quartus_fit] rc=0 in 448s
+quartus_gate: [seed5:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed5:quartus_asm] rc=0 in 18s
+quartus_gate: [seed5:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed5:quartus_sta] rc=0 in 13s
+quartus_gate: [seed5:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed5
+quartus_gate:   [seed5:truefmax] rc=0 in 32s
+quartus_gate: seed 5: PASS  Fmax 44.36  setup 8.708  ALMs 10,085 / 41,910 ( 24 % )  receipt 4f7b4504fd431701…
+
+quartus_gate: E7 input stability -> PASS  (1 file(s) moved during the sweep; exempt ['hdl/nec_test_ucore.qsf'], OFFENDING [])
+
+  --- quartus_gate (G6) DISTRIBUTION ---
+  tool     : Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition
+  config   : CONTROL/DEFAULT (no X1_AD_RETENTION) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt
+  inputs   : 88 files, sha256 d47c1d003d64c4c5…   E7 PASS
+  seeds    : [1, 2, 3, 4, 5]   (one shared quartus_map, 5 fits)
+    seed      Fmax     setup              ALMs  verdict
+       1     41.71     7.276  10,154 / 41,910 ( 24 % )  PASS
+       2     42.48      7.71  10,105 / 41,910 ( 24 % )  PASS
+       3     42.57     7.758  10,116 / 41,910 ( 24 % )  PASS
+       4      42.5     7.722  10,115 / 41,910 ( 24 % )  PASS
+       5     44.36     8.708  10,085 / 41,910 ( 24 % )  PASS
+  Fmax     : min 41.71  median 42.5  max 44.36   SPREAD 2.65 MHz
+    class   DEFAULT (whole-design worst, expect k=1)       min 41.71  med 42.5  max 44.36  spread 2.65
+    class   RUNG 1: not latching in an observation registe min 42.5  med 73.56  max 94.73  spread 52.23
+    class   RUNG 1a: ...and not t1_half2 either (the worst min 42.5  med 47.34  max 94.79  spread 52.29
+    class   RUNG 2: ...and not launching from c_int_q      min 42.92  med 77.92  max 94.73  spread 51.81
+    class   RUNG 3: ...and not latching in row_posted      min 42.92  med 77.92  max 94.73  spread 51.81
+    class   k=0.5  (not $v30u_ce) -> t1_half2   -- the ENA min 73.56  med 77.98  max 94.73  spread 21.17
+    class   k=1.5  $v30u_ce -> t1_half2                    min 94.8  med 100.95  max 104.11  spread 9.31
+    class   k=2.5  t1_half2 -> $v30u_ce                    min 228.98  med 267.24  max 290.83  spread 61.85
+    class   k=4.0  $v30u_ce -> $v30u_ce   (the CE multicyc min 60.67  med 60.99  max 104.11  spread 43.44
+  binding cone distinct endpoint pairs over 5 draws: 5
+
+  *** THE QUOTABLE FIGURE: worst-of-5@seeds{1,2,3,4,5} = 41.71 MHz (worst seed 1) ***
+  record   : sw/testdata/g6dist/adcone-l1-control-n5/distribution.json  id 65649b8f8b7e7451…
+=== quartus_gate DISTRIBUTION: PASS   2850s
+quartus_gate: removing pre-existing receipt /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/quartus_gate.json (a receipt is an OUTPUT; the history is /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/testdata/receipts/quartus_bitstream.jsonl)
+quartus_gate: E1 gen_ucore_qsf --check -> PASS: gen_ucore_qsf: nec_test_ucore.qsf is up to date
+quartus_gate: sweep over 5 seed(s) [1, 2, 3, 4, 5], RETENTION, inputs 88 files sha256 d47c1d003d64c4c5…
+quartus_gate: [preflow] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sh -t sys/build_id.tcl preflow nec_test nec_test_ucore
+quartus_gate:   [preflow] rc=0 in 1s
+quartus_gate: [map] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_map --verilog_macro=X1_AD_RETENTION=1 nec_test -c nec_test_ucore
+quartus_gate:   [map] rc=0 in 185s
+quartus_gate: build_id.v '`define BUILD_DATE "260813"' (recorded beside the manifest, not inside it)
+
+quartus_gate: === seed 1  (1/5) ===
+quartus_gate: [seed1:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=1 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed1:quartus_fit] rc=0 in 442s
+quartus_gate: [seed1:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed1:quartus_asm] rc=0 in 18s
+quartus_gate: [seed1:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed1:quartus_sta] rc=0 in 12s
+quartus_gate: [seed1:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed1
+quartus_gate:   [seed1:truefmax] rc=0 in 26s
+quartus_gate: seed 1: PASS  Fmax 45.21  setup 8.988  ALMs 10,194 / 41,910 ( 24 % )  receipt 9489e2be633e18c5…
+
+quartus_gate: === seed 2  (2/5) ===
+quartus_gate: [seed2:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=2 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed2:quartus_fit] rc=0 in 398s
+quartus_gate: [seed2:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed2:quartus_asm] rc=0 in 13s
+quartus_gate: [seed2:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed2:quartus_sta] rc=0 in 8s
+quartus_gate: [seed2:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed2
+quartus_gate:   [seed2:truefmax] rc=0 in 20s
+quartus_gate: seed 2: PASS  Fmax 43.5  setup 8.261  ALMs 10,145 / 41,910 ( 24 % )  receipt 4195a668dfe06867…
+
+quartus_gate: === seed 3  (3/5) ===
+quartus_gate: [seed3:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=3 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed3:quartus_fit] rc=0 in 326s
+quartus_gate: [seed3:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed3:quartus_asm] rc=0 in 13s
+quartus_gate: [seed3:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed3:quartus_sta] rc=0 in 8s
+quartus_gate: [seed3:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed3
+quartus_gate:   [seed3:truefmax] rc=0 in 19s
+quartus_gate: seed 3: PASS  Fmax 44.33  setup 6.758  ALMs 10,178 / 41,910 ( 24 % )  receipt 26f44708bdc72b39…
+
+quartus_gate: === seed 4  (4/5) ===
+quartus_gate: [seed4:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=4 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed4:quartus_fit] rc=0 in 429s
+quartus_gate: [seed4:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed4:quartus_asm] rc=0 in 17s
+quartus_gate: [seed4:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed4:quartus_sta] rc=0 in 12s
+quartus_gate: [seed4:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed4
+quartus_gate:   [seed4:truefmax] rc=0 in 28s
+quartus_gate: seed 4: PASS  Fmax 43.84  setup 8.442  ALMs 10,134 / 41,910 ( 24 % )  receipt ff74cb5f9faf734e…
+
+quartus_gate: === seed 5  (5/5) ===
+quartus_gate: [seed5:quartus_fit] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit --seed=5 --recompile=off nec_test -c nec_test_ucore
+quartus_gate:   [seed5:quartus_fit] rc=0 in 410s
+quartus_gate: [seed5:quartus_asm] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm nec_test -c nec_test_ucore
+quartus_gate:   [seed5:quartus_asm] rc=0 in 18s
+quartus_gate: [seed5:quartus_sta] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta nec_test -c nec_test_ucore
+quartus_gate:   [seed5:quartus_sta] rc=0 in 12s
+quartus_gate: [seed5:truefmax] /home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/sw/sta_truefmax_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/output_files_ucore/g6dist_seed5
+quartus_gate:   [seed5:truefmax] rc=0 in 27s
+quartus_gate: seed 5: PASS  Fmax 44.8  setup 8.929  ALMs 10,166 / 41,910 ( 24 % )  receipt 041a918ff93a9a2a…
+
+quartus_gate: E7 input stability -> PASS  (1 file(s) moved during the sweep; exempt ['hdl/nec_test_ucore.qsf'], OFFENDING [])
+
+  --- quartus_gate (G6) DISTRIBUTION ---
+  tool     : Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition
+  config   : RETENTION (X1_AD_RETENTION=1) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt
+  inputs   : 88 files, sha256 d47c1d003d64c4c5…   E7 PASS
+  seeds    : [1, 2, 3, 4, 5]   (one shared quartus_map, 5 fits)
+    seed      Fmax     setup              ALMs  verdict
+       1     45.21     8.988  10,194 / 41,910 ( 24 % )  PASS
+       2      43.5     8.261  10,145 / 41,910 ( 24 % )  PASS
+       3     44.33     6.758  10,178 / 41,910 ( 24 % )  PASS
+       4     43.84     8.442  10,134 / 41,910 ( 24 % )  PASS
+       5      44.8     8.929  10,166 / 41,910 ( 24 % )  PASS
+  Fmax     : min 43.5  median 44.33  max 45.21   SPREAD 1.71 MHz
+    class   DEFAULT (whole-design worst, expect k=1)       min 43.5  med 44.8  max 75.34  spread 31.84
+    class   RUNG 1: not latching in an observation registe min 45.96  med 68.75  max 78.91  spread 32.95
+    class   RUNG 1a: ...and not t1_half2 either (the worst min 45.21  med 46.57  max 79.03  spread 33.82
+    class   RUNG 2: ...and not launching from c_int_q      min 56.39  med 75.34  max 83.0  spread 26.61
+    class   RUNG 3: ...and not latching in row_posted      min 56.39  med 75.34  max 83.0  spread 26.61
+    class   k=0.5  (not $v30u_ce) -> t1_half2   -- the ENA min 56.39  med 75.34  max 83.0  spread 26.61
+    class   k=1.5  $v30u_ce -> t1_half2                    min 103.85  med 105.34  max 107.98  spread 4.13
+    class   k=2.5  t1_half2 -> $v30u_ce                    min 225.57  med 283.58  max 296.63  spread 71.06
+    class   k=4.0  $v30u_ce -> $v30u_ce   (the CE multicyc min 59.52  med 60.44  max 103.87  spread 44.35
+  binding cone distinct endpoint pairs over 5 draws: 5
+
+  *** THE QUOTABLE FIGURE: worst-of-5@seeds{1,2,3,4,5} = 43.5 MHz (worst seed 2) ***
+  record   : sw/testdata/g6dist/adcone-l1-retention-n5/distribution.json  id 2c53275e981ebf85…
+=== quartus_gate DISTRIBUTION: PASS   2465s
+G6 BOTH CONFIGURATIONS DONE

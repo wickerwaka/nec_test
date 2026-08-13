@@ -1,0 +1,34 @@
+Info: *******************************************************************
+Info: Running Quartus Prime Shell
+    Info: Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition
+    Info: Copyright (C) 2017  Intel Corporation. All rights reserved.
+    Info: Your use of Intel Corporation's design tools, logic functions 
+    Info: and other software and tools, and its AMPP partner logic 
+    Info: functions, and any output files from any of the foregoing 
+    Info: (including device programming or simulation files), and any 
+    Info: associated documentation or information are expressly subject 
+    Info: to the terms and conditions of the Intel Program License 
+    Info: Subscription Agreement, the Intel Quartus Prime License Agreement,
+    Info: the Intel FPGA IP License Agreement, or other applicable license
+    Info: agreement, including, without limitation, that your use is for
+    Info: the sole purpose of programming logic devices manufactured by
+    Info: Intel and sold by Intel or its authorized distributors.  Please
+    Info: refer to the applicable agreement for further details.
+    Info: Processing started: Thu Aug 13 08:21:43 2026
+Info: Command: quartus_sh -t sys/build_id.tcl preflow nec_test nec_test_ucore
+Info: Quartus(args): preflow nec_test nec_test_ucore
+Info (23030): Evaluation of Tcl script sys/build_id.tcl was successful
+Info: Quartus Prime Shell was successful. 0 errors, 0 warnings
+    Info: Peak virtual memory: 744 megabytes
+    Info: Processing ended: Thu Aug 13 08:21:44 2026
+    Info: Elapsed time: 00:00:01
+    Info: Total CPU time (on all processors): 00:00:00
+ucrom_mif_check: 2 v30u_ucrom table(s) emitted into /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/db
+  [OK ] nec_test_ucore.ram0_v30u_ucrom_f358d0ef.hdl.mif
+        8192 x 12  <- ucdecode.hex (8192 lines)  non-zero words 1656
+        every one of 8192 words identical
+  [OK ] nec_test_ucore.ram1_v30u_ucrom_f358d0ef.hdl.mif
+        1028 x 29  <- ucrom.hex (1028 lines)  non-zero words 1028
+        every one of 1028 words identical
+ucrom_mif_check: PASS -- every emitted microcode table matches its .hex word for word
+CENSUS ctl DONE

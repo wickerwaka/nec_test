@@ -1,0 +1,8 @@
+ucrom_mif_check: 2 v30u_ucrom table(s) emitted into /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/db
+  [OK ] nec_test_ucore.ram0_v30u_ucrom_f358d0ef.hdl.mif
+        8192 x 12  <- ucdecode.hex (8192 lines)  non-zero words 1656
+        every one of 8192 words identical
+  [OK ] nec_test_ucore.ram1_v30u_ucrom_f358d0ef.hdl.mif
+        1028 x 29  <- ucrom.hex (1028 lines)  non-zero words 1028
+        every one of 1028 words identical
+ucrom_mif_check: PASS -- every emitted microcode table matches its .hex word for word

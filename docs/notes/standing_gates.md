@@ -155,6 +155,85 @@ derived ceilings and inter-draw claims are affected.)*
 
 ---
 
+### ⚠⚠⚠⚠ **CURRENT BAND — L1 LANDED 2026-08-13.  CONTROL `worst-of-5` 41.71 · RETENTION 43.50**
+
+`docs/notes/adcone_l1_results_2026-08-13.md`; anatomy first at `05bd462643` /
+`83c00e753f`, pre-registration `107c0e3877` **before the edit**, edit
+`9bf70f2eec`.  Input manifest **`d47c1d003d64c4c5…`**.
+
+| | worst-of-5@seeds{1,2,3,4,5} | was (same seeds) | Δ | median | spread |
+|---|---:|---:|---:|---:|---:|
+| **CONTROL** | **41.71** (seed 1) | 38.97 | **+2.74** | 42.50 | 2.65 (was 3.34) |
+| **RETENTION** | **43.50** (seed 2) | 39.74 | **+3.76** | 44.33 | 1.71 (was 4.00) |
+
+Records `65649b8f8b7e7451…` and `2c53275e981ebf85…`; both sweeps `verdict PASS`
+on E7-E10, **TNS 0.000 setup AND hold on all ten draws**, ALMs **24 %**
+(10,085-10,194, down ~230 CTL / ~70 RET).  ⚠ The two bands **OVERLAP**
+([41.71, 44.36] vs [43.50, 45.21]) so **no control-vs-retention delta may be
+computed**, per the distribution gate's own rule.
+
+**THE EDIT — twelve lines, no SDC change, no new SSA address.**  `ucdecode`'s
+address is `{upc_page, upc_opc, upc_loc[3:2]}`, thirteen bits all committed by
+the EU's one `if (ss_we || srst || ce)`; the decode is now READ ON THAT EDGE
+from `dec_addr_next`, which is character for character the bank's own
+selection.  **Pin identity is a CONSTRUCTION, not an experiment**, and the
+measurement agrees: `fz2_replay` **306 seeds / 1,243,278 rows**,
+`chain_lfsr_gate` **4/4 signatures over 4 × 400,000 clocks**, `ie_pinfall_cell
+core` **2,200 cells** — all **BYTE-IDENTICAL** against a before-run on this
+tree — plus the full golden ladder unmoved (169,000 · 500 · 279/283 · 17,350 ·
+S16 1,320/1,371 · `check_ab_sim` 187 · `check_boot` 220/400 · every `evt` cell).
+
+⚠ **QUARTUS NOW INFERS AN M10K FOR `ucdecode`** (it refused before, for
+*asynchronous read logic*): `altsyncram:ucdecode_rtl_0`, ROM 8192 × 12, `dec_q`
+packed in as its ADDRESS register.  **A NEW GATE EXISTS BECAUSE OF IT —
+`python3 sw/ucrom_mif_check.py`**, the microcode's SYNTHESIS-side F44 check
+(§45.4 item 2), which the ladder never had: Verilator reads the `.hex` and never
+sees the `.mif` Quartus programs.  **PASS on both configurations, every word of
+8192 × 12 and 1028 × 29 identical**; non-vacuous (one flipped bit → FAIL).  It
+reads `hdl/db/`, so it is **on-demand after a build, not standing**.
+⚠ **A FABRIC BAR IS OWED before any flash of a bitstream whose `ucdecode` is a
+block memory** — F44's failure mode is a silent empty table.  **This wave
+flashed nothing.**
+
+⚠ **THE LEVER IS NOW SPENT, AND THAT IS MEASURED.**  On CONTROL seed 1 the
+observation class binds at **+7.276** and **`c_int_q → v30u_eu|rd_pending[0]`
+sits at +7.949 — 0.673 ns behind it**; on CONTROL seed 4 and RETENTION seed 1
+`c_int_q` **already binds**.  Closing everything the observation class still
+contains is worth **+0.79 MHz (CTL) / +1.71 (RET)** on a worst-of-5 basis and
+no more, landing on **42.50 / 45.21**.  The microcode head is **1.545 ns/path
+and 0.8 cells/path** on CONTROL seed 1 (was 8.976 and 8.3), and neither table
+appears in the ≥25 % net census at all.
+✅ **`timing50_e1_rederivation_2026-08-12.md` §6.2's "`c_int_q` no longer binds
+… a Phase-2 wave scoped to it would measure 0.00 MHz" IS REFUTED BY
+MEASUREMENT** — true of the tree it was taken on, false of this one.  It is the
+rung-1a wall on **8 of 10 draws**.
+✅ **§8.3's "PAIRED RTL ITEM" IS LANDED.**  Recommendation (c) — report
+whole-design Fmax beside core-domain Fmax — was honest *only if paired with the
+core's `ucrom → assign ad_o` cone*.  That is this landing, so the pairing's
+precondition is discharged: `CORE→CORE` carries **+31.6 / +32.4 ns** while the
+design binds at **+7.3 / +8.9**, and **both binding cones now have one endpoint
+in the rig**.
+
+⚠ **P-1a MISSED ON CONTROL, REPORTED AS REGISTERED**: the band was [42.0, 46.5]
+and the measurement is **41.71**, below it by 0.29.  ⚠ **P-6 MISSED AND ITS BAR
+WAS THE WRONG SHAPE**: `$v30u_ce` is **STAGE-DEPENDENT** (the R7 refutation's own
+finding) — 1161→1181 at the first read, 1805→1758 at placement prep,
+1937→2032-2061 at STA.  The question it was really asking is answered: **the
+M10K IS inside `$v30u_ce`**, so the 4/3 CE multicycle covers it.
+
+⚠ **BOTH KNOWN `sta_truefmax_probe.tcl` DEFECTS REPRODUCED HERE**: the
+`~DUPLICATE` leak on 2 of 10 rung-1a cells, and the `DEFAULT`-row-by-slack
+artifact on 2 of 5 RETENTION draws.  **The leak now also hits RUNG 2's `c_int_q`
+exclusion**, which matters more than before because `c_int_q` is the next lever.
+`sw/adcone_g6_table.py` prints `k` beside every ceiling so the contamination is
+visible instead of remembered.
+
+⚠ **`sw/testdata/ie-pinfall/core/table.json` IS STALE ON `master`** — 8 of its
+2,200 cells disagree with what the same tool produces at `faabb15128` **before**
+this wave's edit.  Left byte-identical; named, not fixed.
+
+---
+
 ### ⚠⚠⚠ THE G6 DISTRIBUTION GATE — **NEW, 2026-08-13.  READ BEFORE QUOTING ANY Fmax.**
 
 `docs/notes/timing50_distribution_2026-08-13.md`, pre-registered at `b74c79d6ea`

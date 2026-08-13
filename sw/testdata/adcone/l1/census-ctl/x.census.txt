@@ -1,0 +1,85 @@
+=== sta_census: nec_test / nec_test_ucore ===
+
+--- TOP 60 SETUP PATHS ---
+   slack  lvls  FROM (launch)                                               TO (latch)                                                
+   7.276    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.340    29  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.376    31  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.598    27  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.605    30  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.619    30  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.628    28  arge:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[4]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.662    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.696    30  rge:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[2]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.698    30  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.783    28  rge:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[2]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.814    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.856    29  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.866    30  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.916    31  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.927    29  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.930    31  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.939    27  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8]  
+   7.941    29  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.947    29  rge:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[2]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.949    36  emu:emu|system_large:system_large|c_int_q~DUPLICATE         ge:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+   7.950    27  arge:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[4]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.965    36  emu:emu|system_large:system_large|c_int_q~DUPLICATE         ge:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+   7.966    33  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.975    29  m_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   7.981    27  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[7]  
+   8.003    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8]  
+   8.010    29  rge:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[1]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.016    29  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.018    29  rge:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[2]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.039    29  _large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.039    30  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8]  
+   8.045    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[7]  
+   8.058    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]  
+   8.062    31  rge:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[1]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.072    27  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[17] 
+   8.075    29  m_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.081    30  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[7]  
+   8.083    29  m_t2f1:auto_generated|ram_block1a7~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.092    27  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[13] 
+   8.099    29  m_t2f1:auto_generated|ram_block1a6~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.100    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.102    34  m_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[12] 
+   8.105    27  rge:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[2]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.109    34  m_t2f1:auto_generated|ram_block1a6~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[12] 
+   8.115    27  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[16] 
+   8.118    28  m_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.120    31  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.121    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.122    29  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]  
+   8.130    32  m_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.136    27  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.136    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[17] 
+   8.145    33  m_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[12] 
+   8.145    30  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.154    29  m_t2f1:auto_generated|ram_block1a1~PORT_A_WRITE_ENABLE_REG  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+   8.156    28  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[13] 
+   8.156    37  emu:emu|system_large:system_large|c_int_q~DUPLICATE         ge:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+   8.158    31  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]  
+   8.159    30  e:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14] 
+
+--- CLASS CENSUS over those 60 paths ---
+  (CORE = v30u_eu / v30u_biu / v30u_ucrom.  Only CORE->CORE gets the
+   nec_test.sdc 4/3 CE multicycle; every other class is SINGLE-CYCLE.)
+  CORE->OUT    n=57   worst slack    7.276
+  OUT ->CORE   n=3    worst slack    7.949
+
+--- LAUNCH ENTITY HISTOGRAM ---
+  altsyncram_t2f1                          10
+  system_large                             3
+  v30u_eu                                  47
+
+--- LATCH ENTITY HISTOGRAM ---
+  nec_bus                                  57
+  v30u_eu                                  3
+
+--- WORST PATH PER CLASS, asked of the whole netlist ---
+  CORE->CORE       31.613  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  ANY->CORE         7.949  emu:emu|system_large:system_large|c_int_q~DUPLICATE  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+  CORE->ANY         7.276  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  ->  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
+  ANY->ANY          7.276  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm  ->  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]
