@@ -1,0 +1,32 @@
+chain_lfsr_gate: CHAIN_MAX = 7 (read from v30u_eu.sv), 4 seeds x 400000 fabric clocks
+artifact: BUILD verilator_binary/hdl/tb/obj_dir_chain_lfsr/Vtb_chain_lfsr
+  verilator --binary --timing -Wall -Wno-UNUSEDSIGNAL -Wno-VARHIDDEN -Wno-TIMESCALEMOD -Wno-WIDTHEXPAND -Wno-BLKSEQ -Wno-DECLFILENAME -Wno-UNUSEDPARAM -Wno-MULTIDRIVEN -Wno-UNOPTFLAT -Wno-CASEINCOMPLETE --top-module tb_chain_lfsr -I/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/rtl/ucore -Mdir /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/tb/.obj_dir_chain_lfsr.staging.2023618 /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/tb/tb_chain_lfsr.sv /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/rtl/ucore/v30u_ss_pkg.sv /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/rtl/ucore/v30_core.sv /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/rtl/ucore/v30u_biu.sv /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/rtl/ucore/v30u_ucrom.sv /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/rtl/ucore/v30u_eu.sv
+make: Entering directory '/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/tb/.obj_dir_chain_lfsr.staging.2023618'
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-shadow -Wno-sign-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated.o /usr/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-shadow -Wno-sign-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_timing.o /usr/share/verilator/include/verilated_timing.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-shadow -Wno-sign-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_threads.o /usr/share/verilator/include/verilated_threads.cpp
+python3 /usr/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vtb_chain_lfsr.cpp Vtb_chain_lfsr___024root__DepSet_h0af41e9c__0.cpp Vtb_chain_lfsr___024root__DepSet_ha8fb3905__0.cpp Vtb_chain_lfsr__main.cpp Vtb_chain_lfsr___024root__Slow.cpp Vtb_chain_lfsr___024root__DepSet_h0af41e9c__0__Slow.cpp Vtb_chain_lfsr___024root__DepSet_ha8fb3905__0__Slow.cpp Vtb_chain_lfsr__Syms.cpp > Vtb_chain_lfsr__ALL.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-shadow -Wno-sign-compare -Wno-tautological-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable    -DVL_TIME_CONTEXT   -fcoroutines -c -o Vtb_chain_lfsr__ALL.o Vtb_chain_lfsr__ALL.cpp
+echo "" > Vtb_chain_lfsr__ALL.verilator_deplist.tmp
+g++    verilated.o verilated_timing.o verilated_threads.o Vtb_chain_lfsr__ALL.a    -pthread -lpthread -latomic   -o Vtb_chain_lfsr
+rm Vtb_chain_lfsr__ALL.verilator_deplist.tmp
+make: Leaving directory '/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac7180194cd0b475b/hdl/tb/.obj_dir_chain_lfsr.staging.2023618'
+- V e r i l a t i o n   R e p o r t: Verilator 5.032 2025-01-01 rev (Debian 5.032-1)
+- Verilator: Built from 0.833 MB sources in 7 modules, into 2.293 MB in 8 C++ files needing 0.002 MB
+- Verilator: Walltime 20.699 s (elab=0.054, cvt=0.448, bld=20.086); cpu 0.612 s on 1 threads; alloced 29.410 MB
+artifact: PROMOTED hdl/tb/obj_dir_chain_lfsr/Vtb_chain_lfsr  receipt 453c99641cc84770…  (20.9s)
+  binary receipt 453c99641cc847706b1c5af2a9ce5f6b5b0be3db8c0048a3af4062a348e2aabd
+  seed 1: rc=0 CHAIN_DEPTH_MAX=6 entry_st=25 ce_clocks=72698 g0=8985 coincide=0 sig=2138eabbcea8796c
+      gaps g0=8985 g1=9128 g2=9125 g3=9088 g4=9128 g5=9085 g6=9088 g7=9071
+      live  fpops=262 qpops=544 IOR=9 IOW=3 HALT=1 CODE=349 MEMR=890 MEMW=763
+  seed 2: rc=0 CHAIN_DEPTH_MAX=6 entry_st=25 ce_clocks=72744 g0=9163 coincide=0 sig=fad6633fc67db084
+      gaps g0=9163 g1=9054 g2=9066 g3=9101 g4=9054 g5=9113 g6=9101 g7=9091
+      live  fpops=138 qpops=269 INTA=2 IOR=4 IOW=1 HALT=2 CODE=175 MEMR=329 MEMW=300
+  seed 3: rc=0 CHAIN_DEPTH_MAX=6 entry_st=25 ce_clocks=72598 g0=8903 coincide=0 sig=f90444c46a589273
+      gaps g0=8903 g1=9110 g2=9077 g3=9107 g4=9110 g5=9074 g6=9108 g7=9109
+      live  fpops=1366 qpops=2946 IOR=46 IOW=18 HALT=5 CODE=1866 MEMR=1625 MEMW=2027
+  seed 4: rc=0 CHAIN_DEPTH_MAX=6 entry_st=25 ce_clocks=72602 g0=8936 coincide=0 sig=5404f98f2d8bc343
+      gaps g0=8936 g1=9137 g2=9081 g3=9047 g4=9138 g5=8991 g6=9047 g7=9224
+      live  fpops=468 qpops=907 IOR=10 IOW=5 HALT=4 CODE=554 MEMR=350 MEMW=340
+
+chain_lfsr_gate: PASS -- CHAIN_MAX 7, observed depth [6], 0 overflows, 4 seeds x 400000 clocks

@@ -37,3 +37,21 @@ tsel         # F29's live tmp: full-case write v30u_eu_row.svh:89-92, read at 95
 
 # --- vestigial ------------------------------------------------------------
 ending       # WRITE-ONLY: assigned at v30u_eu.sv:1529 and step.svh:398/641/682, read NOWHERE. F22 replaced it with `poste`; dead reg, booked as a U3 finding.
+
+# --- DERIVED (a SECOND class, and it is NOT the one above) -----------------
+#
+# ⚠ EVERY ENTRY ABOVE IS ADMITTED ON "written before read on every clock, so no
+# value survives the edge".  AN ENTRY BELOW *DOES* SURVIVE THE EDGE.  It is
+# admitted on a different, narrower ground and the ground is stated per entry:
+#
+#   the register is a PURE FUNCTION of registers that ARE SSA-mapped, and it is
+#   recomputed from the SAME next-state expression under the SAME commit
+#   condition as those registers -- so a save-state restore that writes the
+#   mapped addresses reconstructs it ON THAT VERY EDGE, and mapping it would
+#   give one fact two sources of truth (and let a stream carry a `dec_q` that
+#   disagrees with the `upc_*` beside it, which the RTL cannot produce).
+#
+# The bar for this class is that the derivation is CHECKABLE BY EYE against the
+# commit block, in one place, and that the entry names that place.  Do NOT put
+# a register here because it is inconvenient to map.
+dec_q        # DERIVED: {dec_valid,dec_bank} = ucdecode[dec_addr_next], and `dec_addr_next` (v30u_eu.sv, immediately above THE COMMIT) is character for character the commit's own upc_page/upc_opc/upc_loc selection. L1, docs/notes/adcone_l1_prereg_2026-08-13.md §1.

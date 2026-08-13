@@ -526,15 +526,61 @@ endfunction
 //============================================================================
 // THE MICRO-ROW STANDING ON `upc`
 //============================================================================
-wire [12:0] dec_addr = {upc_page, upc_opc, upc_loc[3:2]};
-wire        dec_valid;
-wire  [8:0] dec_bank;
+// L1 -- THE DECODE IS TAKEN ON THE EDGE THAT MAKES ITS ADDRESS.
+//
+// `ucdecode`'s address is {upc_page, upc_opc, upc_loc[3:2]} -- THIRTEEN BITS,
+// every one of them a register in the one bank below, committed by the one
+// condition `if (ss_we || srst || ce)`.  So the decode of the micro-address the
+// bank is ABOUT TO COMMIT can be read on the edge that commits it, and the
+// value standing on the table's output at every clock is then, BY
+// CONSTRUCTION, the value the combinational read would have produced on that
+// clock.  `dec_addr_next` (assigned beside THE COMMIT, below) is character for
+// character the selection the bank applies to `upc_*`, so:
+//
+//    * the bank commits at c  ->  upc_*(c) is what dec_addr_next was formed
+//      from at c-1, and dec_q(c) is `ucdecode` of that same value;
+//    * the bank does not commit at c  ->  neither upc_* nor dec_q moves.
+//
+// THIS IS NOT RETIMING ACROSS A CLOCK.  It is taking a lookup on the edge that
+// already determines its input -- the ghost relocation's own g_sp/g_bare
+// pattern (capture at the defining event, consume registered) -- and it moves
+// no pin on any clock.  It is also not the BANNED M10K conversion: an M10K puts
+// the ROM's OUTPUT one clock LATE, which costs a cycle; this puts the LOOKUP
+// one clock EARLY and the output on time.  THE COMMIT block's own comment
+// already named it: *"upc_page_n / upc_opc_n / upc_loc_n exist as wires as a
+// free consequence -- the only thing a registered microcode ROM ever needed."*
+//
+// WHY: `docs/notes/adcone_anatomy_2026-08-13.md`.  On CONTROL seed 5 the
+// binding path is `upc_opc[7] -> nec_bus|ad_in_q[14]`, 25.031 ns of data path,
+// and `ucdecode` is 4.770 ns / 5 of its 29 cells; over the top 60 paths into
+// the observation registers it is on 60 of 60 at 4.691 ns per appearance.  It
+// is single-cycle there because the rig's sampler is free-running (E-1 is
+// deleted); it is FOUR cycles on the D pin below (the 4/3 CE multicycle), and
+// the same move takes `ucdecode` AND `ucrom` off the existing
+// `upc -> ucdecode -> ucrom -> chain -> upc_n` path.
+//
+// ⚠ THE ONE CLOCK WHERE IT IS NOT IDENTICAL, NAMED IN ADVANCE: before the
+// first commit.  `dec_q` powers up 0, so `dec_valid` is 0 and `row_nop` is 1 --
+// the model's NOP-CTL substitution, the safe direction -- where the
+// combinational read would give `ucdecode[0]`, which F44's own probe proves is
+// non-zero.  Every harness asserts `srst` before it observes anything and
+// `srst` forces the commit.  Falsifier: the whole pin-sensitive ladder.
+//
+// NO SDC EDIT IS NEEDED OR TAKEN: `dec_q` is declared here, so its post-fit
+// node is `...|v30u_eu:u_eu|dec_q[*]`, which `nec_test.sdc`'s $v30u_regs glob
+// already selects, and it is `ce`-gated exactly as every other EU register.
+wire [12:0] dec_addr_next;          // assigned beside THE COMMIT, below
+wire        dec_valid_next;
+wire  [8:0] dec_bank_next;
+reg   [9:0] dec_q;
+wire        dec_valid = dec_q[9];
+wire  [8:0] dec_bank  = dec_q[8:0];
 wire [28:0] row;
 
 v30u_ucrom u_ucrom (
-    .dec_addr (dec_addr),
-    .dec_valid(dec_valid),
-    .dec_bank (dec_bank),
+    .dec_addr (dec_addr_next),
+    .dec_valid(dec_valid_next),
+    .dec_bank (dec_bank_next),
     .rom_addr ({dec_bank, upc_loc[1:0]}),
     .rom_word (row)
 );
@@ -3548,6 +3594,22 @@ always @* begin
     end
 end
 
+// L1 -- THE DECODE'S ADDRESS, AND IT IS THE COMMIT'S OWN SELECTION.
+//
+// Character for character the `upc_page`/`upc_opc`/`upc_loc` lines in THE
+// COMMIT below, so `dec_q` cannot disagree with `upc_*` on any clock without
+// those three lines disagreeing with themselves.  It is placed HERE, next to
+// the block it mirrors, rather than beside `u_ucrom` where it is consumed,
+// because the mirroring is the whole of the correctness argument.
+//
+// FALSIFIER, one grep: this expression and the three `upc_*` commit lines must
+// select on the SAME condition (`srst && !ss_we`) and from the SAME pair of
+// sources (`upc_*_r`, `upc_*_n`).  If a future edit gives `upc_opc` a third arm
+// -- as `psw` has for the read's data edge -- this line must gain it too.
+assign dec_addr_next = (srst && !ss_we)
+        ? {upc_page_r, upc_opc_r, upc_loc_r[3:2]}
+        : {upc_page_n, upc_opc_n, upc_loc_n[3:2]};
+
 //--------------------------------------------------------------------------
 // THE COMMIT -- the ONLY place an EU state register is written, and the only
 // place `ce` appears.  This is the clock-enable port.
@@ -3594,6 +3656,12 @@ always @(posedge clk) begin
         upc_page <= (srst && !ss_we) ? upc_page_r : upc_page_n;
         upc_opc <= (srst && !ss_we) ? upc_opc_r : upc_opc_n;
         upc_loc <= (srst && !ss_we) ? upc_loc_r : upc_loc_n;
+        // L1: ...and the DECODE of the micro-address those three lines are
+        // committing, taken on this same edge from the same three expressions.
+        // It is not state -- it is `ucdecode` of the state, one clock early --
+        // so it is DERIVED and whitelisted rather than SSA-mapped, which would
+        // give one fact two sources of truth.  See the header at u_ucrom.
+        dec_q <= {dec_valid_next, dec_bank_next};
         seg_override <= (srst && !ss_we) ? seg_override_r : seg_override_n;
         seg_ovr <= (srst && !ss_we) ? seg_ovr_r : seg_ovr_n;
         rep_kind <= (srst && !ss_we) ? rep_kind_r : rep_kind_n;
