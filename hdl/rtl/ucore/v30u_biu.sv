@@ -507,21 +507,10 @@ endfunction
 // must still be killed.  This is the pin-visible distinction between the two
 // opposite trap-entry orderings in wr1/207019; no interrupt-source identity is
 // involved.
-// TIMING50 P2-A -- and this is the reader that puts the live INT pin into the
-// next-state function on its FIRST statement (`kill_l = ann_kill`, :1644), so
-// it takes the same Shannon split its input does.  `_p1`/`_p0` are pin-free by
-// construction because `qs_e_now_p1`/`_p0` are; the pin is the mux select and
-// nothing else.  The expression is otherwise UNCHANGED, character for
-// character.  See the P2-A block beside `qs_e_now`.
-wire ann_kill_p1 = (q_flush ||
+wire ann_kill  = (q_flush ||
                   ((eu_susp || eu_post) &&
-                   !(r_cmt_was_owed && qs_e_now_p1))) &&
+                   !(r_cmt_was_owed && qs_e_now))) &&
                  r_cmt_valid && r_cmt_fetch && (r_cdage == 3'd0);
-wire ann_kill_p0 = (q_flush ||
-                  ((eu_susp || eu_post) &&
-                   !(r_cmt_was_owed && qs_e_now_p0))) &&
-                 r_cmt_valid && r_cmt_fetch && (r_cdage == 3'd0);
-wire ann_kill  = flush_int_live ? ann_kill_p1 : ann_kill_p0;
 // M2: `cmt_valid` is cleared when its T1 opens, so "an announcement stands"
 // IS "this clock is a display clock".
 wire display   = r_cmt_valid && !ann_kill;
@@ -640,14 +629,7 @@ wire flush_nmi_young = flush_nmi && (r_dage <= 3'd4);
 wire flush_src_live = flush_int_live || flush_nmi;
 wire flush_staged_eval = flush_stage && flush_pend && flush_src_live &&
                          flush_idle;
-// TIMING50 P2-A -- `flush_direct` SPLIT AT THE LIVE PIN, VALUE UNCHANGED.
-// `fd_nopin` is this expression with `flush_int_live` held at 0; the pin is
-// the last AND.  It exists so `qs_e_now`/`ann_kill` below can be evaluated at
-// BOTH of the pin's values without the pin appearing inside either branch --
-// see the P2-A block at `qs_e_now`.  Nothing here changes what any signal
-// means: `flush_direct` is bit-for-bit the expression it always was.
-wire fd_nopin     = !flush_stage && !flush_nmi_young;
-wire flush_direct = fd_nopin && !flush_int_live;
+wire flush_direct = !flush_stage && !flush_nmi_young && !flush_int_live;
 wire flush_fast = flush_rep && flush_idle && flush_direct;
 // A hardware acknowledge posted on a CODE T4 replaces a speculative CODE
 // announcement already waiting behind that fetch.  The status decoder sees
@@ -814,54 +796,14 @@ wire pop_now       = q_pop && q_ripe;
 // clock on the term is vacuous (`c >= e_from` always holds), which is why it
 // is a term of the flush clock and not a flop.
 wire e_from_block = q_flush && r_run && r_cur_fetch;
-//----------------------------------------------------------------------------
-// TIMING50 P2-A -- THE LIVE INT PIN SELECTS AT THE LAST GATE, NOT THE FIRST.
-//
-// MEASURED (`timing50_phase2_prereg_2026-08-12.md` §3): `c_int_q` reached
-// `ann_kill` -- the FIRST statement of the next-state function
-// (`kill_l = ann_kill`, :1644) -- through SIX logic levels and 3.251 ns of the
-// cone's 21.234, because `flush_int_live` sits INSIDE `flush_direct`, which
-// sits inside `qs_e_now`, which `ann_kill` reads.  Everything downstream of
-// `ann_kill` is launched from core registers and has four periods; the pin has
-// ONE, so those six levels are charged at 4x their weight in Fmax.
-//
-// The fix is Shannon expansion and nothing else: `f(P, x) = P ? f(1,x) : f(0,x)`
-// is an IDENTITY, so this changes no value anywhere.  `_p1` is the expression
-// with `flush_int_live` held at 1 (`flush_direct` -> 0, `flush_src_live` -> 1);
-// `_p0` is it held at 0 (`flush_direct` -> `fd_nopin`, `flush_src_live` ->
-// `flush_nmi`).  NEITHER BRANCH CONTAINS THE PIN, so both are ordinary
-// CORE->CORE logic; the pin is one mux select away from its consumers.
-//
-// This is R7' on the other pin.  §73 moved the live READY carrier's single
-// consumer off the head of the EU's chain onto a register's own `D` pin with
-// one mux; this moves the live INT rail off the head of the BIU's next-state
-// cone onto the last gate of its own prefix.  No flop, no save-state address,
-// no signal changes meaning, no opcode named.
-//
-// *Falsifier*: any G6 build in which `c_int_q`'s prefix into the next-state
-// cone is still more than two logic levels -- that would mean synthesis
-// re-merged the branches and the transform did not survive, which is a
-// refutation of the mechanism and not a tuning opportunity (prereg R-d).
-//----------------------------------------------------------------------------
-wire qs_e_now_common = !pop_now && !e_from_block &&
-                       (r_absorb_ttl == 2'd0) && !qs_port_fetch;
-
-// the pin HIGH: `flush_direct` is 0, so both `flush_pre` terms vanish and the
-// REP suppression's inner disjunction is 0 on both arms (`!flush_src_live` is
-// 0 too) -- the whole `!(...)` factor is vacuously 1.
-wire qs_e_now_p1 = (r_e_pend || q_flush) && qs_e_now_common &&
-                   (((r_rq_n == 2'd0) && !eu_post) || q_flush ||
-                    (r_cmt_valid && !r_cmt_fetch) || (r_run && !r_cur_fetch));
-
-// the pin LOW: the expression exactly as it always read, with the two
-// pin-free substitutions above.
-wire qs_e_now_p0 = (r_e_pend || q_flush ||
-                (flush_pre && fd_nopin)) &&
+wire qs_e_now = (r_e_pend || q_flush ||
+                (flush_pre && flush_direct)) &&
                 !(q_flush && flush_rep &&
-                  (fd_nopin ||
-                   (flush_pend && !flush_nmi &&
+                  (flush_direct ||
+                   (flush_pend && !flush_src_live &&
                     !(r_run && !r_cur_fetch && (r_ts < TS_T3))))) &&
-                qs_e_now_common &&
+                !pop_now && !e_from_block &&
+                (r_absorb_ttl == 2'd0) && !qs_port_fetch &&
                 // (c) a ready-but-not-started EU request owns the next slot
                 // and the flush display waits for that request's STATUS
                 // clock -- except on the flush clock itself.
@@ -876,11 +818,8 @@ wire qs_e_now_p0 = (r_e_pend || q_flush ||
                 // MEASURED: `E8 idx 1` shows E on the push's ANNOUNCEMENT
                 // clock (row 8), not on the flush row's own clock (row 7).
                 (((r_rq_n == 2'd0) && !eu_post) || q_flush ||
-                 (flush_pre && fd_nopin) ||
+                 (flush_pre && flush_direct) ||
                  (r_cmt_valid && !r_cmt_fetch) || (r_run && !r_cur_fetch));
-
-// ...and the pin, once, at the end.  P2-A.
-wire qs_e_now = flush_int_live ? qs_e_now_p1 : qs_e_now_p0;
 
 assign qs = qs_e_now ? QS_EMPTY
           : pop_now  ? (q_first ? QS_FIRST : QS_SUBSEQ)
