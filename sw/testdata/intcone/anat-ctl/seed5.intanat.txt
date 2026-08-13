@@ -1,0 +1,142 @@
+npaths requested = 60
+T0 = 31.250 ns
+c_int_q launch collection size (incl ~DUPLICATE): 1
+paths returned: 60
+
+   #     slack   lvls  ownFmax  from                                         to
+   1    10.127     27    47.34  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+   2    10.134     27    47.36  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]~DUPLICATE
+   3    10.142     27    47.38  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+   4    10.172     26    47.44  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+   5    10.179     26    47.46  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]~DUPLICATE
+   6    10.187     26    47.48  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+   7    10.263     27    47.65  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+   8    10.270     27    47.66  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]~DUPLICATE
+   9    10.278     27    47.68  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+  10    10.308     26    47.75  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+  11    10.315     26    47.77  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]~DUPLICATE
+  12    10.323     26    47.79  emu:emu|system_large:system_large|c_int_q    emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+
+=== A. REGION HISTOGRAM, averaged over 60 paths ===
+region      ns/path        % cells/path
+SYS          23.120    79.9%       28.5
+OTHER         5.547    19.2%        5.0
+EU            0.272     0.9%        1.0
+TOTAL        28.939
+
+=== B. NET CENSUS -- nets on >= 25% of the 60 paths ===
+paths    ns/hit  net
+   60     0.585  emu:emu|system_large:system_large|c_int_q
+   60     3.443  emu|pll|pll_inst|altera_pll_i|general[0].gpll
+   60     1.343  emu|pll|pll_inst|altera_pll_i|outclk_wire[0]
+   60     2.251  emu|system_large|c_int_q|clk
+   60     0.000  emu|system_large|c_int_q|q
+   60     1.366  emu|system_large|u_core|u_biu|Add39
+   60     1.360  emu|system_large|u_core|u_biu|Add40
+   60     3.891  emu|system_large|u_core|u_biu|always2
+   60     0.677  emu|system_large|u_core|u_biu|ann_kill
+   60     1.106  emu|system_large|u_core|u_biu|occ
+   60     1.038  emu|system_large|u_core|u_biu|pf_arm
+   60     2.819  emu|system_large|u_core|u_biu|qs_e_now
+   60     0.799  emu|system_large|u_core|u_biu|rmw_yield
+   60     2.392  emu|system_large|u_core|u_biu|slot_busy
+   60     0.772  emu|system_large|u_core|u_eu|rd_pending
+   60     1.948  emu|system_large|u_core|u_eu|rd_pending[1]
+   60     0.761  FPGA_CLK2_50
+   56     0.906  emu|system_large|u_core|u_biu|cmt_noaddr
+   56     0.332  emu|system_large|u_core|u_biu|cmt_prev_fp
+   43     0.801  emu|system_large|u_core|u_biu|flush_direct
+   41     0.277  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+   38     0.370  emu|system_large|u_core|u_biu|LessThan19
+   21     0.000  emu|system_large|u_core|u_eu|rd_pending[1]|d
+   19     0.262  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+   19     0.000  emu|system_large|u_core|u_eu|rd_pending[0]|d
+
+=== D. ENDPOINT HISTOGRAM over 60 paths ===
+     19  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+     21  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+     20  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]~DUPLICATE
+
+=== E. THE SEGMENT SPLIT (Phase 2's own partition) ===
+  paths containing an `ann_kill` node : 60 of 60
+  PREFIX  c_int_q -> ann_kill (incl clock arrival) :   12.453 ns/path
+  TAIL    ann_kill -> endpoint                     :   16.485 ns/path
+  tail as a fraction of the two                    :    57.0%
+
+=== F. THE WORST PATH'S OWN Fmax ===
+  47.34 MHz  k=1.000  slack=+10.127  emu:emu|system_large:system_large|c_int_q -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+
+=== C. THE WORST PATH, NODE BY NODE ===
+      incr      cum type   region node
+     0.000    0.000 clksrc OTHER  FPGA_CLK2_50
+     0.000    0.000 ic     OTHER  FPGA_CLK2_50~input|i
+     0.761    0.761 cell   OTHER  FPGA_CLK2_50~input|o
+     1.335    2.096 ic     OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT|clkin[0]
+     0.333    2.429 cell   OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT|clkout
+     0.000    2.429 ic     OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|refclkin
+     0.029    2.458 cell   OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]
+     0.000    2.458 ic     OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|vco0ph[0]
+     1.746    4.204 cell   OTHER  emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk
+     1.039    5.243 ic     OTHER  emu|pll|pll_inst|altera_pll_i|outclk_wire[0]~CLKENA0|inclk
+     0.304    5.547 cell   OTHER  emu|pll|pll_inst|altera_pll_i|outclk_wire[0]~CLKENA0|outclk
+     2.251    7.798 ic     SYS    emu|system_large|c_int_q|clk
+     0.585    8.383 cell   SYS    emu:emu|system_large:system_large|c_int_q
+     0.000    8.383 utco   SYS    emu:emu|system_large:system_large|c_int_q
+     0.000    8.383 cell   SYS    emu|system_large|c_int_q|q
+     0.307    8.690 ic     SYS    emu|system_large|u_core|u_biu|flush_direct~0|datac
+     0.494    9.184 cell   SYS    emu|system_large|u_core|u_biu|flush_direct~0|combout
+     1.141   10.325 ic     SYS    emu|system_large|u_core|u_biu|qs_e_now~7|dataf
+     0.092   10.417 cell   SYS    emu|system_large|u_core|u_biu|qs_e_now~7|combout
+     0.256   10.673 ic     SYS    emu|system_large|u_core|u_biu|qs_e_now~8|datae
+     0.249   10.922 cell   SYS    emu|system_large|u_core|u_biu|qs_e_now~8|combout
+     0.803   11.725 ic     SYS    emu|system_large|u_core|u_biu|qs_e_now~9|dataf
+     0.090   11.815 cell   SYS    emu|system_large|u_core|u_biu|qs_e_now~9|combout
+     0.232   12.047 ic     SYS    emu|system_large|u_core|u_biu|ann_kill~0|dataf
+     0.087   12.134 cell   SYS    emu|system_large|u_core|u_biu|ann_kill~0|combout
+     0.262   12.396 ic     SYS    emu|system_large|u_core|u_biu|ann_kill~1|dataf
+     0.096   12.492 cell   SYS    emu|system_large|u_core|u_biu|ann_kill~1|combout
+     1.016   13.508 ic     SYS    emu|system_large|u_core|u_biu|occ~0|dataf
+     0.095   13.603 cell   SYS    emu|system_large|u_core|u_biu|occ~0|combout
+     0.371   13.974 ic     SYS    emu|system_large|u_core|u_biu|Add40~0|dataf
+     0.087   14.061 cell   SYS    emu|system_large|u_core|u_biu|Add40~0|combout
+     0.264   14.325 ic     SYS    emu|system_large|u_core|u_biu|Add40~1|dataf
+     0.087   14.412 cell   SYS    emu|system_large|u_core|u_biu|Add40~1|combout
+     0.255   14.667 ic     SYS    emu|system_large|u_core|u_biu|Add40~7|datac
+     0.464   15.131 cell   SYS    emu|system_large|u_core|u_biu|Add40~7|combout
+     0.232   15.363 ic     SYS    emu|system_large|u_core|u_biu|Add39~17|datad
+     0.910   16.273 cell   SYS    emu|system_large|u_core|u_biu|Add39~17|sumout
+     0.238   16.511 ic     SYS    emu|system_large|u_core|u_biu|pf_arm~2|dataa
+     0.541   17.052 cell   SYS    emu|system_large|u_core|u_biu|pf_arm~2|combout
+     0.268   17.320 ic     SYS    emu|system_large|u_core|u_biu|pf_arm~3|datae
+     0.249   17.569 cell   SYS    emu|system_large|u_core|u_biu|pf_arm~3|combout
+     0.386   17.955 ic     SYS    emu|system_large|u_core|u_biu|rmw_yield~1|dataf
+     0.087   18.042 cell   SYS    emu|system_large|u_core|u_biu|rmw_yield~1|combout
+     0.252   18.294 ic     SYS    emu|system_large|u_core|u_biu|rmw_yield~2|dataf
+     0.089   18.383 cell   SYS    emu|system_large|u_core|u_biu|rmw_yield~2|combout
+     0.260   18.643 ic     SYS    emu|system_large|u_core|u_biu|cmt_prev_fp~1|dataf
+     0.088   18.731 cell   SYS    emu|system_large|u_core|u_biu|cmt_prev_fp~1|combout
+     0.898   19.629 ic     SYS    emu|system_large|u_core|u_biu|always2~12|dataf
+     0.096   19.725 cell   SYS    emu|system_large|u_core|u_biu|always2~12|combout
+     0.888   20.613 ic     SYS    emu|system_large|u_core|u_biu|cmt_noaddr~0|dataf
+     0.082   20.695 cell   SYS    emu|system_large|u_core|u_biu|cmt_noaddr~0|combout
+     0.348   21.043 ic     SYS    emu|system_large|u_core|u_biu|always2~15|datac
+     0.482   21.525 cell   SYS    emu|system_large|u_core|u_biu|always2~15|combout
+     0.268   21.793 ic     SYS    emu|system_large|u_core|u_biu|always2~16|dataf
+     0.094   21.887 cell   SYS    emu|system_large|u_core|u_biu|always2~16|combout
+     0.289   22.176 ic     SYS    emu|system_large|u_core|u_biu|LessThan19~0|dataf
+     0.089   22.265 cell   SYS    emu|system_large|u_core|u_biu|LessThan19~0|combout
+     0.274   22.539 ic     SYS    emu|system_large|u_core|u_biu|always2~19|dataf
+     0.096   22.635 cell   SYS    emu|system_large|u_core|u_biu|always2~19|combout
+     0.815   23.450 ic     SYS    emu|system_large|u_core|u_biu|always2~23|datad
+     0.381   23.831 cell   SYS    emu|system_large|u_core|u_biu|always2~23|combout
+     0.813   24.644 ic     SYS    emu|system_large|u_core|u_biu|slot_busy~1|dataf
+     0.086   24.730 cell   SYS    emu|system_large|u_core|u_biu|slot_busy~1|combout
+     1.031   25.761 ic     SYS    emu|system_large|u_core|u_biu|slot_busy~2|datac
+     0.462   26.223 cell   SYS    emu|system_large|u_core|u_biu|slot_busy~2|combout
+     1.508   27.731 ic     SYS    emu|system_large|u_core|u_eu|rd_pending[1]~1|datac
+     0.440   28.171 cell   SYS    emu|system_large|u_core|u_eu|rd_pending[1]~1|combout
+     0.219   28.390 ic     SYS    emu|system_large|u_core|u_eu|rd_pending~2|datab
+     0.551   28.941 cell   SYS    emu|system_large|u_core|u_eu|rd_pending~2|combout
+     0.000   28.941 ic     SYS    emu|system_large|u_core|u_eu|rd_pending[1]|d
+     0.278   29.219 cell   EU     emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+

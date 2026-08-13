@@ -1,0 +1,192 @@
+Info: *******************************************************************
+Info: Running Quartus Prime TimeQuest Timing Analyzer
+    Info: Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition
+    Info: Copyright (C) 2017  Intel Corporation. All rights reserved.
+    Info: Your use of Intel Corporation's design tools, logic functions 
+    Info: and other software and tools, and its AMPP partner logic 
+    Info: functions, and any output files from any of the foregoing 
+    Info: (including device programming or simulation files), and any 
+    Info: associated documentation or information are expressly subject 
+    Info: to the terms and conditions of the Intel Program License 
+    Info: Subscription Agreement, the Intel Quartus Prime License Agreement,
+    Info: the Intel FPGA IP License Agreement, or other applicable license
+    Info: agreement, including, without limitation, that your use is for
+    Info: the sole purpose of programming logic devices manufactured by
+    Info: Intel and sold by Intel or its authorized distributors.  Please
+    Info: refer to the applicable agreement for further details.
+    Info: Processing started: Thu Aug 13 09:26:31 2026
+Info: Command: quartus_sta -t /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/sw/sta_intcone_probe.tcl nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/sw/testdata/intcone/anat-ctl/seed4
+Info: Quartus(args): nec_test nec_test_ucore /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/sw/testdata/intcone/anat-ctl/seed4
+Warning (20013): Ignored 13 assignments for entity "pll_hdmi" -- entity does not exist in design
+Warning (20013): Ignored 463 assignments for entity "pll_hdmi_0002" -- entity does not exist in design
+Info (20030): Parallel compilation is enabled and will use 4 of the 4 processors detected
+Info (21077): Core supply voltage is 1.1V
+Info (334003): Started post-fitting delay annotation
+Info (334004): Delay annotation completed successfully
+Info (332164): Evaluating HDL-embedded SDC commands
+    Info (332165): Entity sld_hub
+        Info (332166): create_clock -name altera_reserved_tck [get_ports {altera_reserved_tck}] -period 30MHz   
+        Info (332166): if { [string equal quartus_fit $::TimeQuestInfo(nameofexecutable)] } { set_max_delay -to [get_ports { altera_reserved_tdo } ] 0 }
+        Info (332166): set_clock_groups -asynchronous -group {altera_reserved_tck}
+Info (332104): Reading SDC File: 'sys/sys_top.sdc'
+Warning (332174): Ignored filter at sys_top.sdc(6): spi|sclk_out could not be matched with a pin File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 6
+Warning (332049): Ignored create_clock at sys_top.sdc(6): Argument <targets> is an empty collection File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 6
+    Info (332050): create_clock -period "100.0 MHz" [get_pins -compatibility_mode spi|sclk_out] -name spi_sck File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 6
+Info (332110): Deriving PLL clocks
+    Info (332110): create_generated_clock -source {pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|refclkin} -divide_by 512 -multiply_by 4279 -duty_cycle 50.00 -name {pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]} {pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]}
+    Info (332110): create_generated_clock -source {pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|vco0ph[0]} -divide_by 17 -duty_cycle 50.00 -name {pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk} {pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}
+    Info (332110): create_generated_clock -source {emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|refclkin} -divide_by 5 -multiply_by 32 -duty_cycle 50.00 -name {emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]} {emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL|vcoph[0]}
+    Info (332110): create_generated_clock -source {emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|vco0ph[0]} -divide_by 10 -duty_cycle 50.00 -name {emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk} {emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}
+Info (332151): Clock uncertainty is not calculated until you update the timing netlist.
+Warning (332174): Ignored filter at sys_top.sdc(15): pll_hdmi|pll_hdmi_inst|altera_pll_i|*[0].*|divclk could not be matched with a clock File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 15
+Warning (332174): Ignored filter at sys_top.sdc(17): spi_sck could not be matched with a clock File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 17
+Warning (332054): Assignment set_clock_groups is accepted but has some problems at sys_top.sdc(13): Argument -group with value [get_clocks { pll_hdmi|pll_hdmi_inst|altera_pll_i|*[0].*|divclk}] contains zero elements File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 13
+    Info (332050): set_clock_groups -exclusive \
+   -group [get_clocks { *|pll|pll_inst|altera_pll_i|*[*].*|divclk}] \
+   -group [get_clocks { pll_hdmi|pll_hdmi_inst|altera_pll_i|*[0].*|divclk}] \
+   -group [get_clocks { pll_audio|pll_audio_inst|altera_pll_i|*[0].*|divclk}] \
+   -group [get_clocks { spi_sck}] \
+   -group [get_clocks { hdmi_sck}] \
+   -group [get_clocks { *|h2f_user0_clk}] \
+   -group [get_clocks { FPGA_CLK1_50 }] \
+   -group [get_clocks { FPGA_CLK2_50 }] \
+   -group [get_clocks { FPGA_CLK3_50 }] File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 13
+Warning (332054): Assignment set_clock_groups is accepted but has some problems at sys_top.sdc(13): Argument -group with value [get_clocks { spi_sck}] contains zero elements File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 13
+Warning (332174): Ignored filter at sys_top.sdc(25): BTN_* could not be matched with a port File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 25
+Warning (332049): Ignored set_false_path at sys_top.sdc(25): Argument <from> is an empty collection File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 25
+    Info (332050): set_false_path -from [get_ports {BTN_*}] File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 25
+Warning (332174): Ignored filter at sys_top.sdc(26): LED_* could not be matched with a port File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 26
+Warning (332049): Ignored set_false_path at sys_top.sdc(26): Argument <to> is an empty collection File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 26
+    Info (332050): set_false_path -to   [get_ports {LED_*}] File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 26
+Warning (332174): Ignored filter at sys_top.sdc(27): VGA_* could not be matched with a port File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 27
+Warning (332049): Ignored set_false_path at sys_top.sdc(27): Argument <to> is an empty collection File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 27
+    Info (332050): set_false_path -to   [get_ports {VGA_*}] File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 27
+Warning (332174): Ignored filter at sys_top.sdc(28): VGA_EN could not be matched with a port File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 28
+Warning (332049): Ignored set_false_path at sys_top.sdc(28): Argument <from> is an empty collection File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 28
+    Info (332050): set_false_path -from [get_ports {VGA_EN}] File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 28
+Warning (332174): Ignored filter at sys_top.sdc(29): AUDIO_SPDIF could not be matched with a port File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 29
+Warning (332049): Ignored set_false_path at sys_top.sdc(29): Argument <to> is an empty collection File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 29
+    Info (332050): set_false_path -to   [get_ports {AUDIO_SPDIF}] File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 29
+Warning (332174): Ignored filter at sys_top.sdc(30): AUDIO_L could not be matched with a port File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 30
+Warning (332049): Ignored set_false_path at sys_top.sdc(30): Argument <to> is an empty collection File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 30
+    Info (332050): set_false_path -to   [get_ports {AUDIO_L}] File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 30
+Warning (332174): Ignored filter at sys_top.sdc(31): AUDIO_R could not be matched with a port File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 31
+Warning (332049): Ignored set_false_path at sys_top.sdc(31): Argument <to> is an empty collection File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 31
+    Info (332050): set_false_path -to   [get_ports {AUDIO_R}] File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 31
+Warning (332174): Ignored filter at sys_top.sdc(35): VSET[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 35
+Warning (332049): Ignored set_false_path at sys_top.sdc(35): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 35
+    Info (332050): set_false_path -from {VSET[*]} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 35
+Warning (332174): Ignored filter at sys_top.sdc(36): hcalc[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 36
+Warning (332174): Ignored filter at sys_top.sdc(36): wcalc[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 36
+Warning (332049): Ignored set_false_path at sys_top.sdc(36): Argument <to> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 36
+    Info (332050): set_false_path -to   {wcalc[*] hcalc[*]} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 36
+Warning (332174): Ignored filter at sys_top.sdc(37): hdmi_height[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 37
+Warning (332174): Ignored filter at sys_top.sdc(37): hdmi_width[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 37
+Warning (332049): Ignored set_false_path at sys_top.sdc(37): Argument <to> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 37
+    Info (332050): set_false_path -to   {hdmi_width[*] hdmi_height[*]} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 37
+Warning (332174): Ignored filter at sys_top.sdc(38): btn_en could not be matched with a clock or keeper File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 38
+Warning (332174): Ignored filter at sys_top.sdc(38): btn_up could not be matched with a clock or keeper File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 38
+Warning (332174): Ignored filter at sys_top.sdc(54): HBP[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+Warning (332174): Ignored filter at sys_top.sdc(54): HEIGHT[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+Warning (332174): Ignored filter at sys_top.sdc(54): HFP[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+Warning (332174): Ignored filter at sys_top.sdc(54): HS[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+Warning (332174): Ignored filter at sys_top.sdc(54): VBP[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+Warning (332174): Ignored filter at sys_top.sdc(54): VFP[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+Warning (332174): Ignored filter at sys_top.sdc(54): VS[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+Warning (332174): Ignored filter at sys_top.sdc(54): WIDTH[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+Warning (332049): Ignored set_false_path at sys_top.sdc(54): Argument <to> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+    Info (332050): set_false_path -to   {WIDTH[*] HFP[*] HS[*] HBP[*] HEIGHT[*] VFP[*] VS[*] VBP[*]} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 54
+Warning (332049): Ignored set_false_path at sys_top.sdc(55): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 55
+    Info (332050): set_false_path -from {WIDTH[*] HFP[*] HS[*] HBP[*] HEIGHT[*] VFP[*] VS[*] VBP[*]} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 55
+Warning (332174): Ignored filter at sys_top.sdc(56): FB_BASE[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 56
+Warning (332174): Ignored filter at sys_top.sdc(56): FB_HEIGHT[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 56
+Warning (332174): Ignored filter at sys_top.sdc(56): FB_WIDTH[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 56
+Warning (332174): Ignored filter at sys_top.sdc(56): LFB_HMAX[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 56
+Warning (332174): Ignored filter at sys_top.sdc(56): LFB_HMIN[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 56
+Warning (332174): Ignored filter at sys_top.sdc(56): LFB_VMAX[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 56
+Warning (332174): Ignored filter at sys_top.sdc(56): LFB_VMIN[*] could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 56
+Warning (332049): Ignored set_false_path at sys_top.sdc(56): Argument <to> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 56
+    Info (332050): set_false_path -to   {FB_BASE[*] FB_BASE[*] FB_WIDTH[*] FB_HEIGHT[*] LFB_HMIN[*] LFB_HMAX[*] LFB_VMIN[*] LFB_VMAX[*]} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 56
+Warning (332049): Ignored set_false_path at sys_top.sdc(57): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 57
+    Info (332050): set_false_path -from {FB_BASE[*] FB_BASE[*] FB_WIDTH[*] FB_HEIGHT[*] LFB_HMIN[*] LFB_HMAX[*] LFB_VMIN[*] LFB_VMAX[*]} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 57
+Warning (332174): Ignored filter at sys_top.sdc(58): scaler_flt[*] could not be matched with a clock or keeper File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 58
+Warning (332174): Ignored filter at sys_top.sdc(60): arc* could not be matched with a clock or keeper File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 60
+Warning (332174): Ignored filter at sys_top.sdc(61): arx* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 61
+Warning (332174): Ignored filter at sys_top.sdc(61): ary* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 61
+Warning (332049): Ignored set_false_path at sys_top.sdc(61): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 61
+    Info (332050): set_false_path -from {arx* ary*} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 61
+Warning (332174): Ignored filter at sys_top.sdc(63): ColorBurst_Range* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 63
+Warning (332174): Ignored filter at sys_top.sdc(63): PhaseInc* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 63
+Warning (332174): Ignored filter at sys_top.sdc(63): cvbs could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 63
+Warning (332174): Ignored filter at sys_top.sdc(63): pal_en could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 63
+Warning (332174): Ignored filter at sys_top.sdc(63): yc_en could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 63
+Warning (332049): Ignored set_false_path at sys_top.sdc(63): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 63
+    Info (332050): set_false_path -from {ColorBurst_Range* PhaseInc* pal_en cvbs yc_en} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 63
+Warning (332174): Ignored filter at sys_top.sdc(65): ascal|o_ihsize* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 65
+Warning (332049): Ignored set_false_path at sys_top.sdc(65): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 65
+    Info (332050): set_false_path -from {ascal|o_ihsize*} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 65
+Warning (332174): Ignored filter at sys_top.sdc(66): ascal|o_ivsize* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 66
+Warning (332049): Ignored set_false_path at sys_top.sdc(66): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 66
+    Info (332050): set_false_path -from {ascal|o_ivsize*} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 66
+Warning (332174): Ignored filter at sys_top.sdc(67): ascal|o_format* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 67
+Warning (332049): Ignored set_false_path at sys_top.sdc(67): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 67
+    Info (332050): set_false_path -from {ascal|o_format*} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 67
+Warning (332174): Ignored filter at sys_top.sdc(68): ascal|o_hdown could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 68
+Warning (332049): Ignored set_false_path at sys_top.sdc(68): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 68
+    Info (332050): set_false_path -from {ascal|o_hdown} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 68
+Warning (332174): Ignored filter at sys_top.sdc(69): ascal|o_vdown could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 69
+Warning (332049): Ignored set_false_path at sys_top.sdc(69): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 69
+    Info (332050): set_false_path -from {ascal|o_vdown} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 69
+Warning (332174): Ignored filter at sys_top.sdc(70): ascal|o_hmax* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 70
+Warning (332174): Ignored filter at sys_top.sdc(70): ascal|o_hmin* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 70
+Warning (332174): Ignored filter at sys_top.sdc(70): ascal|o_vmax* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 70
+Warning (332174): Ignored filter at sys_top.sdc(70): ascal|o_vmin* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 70
+Warning (332174): Ignored filter at sys_top.sdc(70): ascal|o_vrr could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 70
+Warning (332174): Ignored filter at sys_top.sdc(70): ascal|o_vrrmax* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 70
+Warning (332049): Ignored set_false_path at sys_top.sdc(70): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 70
+    Info (332050): set_false_path -from {ascal|o_hmin* ascal|o_hmax* ascal|o_vmin* ascal|o_vmax* ascal|o_vrrmax* ascal|o_vrr} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 70
+Warning (332174): Ignored filter at sys_top.sdc(71): ascal|o_hdisp* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 71
+Warning (332174): Ignored filter at sys_top.sdc(71): ascal|o_vdisp* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 71
+Warning (332049): Ignored set_false_path at sys_top.sdc(71): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 71
+    Info (332050): set_false_path -from {ascal|o_hdisp* ascal|o_vdisp*} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 71
+Warning (332174): Ignored filter at sys_top.sdc(72): ascal|o_htotal* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 72
+Warning (332174): Ignored filter at sys_top.sdc(72): ascal|o_vtotal* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 72
+Warning (332049): Ignored set_false_path at sys_top.sdc(72): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 72
+    Info (332050): set_false_path -from {ascal|o_htotal* ascal|o_vtotal*} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 72
+Warning (332174): Ignored filter at sys_top.sdc(73): ascal|o_hsend* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 73
+Warning (332174): Ignored filter at sys_top.sdc(73): ascal|o_hsstart* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 73
+Warning (332174): Ignored filter at sys_top.sdc(73): ascal|o_vsend* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 73
+Warning (332174): Ignored filter at sys_top.sdc(73): ascal|o_vsstart* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 73
+Warning (332049): Ignored set_false_path at sys_top.sdc(73): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 73
+    Info (332050): set_false_path -from {ascal|o_hsstart* ascal|o_vsstart* ascal|o_hsend* ascal|o_vsend*} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 73
+Warning (332174): Ignored filter at sys_top.sdc(74): ascal|o_hsize* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 74
+Warning (332174): Ignored filter at sys_top.sdc(74): ascal|o_vsize* could not be matched with a clock or keeper or register or port or pin or cell or partition File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 74
+Warning (332049): Ignored set_false_path at sys_top.sdc(74): Argument <from> is not an object ID File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 74
+    Info (332050): set_false_path -from {ascal|o_hsize* ascal|o_vsize*} File: /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/hdl/sys/sys_top.sdc Line: 74
+Info (332104): Reading SDC File: 'nec_test.sdc'
+Info (332151): Clock uncertainty is not calculated until you update the timing netlist.
+Info: nec_test.sdc: CE multicycle 4/3 applied to 2037 ce-gated v30u core registers
+Info: nec_test.sdc: CE cross-phase multicycles 2/1 (ce->ce_half) and 3/2 (ce_half->ce) applied to 1 ce_half-gated register(s)
+Info (332097): The following timing edges are non-unate.  TimeQuest will assume pos-unate behavior for these edges in the clock network.
+    Info (332098): Cell: emu|pll|pll_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL  from: refclkin  to: fbclk
+    Info (332098): Cell: emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER  from: vco0ph[0]  to: divclk
+    Info (332098): Cell: emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT  from: clkin[0]  to: clkout
+    Info (332098): From: emu|system_large|hps_lw|clk  to: emu:emu|system_large:system_large|hps_lw~FF_3425
+    Info (332098): Cell: pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~FRACTIONAL_PLL  from: refclkin  to: fbclk
+    Info (332098): Cell: pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER  from: vco0ph[0]  to: divclk
+    Info (332098): Cell: pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_REFCLK_SELECT  from: clkin[0]  to: clkout
+Info (332123): Deriving Clock Uncertainty. Please refer to report_sdc in TimeQuest to see clock uncertainties.
+Info (332115): Report Timing: Found 3 setup paths (0 violated).  Worst case slack is 7.722
+    Info (332115): -from [get_registers {*system_large*|c_int_q}]
+    Info (332115): -setup
+    Info (332115): -npaths 3
+    Info (332115): -detail full_path
+    Info (332115): -file {/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/sw/testdata/intcone/anat-ctl/seed4.intcone.worstpath.rpt}
+    Info (332115): -multi_corner
+wrote /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/sw/testdata/intcone/anat-ctl/seed4.intcone.txt
+Info (23030): Evaluation of Tcl script /home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac8a117c2c6c94a67/sw/sta_intcone_probe.tcl was successful
+Info: Quartus Prime TimeQuest Timing Analyzer was successful. 0 errors, 93 warnings
+    Info: Peak virtual memory: 1778 megabytes
+    Info: Processing ended: Thu Aug 13 09:26:54 2026
+    Info: Elapsed time: 00:00:23
+    Info: Total CPU time (on all processors): 00:00:52
