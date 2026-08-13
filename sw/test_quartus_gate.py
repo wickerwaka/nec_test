@@ -571,6 +571,28 @@ def q14_truefmax_parse():
     check("a missing artifact parses to {}, not a crash",
           qg.parse_truefmax(ROOT / "no" / "such" / "file.txt") == {})
 
+    # ⚠ THE EXIT CODE IS NOT THE MEASUREMENT.  `quartus_sta` running the probe
+    # has been observed to write ALL five classes and then crash in Tcl
+    # teardown with rc=2 (2 of 16 draws in the first N=8 baseline).  The gate
+    # judges the ARTIFACT.
+    check("a whole artifact is COMPLETE", qg.truefmax_complete(tf))
+    check("{} is not complete", qg.truefmax_complete({}) is False)
+    for drop in ("k=0.5", "DEFAULT", "k=2.5"):
+        part = {k: v for k, v in tf.items() if not k.startswith(drop)}
+        check(f"an artifact missing the {drop} class is INCOMPLETE",
+              qg.truefmax_complete(part) is False)
+    # A class that is PRESENT but carries no ceiling is incomplete too --
+    # a header with no number is absence wearing a label.
+    hollow = {k: (dict(v, fmax_mhz=None) if k.startswith("k=0.5") else v)
+              for k, v in tf.items()}
+    check("a class present but with NO ceiling is INCOMPLETE",
+          qg.truefmax_complete(hollow) is False)
+    src = (SW / "quartus_gate.py").read_text()
+    check("the sweep accepts a truefmax artifact on COMPLETENESS, not on rc",
+          "truefmax_complete(parse_truefmax(cand))" in src)
+    check("...and records the rc either way",
+          '"salvaged_despite_rc": tf_salvaged' in src)
+
 
 def q15_summary_stats():
     print("\nQ15 the distribution summary, and WHICH number is the quotable one")

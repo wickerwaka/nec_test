@@ -1,0 +1,75 @@
+=== sta_truefmax_probe: nec_test / nec_test_ucore ===
+T0 = 31.250 ns   (clock emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk)
+v30u_regs 1874  v30u_ce 1873  v30u_half 1
+
+==========================================================================
+ THE FIVE EXCEPTION CLASSES, EACH WITH ITS OWN k
+==========================================================================
+
+--- DEFAULT (whole-design worst, expect k=1) ---
+  from  : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE
+  to    : emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10]
+  k = 1.0000   slack =   +6.457   ->  T_min  24.793 ns  =    40.33 MHz
+
+--- k=4.0  $v30u_ce -> $v30u_ce   (the CE multicycle) ---
+  from  : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[4]~7_OTERM3511
+  k = 4.0000   slack =  +53.550   ->  T_min  17.863 ns  =    55.98 MHz
+
+--- k=1.5  $v30u_ce -> t1_half2 ---
+  from  : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[5]~DUPLICATE
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  k = 1.5000   slack =  +29.504   ->  T_min  11.581 ns  =    86.35 MHz
+
+--- k=2.5  t1_half2 -> $v30u_ce ---
+  from  : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_data[5]
+  k = 2.5000   slack =  +69.194   ->  T_min   3.572 ns  =   279.92 MHz
+
+--- k=0.5  (not $v30u_ce) -> t1_half2   -- the ENABLE arc ---
+  from  : emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[2]
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  k = 0.5000   slack =  +10.170   ->  T_min  10.910 ns  =    91.66 MHz
+
+  observation endpoints (incl. core_ad_hold if RETENTION): 64
+
+==========================================================================
+ THE LADDER BEHIND THE BINDING CONE
+==========================================================================
+
+ ⚠ EVERY RUNG IS RESTRICTED TO divclk -> divclk.  Quartus's own Fmax
+   Summary note says FMAX is computed ONLY for paths whose source and
+   destination are driven by the SAME clock, so a cross-domain path
+   (the JTAG hub, the HPS bridge) is not a divclk ceiling and must not
+   be quoted as one.  A first run of this script without the filter
+   returned the sld_jtag_hub at rung 2; that hit is EXCLUDED here for
+   that reason, and this note is why.
+
+--- RUNG 1: not latching in an observation register ---
+  from  : emu:emu|system_large:system_large|c_int_q
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted
+  k = 1.0000   slack =   +9.618   ->  T_min  21.632 ns  =    46.23 MHz
+
+--- RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor) ---
+  from  : emu:emu|system_large:system_large|c_int_q
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted
+  k = 1.0000   slack =   +9.618   ->  T_min  21.632 ns  =    46.23 MHz
+
+--- RUNG 2: ...and not launching from c_int_q ---
+  from  : emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[2]
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  k = 0.5000   slack =  +10.170   ->  T_min  10.910 ns  =    91.66 MHz
+
+--- RUNG 3: ...and not latching in row_posted ---
+  from  : emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[2]
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  k = 0.5000   slack =  +10.170   ->  T_min  10.910 ns  =    91.66 MHz
+
+==========================================================================
+ TRUE CEILING over the five classes: T_min 24.793 ns = 40.33 MHz
+   bound by: DEFAULT (whole-design worst, expect k=1)   (emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10])
+==========================================================================
+
+ Compare against Quartus's OWN Fmax Summary in <rev>.sta.rpt, which is
+ the authority.  Its note says it scales the rising and falling edges
+ along with FMAX, so it handles the negedge destination itself.

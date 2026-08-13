@@ -735,6 +735,33 @@ def parse_truefmax(path):
 INPUT_FLIP_EXEMPT = ("hdl/nec_test_ucore.qsf",)
 
 
+TRUEFMAX_CLASSES = ("DEFAULT", "k=4.0", "k=1.5", "k=2.5", "k=0.5")
+
+
+def truefmax_complete(tf):
+    """Is a parsed truefmax artifact WHOLE?  -> bool
+
+    ⚠ WHY THIS EXISTS RATHER THAN AN EXIT-CODE CHECK.  `quartus_sta` running
+    the probe has been observed to write its COMPLETE output -- all five
+    exception classes and all four rungs, trailer included -- and THEN crash in
+    Tcl namespace teardown on the way out, returning 2.  Measured on 2 of 16
+    draws in the first N=8 baseline.  Judging the run by its exit code
+    discarded a valid, finished measurement.
+
+    So the artifact is judged, not the exit status: every one of the five
+    exception classes must be present WITH a ceiling.  That is this repo's own
+    rule -- verify against the artifact, not against a proxy for it -- and the
+    proxy here happens to be an unrelated crash in the tool's shutdown path.
+    The rc is still RECORDED, never hidden."""
+    if not tf:
+        return False
+    for c in TRUEFMAX_CLASSES:
+        hit = [v for k, v in tf.items() if k.startswith(c)]
+        if not hit or hit[0].get("fmax_mhz") is None:
+            return False
+    return True
+
+
 def input_stability_bar(pre, post):
     """E7 -- THE INPUT-HASH ORDERING BAR.
 
@@ -1020,12 +1047,25 @@ def run_sweep(a, tree, receipt_path, logpath):
                 seed_rc = stage(cmd, lf, f"seed{seed}:{Path(cmd[0]).name}")
                 if seed_rc != 0:
                     break
-            tf_path = None
+            tf_path, tf_rc, tf_salvaged = None, None, False
             if seed_rc == 0 and not a.no_truefmax:
                 stem = tree / f"g6dist_seed{seed}"
-                if stage(truefmax_command(stem), lf,
-                         f"seed{seed}:truefmax") == 0:
-                    tf_path = Path(f"{stem}.truefmax.txt")
+                tf_rc = stage(truefmax_command(stem), lf,
+                              f"seed{seed}:truefmax")
+                cand = Path(f"{stem}.truefmax.txt")
+                # THE ARTIFACT DECIDES, NOT THE EXIT CODE -- see
+                # `truefmax_complete()`.  A probe that finished its output and
+                # then crashed in Tcl teardown has still measured the design.
+                if cand.is_file() and truefmax_complete(parse_truefmax(cand)):
+                    tf_path = cand
+                    tf_salvaged = tf_rc != 0
+                    if tf_salvaged:
+                        print(f"quartus_gate:   [seed{seed}:truefmax] rc="
+                              f"{tf_rc} BUT the artifact is COMPLETE (all five "
+                              f"classes) -- accepted, rc recorded", flush=True)
+                elif tf_rc == 0:
+                    print(f"quartus_gate:   [seed{seed}:truefmax] rc=0 but the "
+                          f"artifact is INCOMPLETE -- rejected", flush=True)
 
         log_text = logpath.read_text(errors="replace") if logpath.exists() else ""
         cfg, cfg_detail = parse_configuration(tree)
@@ -1067,6 +1107,10 @@ def run_sweep(a, tree, receipt_path, logpath):
                          "configuration_requested": ("RETENTION" if a.retention
                                                      else "CONTROL/DEFAULT")},
                "truefmax": truefmax,
+               "truefmax_probe": {"rc": tf_rc, "accepted": tf_path is not None,
+                                  "salvaged_despite_rc": tf_salvaged,
+                                  "artifact": (art.relpath(tf_path)
+                                               if tf_path else None)},
                "build_id": bid,
                "seconds": round(time.time() - t0, 1),
                "build": {"note": "one shared quartus_map; this receipt is ONE "

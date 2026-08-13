@@ -155,6 +155,84 @@ derived ceilings and inter-draw claims are affected.)*
 
 ---
 
+### ⚠⚠⚠ THE G6 DISTRIBUTION GATE — **NEW, 2026-08-13.  READ BEFORE QUOTING ANY Fmax.**
+
+`docs/notes/timing50_distribution_2026-08-13.md`, pre-registered at `b74c79d6ea`
+before the first fit.  §74.4 asked for a multi-seed worst-of-N instrument and
+nobody built one; it exists now.
+
+> **THE QUOTING RULE.**  A distribution figure is **`worst-of-N@seeds{...}`**
+> with N and the seed set named, and **the WORST draw is the quotable one**.  A
+> single fit is **`draw@seed<S>`** and is **NOT promotion evidence**.
+> **G6 PASS for a PROMOTION requires N ≥ 5.**  N = 2 stays acceptable for an
+> intermediate-wave measurement **with the caveat printed**, which the tool
+> prints itself.
+
+    python3 sw/quartus_gate.py --seeds 8 [--retention]
+
+ONE `quartus_map`, then N × `quartus_fit --seed=S --recompile=off` + `asm` +
+`sta` + `sta_truefmax_probe.tcl`.  Map-once is load-bearing: it makes the N
+draws a distribution **of one netlist**.  Four new bars — **E7** (the inputs are
+hashed BEFORE `quartus_map` and RE-HASHED after the last stage; one DECLARED
+§70.7 exemption, `hdl/nec_test_ucore.qsf`, reported as moved-but-exempt rather
+than hidden), **E8** (the fitter honoured `--seed`, read off its own `Fitter
+Initial Placement Seed` row — *a sweep whose flag was accepted-and-ignored
+reports a spread of 0.00 MHz, which reads as a reassuring result*), **E9** (every
+draw is a G6 PASS), **E10** (N ≥ 5 for a promotion figure).  Falsifier
+`python3 sw/test_quartus_gate.py` — **200/200**, no Quartus needed.
+
+**THE N=8 BASELINE AT `a74c741d1c` (`hdl/` byte-identical to `41a60bd42c`),
+88-file manifest `c23e63aa4cf19684…`, ALL 16 DRAWS A G6 PASS:**
+
+| | worst-of-8 | median | best | spread |
+|---|---:|---:|---:|---:|
+| **CONTROL** | **38.97** (seed 5) | 40.475 | 42.31 | **3.34 MHz** |
+| **RETENTION** | **37.73** (seed 8) | 40.230 | 41.73 | **4.00 MHz** |
+
+Records `b7e122d9b2f90197…` and `901c655ecf7ae398…`, artifacts in
+`sw/testdata/g6dist/`.  **16 draws, 16 distinct `.rbf`.**
+
+⚠ **BOTH WORST-OF-8 FIGURES ARE BELOW EVERY DRAW EVER REGISTERED FOR THIS
+TREE** (CONTROL 39.79 ×3 and 42.09; RETENTION 43.76 ×2 and 39.99).  Nothing was
+wrong with those measurements — they were single draws.
+
+⚠ **THE TWO CONFIGURATIONS' BANDS OVERLAP** ([38.97, 42.31] vs [37.73, 41.73]),
+so **no control-vs-retention delta computed from a draw pair is meaningful**.
+That retires the *"recorded, not explained"* sign-instability list (#13 +0.46,
+#14 +1.50, #15 +2.24, #16 +0.12, #17 +0.71, #18 −1.31) as **one distribution
+seen twice** rather than six unexplained events.
+
+⚠ **THERE ARE TWO SOURCES OF VARIANCE AND THIS GATE MEASURES ONE.**  The fit is
+DETERMINISTIC given (netlist, seed) — CONTROL seeds 1-8 reproduced to the digit
+across two independently produced maps, and seed 1 reproduces the k=0.5 wave's
+`--flow compile` draw exactly (42.09 / +7.489 / 10,371 CTL, 39.99 / +6.242 /
+10,257 RET).  **So the k=0.5 wave's 2.30 MHz same-manifest CONTROL disagreement
+was NOT seed variance** (both were `SEED 1`) — it was **MAP** variance, §74.4a.
+**`worst-of-8` is therefore an UPPER bound on the honest worst case, not the
+worst case.**  A worst-of-N over *(map, seed)* pairs is **BOOKED, not built**.
+
+⚠ **AN INSTRUMENT DEFECT IN `sta_truefmax_probe.tcl`, FOUND ONLY BY THE SWEEP.**
+Its `RUNG 1a` exclusion matches `t1_half2` by EXACT NAME, and the fitter
+duplicates that register on some placements, so on CONTROL seeds 2/3/4 the
+*"worst k=1 survivor"* query returned the **k=0.5 ENABLE arc**.  Those three
+rung-1a cells are CONTAMINATED and excluded from every benefit figure.  The five
+exception-class rows are NOT affected (they use the collection as a destination
+they want, not as an exclusion).  Booked with its falsifier.
+
+**WHAT THIS SAYS ABOUT THE NEXT LEVER** (`upc_opc → ad_in_q`, the AD publication
+cone).  It is the binding class on **15 of 16 draws** — but a **different
+endpoint pair on every draw** (8 distinct of 8, each configuration), so **the
+class is a property of the tree and the path is a property of the draw: no
+specific path may be optimised against.**  Closing the whole observation class
+is worth **+1.50 … +10.16 MHz (CTL, n=5)** and **+2.53 … +10.63 MHz (RET, n=8)**,
+landing on a ceiling of **43.59-51.23 / 44.26-50.37 MHz**, with
+`c_int_q → row_posted` the next wall on **13 of 13** uncontaminated draws.
+**A perfect fix does not reach 50 MHz on a worst-of-8 basis**, and **any benefit
+claim quoted from one draw pair has an error bar of ±8 MHz — larger than either
+lever's own effect.**
+
+---
+
 ⚠⚠ **CURRENT BAND, RE-REGISTERED 2026-08-12 AT `a1c63e78e4` — E-1 IS DELETED
 AND THE BAND FELL: CONTROL 41.18 MHz / +6.964 ns / 12,271 ALMs (29 %) ·
 RETENTION 42.28 MHz / +7.600 ns / 12,317 ALMs (29 %)**, worst-of-2 from a clean

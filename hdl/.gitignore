@@ -30,6 +30,12 @@ PLLJ_PLLSPE_INFO.txt
 *.ppf
 *.ddb
 build_id.v
+# Quartus COMPILE TRANSCRIPTS.  They are hashed into each receipt's `reports`
+# manifest, so a receipt already names the bytes it read -- but they run to
+# ~1.3 MB per sweep and the durable artifacts (per-seed receipts, .sta.summary,
+# the truefmax tables, distribution.json) live in sw/testdata/g6dist/.
+quartus_gate_build.log
+g6dist_*.log
 c5_pin_model_dump.txt
 *.sopcinfo
 *.csv
