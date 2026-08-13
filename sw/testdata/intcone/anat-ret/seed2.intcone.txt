@@ -1,0 +1,28 @@
+c_int_q collection size: 1
+
+B. paths launched by c_int_q: 200   worst slack: 10.163
+   endpoint histogram:
+       200  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted
+   logic-level histogram:
+         3 paths at 26 levels
+        18 paths at 27 levels
+        66 paths at 28 levels
+        89 paths at 29 levels
+        24 paths at 30 levels
+
+C. per-launch-register worst slack (the pin class):
+     c_int_q        10.163 ns   30 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted
+     c_nmi_q        29.855 ns    0 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|nmi_p[0]
+     c_ready_q      20.764 ns   11 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted
+     c_reset_q      19.604 ns    6 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rowq[0]_OTERM2717
+     c_polln_q      29.895 ns    1 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|poll_pipe[1]
+
+D. CEILING -- worst setup path with c_int_q excluded as a LAUNCH register:
+        8.261 ns   20 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[11]
+        8.321 ns   20 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[11]
+        8.338 ns   24 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a1~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]
+
+E. CEILING -- worst setup path with the WHOLE pin class excluded as launch:
+        8.261 ns   20 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[11]
+        8.321 ns   20 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[11]
+        8.338 ns   24 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a1~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]

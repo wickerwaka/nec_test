@@ -78,6 +78,24 @@ one step before flashing it, and booked the fix.  Now:
 flag records what was ASKED for, in `build.configuration_requested`, and the
 disagreement between the two is exactly the check that caught FLASH #18.
 
+THE REGISTERED OUTPUT OF A `--seeds N` RUN IS A **PAIR** (adopted 2026-08-13,
+`standing_gates.md` §A; `core_domain_fmax()` carries the derivation):
+
+  * **WHOLE-DESIGN worst-of-N** -- what E3/E4/E5 gate.  UNCHANGED IN ROLE: it
+    is the promotion gate and the number the board must satisfy.
+  * **CORE-DOMAIN worst-of-N** -- the worst path with BOTH endpoints inside
+    `v30u_eu`/`v30u_biu`, i.e. what a downstream integration inherits.  It is
+    NOT a gate; no bar reads it.
+
+Each half is quoted with its BINDING CONE and its `k`, and neither stands in
+for the other.  The pairing was recommended by
+`timing50_e1_rederivation_2026-08-12.md` §8.3 *conditionally* -- honest only if
+paired with the RTL item that shortens the core's own AD publication cone,
+because otherwise it re-scopes a real core problem into invisibility.  That
+item is L1, landed 2026-08-13, so the condition is discharged.  **Both figures
+come from the same `--seeds N` run, over the same N draws of the same map**:
+one measurement reported twice, not two measurements.
+
     python3 sw/quartus_gate.py                 # CONTROL build + gate (~10 min)
     python3 sw/quartus_gate.py --retention     # RETENTION build + gate
     python3 sw/quartus_gate.py --dry-run [--retention]   # print the stages only
@@ -737,6 +755,113 @@ INPUT_FLIP_EXEMPT = ("hdl/nec_test_ucore.qsf",)
 
 TRUEFMAX_CLASSES = ("DEFAULT", "k=4.0", "k=1.5", "k=2.5", "k=0.5")
 
+# --------------------------------------------------------------------------- #
+# THE PAIRED FIGURE -- `standing_gates.md` §A, adopted 2026-08-13.
+#
+# `timing50_e1_rederivation_2026-08-12.md` §8.3 recommended reporting TWO
+# numbers instead of one, and made the recommendation conditional: it is honest
+# **only if paired with the RTL item** -- shortening the core's own AD
+# publication cone -- because without that the re-scoping would move a real
+# CORE problem into invisibility.  That item is L1
+# (`adcone_l1_results_2026-08-13.md`), landed 2026-08-13, so the precondition is
+# discharged and the pairing is adopted here.
+#
+#   * WHOLE-DESIGN Fmax -- what E3/E4/E5 already gate, unchanged in role.  It
+#     is the number the BOARD must satisfy, and it is the promotion gate.  On
+#     this tree both of its binding cones have one endpoint in the RIG
+#     (`nec_bus|ad_in_q`, `system_large|c_int_q`), which is exactly why it is
+#     not the whole story.
+#   * CORE-DOMAIN Fmax -- the worst path with BOTH endpoints inside
+#     `v30u_eu` / `v30u_biu`.  It is what a downstream integration inherits.
+#
+# ⚠ HOW THE CORE-DOMAIN CLASS IS DEFINED, AND WHY IT IS THREE CLASSES AND NOT
+# ONE.  `nec_test.sdc` collects `$v30u_ce` as (every `v30u_eu` + `v30u_biu`
+# register) MINUS `t1_half2`, and `t1_half2` is itself a `v30u_biu` register.
+# So THREE of the probe's five classes are core-internal on both ends --
+#     k=4.0  $v30u_ce -> $v30u_ce      (the CE multicycle; the one that binds)
+#     k=1.5  $v30u_ce -> t1_half2
+#     k=2.5  t1_half2 -> $v30u_ce
+# -- and the other two are not: `DEFAULT` is the whole design, and `k=0.5` is
+# `(not $v30u_ce) -> t1_half2`, whose launch side is by construction OUTSIDE
+# the core.  Taking only k=4.0 would quote a ceiling while leaving two
+# core-internal classes unexamined, so the figure is the MINIMUM over the three
+# and the binding one is NAMED with its own `k`.  A ceiling quoted without `k`
+# is not quotable (`standing_gates.md` §A).
+CORE_DOMAIN_CLASSES = ("k=4.0", "k=1.5", "k=2.5")
+
+
+def core_domain_fmax(tf):
+    """-> the CORE-DOMAIN figure for ONE draw, or None if it cannot be derived.
+
+    `tf` is a `parse_truefmax()` dict.  The result names the binding class, its
+    `k`, and its endpoint pair, because the paired contract is *two numbers,
+    each with its cone named, and neither standing in for the other*.
+
+    **ABSENCE IS NOT DATA.**  If any of the three core-internal classes is
+    missing from the artifact, or is present without a ceiling, the figure is
+    returned as `None` with the missing classes listed -- it is NOT silently
+    computed over the survivors, because a minimum over a subset is a ceiling
+    that has not looked everywhere it claims to have looked."""
+    rows, missing = {}, []
+    for c in CORE_DOMAIN_CLASSES:
+        hit = [(k, v) for k, v in tf.items() if k.startswith(c)]
+        if not hit or hit[0][1].get("fmax_mhz") is None:
+            missing.append(c)
+            continue
+        rows[c] = {"label": hit[0][0], **hit[0][1]}
+    if missing or not rows:
+        return {"fmax_mhz": None, "class": None, "k": None, "from": None,
+                "to": None, "classes": rows, "missing": missing,
+                "off_class": [], "upper_bound": True,
+                "note": "core-domain figure NOT derivable -- a class is absent "
+                        "or carries no ceiling; absence must not read as data"}
+    # ⚠ A CLASS ROW CAN RETURN A PATH FROM ANOTHER CLASS, AND A DRAW PROVES IT.
+    # MEASURED, CONTROL seed 1, 2026-08-13
+    # (`sw/testdata/intcone/fixtures/ctl_seed1_offclass.truefmax.txt`): the
+    # `k=4.0  $v30u_ce -> $v30u_ce` row returned
+    #     to    : ...|v30u_biu:u_biu|t1_half2~DUPLICATE
+    #     k = 1.5000   slack = +31.616  ->  98.30 MHz
+    # i.e. an arc INTO the negedge register the class is defined by EXCLUDING,
+    # measuring the k the `k=1.5` row measures, at a slack 0.003 ns from that
+    # row's own (+31.613).  On CONTROL seed 4, where the fitter left no
+    # `t1_half2~DUPLICATE` at all, the same query is clean: `k = 4.0000,
+    # 60.99 MHz`.
+    #
+    # **THE CONTAMINATED READING IS THE HIGHER ONE (98.30 against 60.99), i.e.
+    # the UNSAFE direction.**  That REFUTES
+    # `timing50_distribution_2026-08-13.md` §6's *"the five exception-class rows
+    # are NOT affected ... a missed duplicate can only make those queries
+    # conservative, never wrong in the unsafe direction"* -- true of the three
+    # rows that use the collection as a destination they WANT, false of
+    # `k=4.0`, whose collection is built by EXCLUDING an exact name on BOTH
+    # ends.  **The mechanism by which the duplicate lands in collections built
+    # from `t1_half2` by exact name is NOT established here** (it appears in
+    # `$v30u_half` and in `$v30u_ce` on the same draw) and is booked as an
+    # instrument question, not guessed at.
+    #
+    # CONSEQUENCE, stated rather than papered over: **the core-domain figure is
+    # an UPPER BOUND on the core-domain ceiling.**  Flagged per row, never
+    # silently averaged away.
+    nominal = {"k=4.0": 4.0, "k=1.5": 1.5, "k=2.5": 2.5}
+    off = [c for c, r in rows.items()
+           if r.get("k") is not None and abs(r["k"] - nominal[c]) > 1e-6]
+    binding = min(rows.items(), key=lambda kv: kv[1]["fmax_mhz"])
+    c, r = binding
+    return {"fmax_mhz": r["fmax_mhz"], "class": c, "class_label": r["label"],
+            "k": r["k"], "k_nominal": nominal[c], "slack": r["slack"],
+            "t_min_ns": r["t_min_ns"], "from": r["from"], "to": r["to"],
+            "classes": {k: v["fmax_mhz"] for k, v in rows.items()},
+            "k_measured": {k: v.get("k") for k, v in rows.items()},
+            "missing": [], "off_class": off, "upper_bound": True,
+            "definition": "min over the three SDC classes whose BOTH endpoints "
+                          "are v30u_eu/v30u_biu registers: " +
+                          ", ".join(CORE_DOMAIN_CLASSES),
+            "caveat": "UPPER BOUND: each class row is the worst path in that "
+                      "collection BY SLACK, not by slack/k, so a row can return "
+                      "a path carrying a different exception than its label "
+                      "names.  `off_class` lists the rows where the measured k "
+                      "and the label's k disagree ON THIS DRAW."}
+
 
 def truefmax_complete(tf):
     """Is a parsed truefmax artifact WHOLE?  -> bool
@@ -951,6 +1076,83 @@ def _stat(vals):
             "spread": round(s[-1] - s[0], 4), "sorted": s}
 
 
+def paired_figures(per_seed, binding, seeds):
+    """THE PAIR, over a completed sweep.  -> dict
+
+    Both halves are worst-of-N over the SAME N draws of the SAME map, so the
+    pair is a property of ONE measurement and not of two, and each half names
+    the draw that bound it and the cone that bound that draw.
+
+    It is a function rather than a block inside `run_sweep` for one reason:
+    a summary that can only be exercised by a thirty-minute compile is a
+    summary whose first run is on the data it was written to report.
+    `test_quartus_gate.py` Q16 calls it directly."""
+    n = len(seeds)
+    seedset = ",".join(map(str, seeds))
+    fmaxes = [p["fmax_mhz"] for p in per_seed]
+    ok_fm = [f for f in fmaxes if f is not None]
+    worst = min(ok_fm) if ok_fm else None
+    worst_seed = (min((p for p in per_seed if p["fmax_mhz"] is not None),
+                      key=lambda p: p["fmax_mhz"])["seed"] if ok_fm else None)
+    core_ok = [p["core_fmax_mhz"] for p in per_seed
+               if p["core_fmax_mhz"] is not None]
+    core_worst = min(core_ok) if core_ok else None
+    core_worst_seed = (min((p for p in per_seed
+                            if p["core_fmax_mhz"] is not None),
+                           key=lambda p: p["core_fmax_mhz"])["seed"]
+                       if core_ok else None)
+    core_binding = next((p["core_domain"] for p in per_seed
+                         if p["seed"] == core_worst_seed), None) or {}
+    wd_binding = next((b for b in binding
+                       if b["seed"] == worst_seed), None) or {}
+    return {
+        "contract": "G6 reports a PAIR, from the SAME --seeds N run: "
+                    "WHOLE-DESIGN worst-of-N (the PROMOTION gate, unchanged in "
+                    "role -- E3/E4/E5 score it and the board must satisfy it) "
+                    "and CORE-DOMAIN worst-of-N (what a downstream integration "
+                    "inherits).  Each is quoted with its BINDING CONE and its "
+                    "k.  NEITHER STANDS IN FOR THE OTHER, and the core-domain "
+                    "figure is NOT a gate: no bar reads it.",
+        "adopted": "2026-08-13, `standing_gates.md` §A; the precondition is "
+                   "timing50_e1_rederivation_2026-08-12.md §8.3's PAIRED RTL "
+                   "ITEM, discharged by L1 (adcone_l1_results_2026-08-13.md)",
+        "whole_design": {
+            "n": n, "seeds": seeds, "fmax_mhz": worst, "seed": worst_seed,
+            "k": wd_binding.get("k"),
+            "binding_from": wd_binding.get("from"),
+            "binding_to": wd_binding.get("to"),
+            "source": "Quartus's own Fmax Summary (E3), per draw",
+            "is_promotion_gate": True,
+            "quotable_as": (f"whole-design worst-of-{n}@seeds{{{seedset}}} "
+                            f"= {worst} MHz" if worst is not None else None)},
+        "core_domain": {
+            "n": n, "seeds": seeds, "fmax_mhz": core_worst,
+            "seed": core_worst_seed,
+            "class": core_binding.get("class"),
+            "k": core_binding.get("k"),
+            "binding_from": core_binding.get("from"),
+            "binding_to": core_binding.get("to"),
+            "per_class_worst_of_n": {
+                c: _stat([(p["core_domain"].get("classes") or {}).get(c)
+                          for p in per_seed])
+                for c in CORE_DOMAIN_CLASSES},
+            "definition": "min over " + ", ".join(CORE_DOMAIN_CLASSES) +
+                          " -- the three SDC classes whose BOTH endpoints are "
+                          "v30u_eu/v30u_biu registers",
+            "source": "sta_truefmax_probe.tcl, one row per class",
+            "is_promotion_gate": False,
+            "upper_bound": True,
+            "off_class_draws": {p["seed"]: p["core_domain"].get("off_class")
+                                for p in per_seed
+                                if p["core_domain"].get("off_class")},
+            "n_draws_derivable": len(core_ok),
+            "quotable_as": (f"core-domain worst-of-{n}@seeds{{{seedset}}} "
+                            f"= {core_worst} MHz ({core_binding.get('class')}, "
+                            f"k={core_binding.get('k')})"
+                            if core_worst is not None else None)},
+    }
+
+
 def run_sweep(a, tree, receipt_path, logpath):
     """THE G6 DISTRIBUTION GATE.  One mapped netlist, N fits, N receipts, one
     distribution record.  -> exit code
@@ -1107,6 +1309,9 @@ def run_sweep(a, tree, receipt_path, logpath):
                          "configuration_requested": ("RETENTION" if a.retention
                                                      else "CONTROL/DEFAULT")},
                "truefmax": truefmax,
+               # THE PAIRED FIGURE, PER DRAW.  The whole-design number is
+               # `figures`/`bars` (E3), unchanged; this is the other half.
+               "core_domain": core_domain_fmax(truefmax),
                "truefmax_probe": {"rc": tf_rc, "accepted": tf_path is not None,
                                   "salvaged_despite_rc": tf_salvaged,
                                   "artifact": (art.relpath(tf_path)
@@ -1141,11 +1346,15 @@ def run_sweep(a, tree, receipt_path, logpath):
                 shutil.copyfile(src, dst)
 
         fm = bars["E3_fmax"]["value"]
+        cd = rec["core_domain"]
         print(f"quartus_gate: seed {seed}: {rec['verdict']}  "
               f"Fmax {fm}  setup {bars['E4_worst_setup']['value']}  "
               f"ALMs {figs['status'].get('alms')}  "
+              f"core-domain {cd['fmax_mhz']} ({cd['class'] or 'n/a'})  "
               f"receipt {rec['id'][:16]}…", flush=True)
         per_seed.append({"seed": seed, "verdict": rec["verdict"],
+                         "core_domain": cd,
+                         "core_fmax_mhz": cd["fmax_mhz"],
                          "receipt_id": rec["id"],
                          "receipt": art.relpath(rp),
                          "fmax_mhz": fm,
@@ -1194,6 +1403,8 @@ def run_sweep(a, tree, receipt_path, logpath):
                                                p["fmax_mhz"]))["seed"]
                   if ok_fm else None)
     n = len(seeds)
+
+    paired = paired_figures(per_seed, binding, seeds)
     dist = {"schema": art.SCHEMA, "schema_version": art.SCHEMA_VERSION,
             "kind": "quartus_distribution",
             "name": art.relpath(art_dir / "distribution.json"),
@@ -1237,6 +1448,7 @@ def run_sweep(a, tree, receipt_path, logpath):
                                 "own caveat)",
                          "value": n,
                          "pass": n >= 5}},
+            "paired": paired,
             "worst_of_n": {"n": n, "seeds": seeds, "fmax_mhz": worst,
                            "seed": worst_seed,
                            "quotable_as": (f"worst-of-{n}@seeds{{"
@@ -1261,10 +1473,13 @@ def run_sweep(a, tree, receipt_path, logpath):
           f"sha256 {mf_pre['sha256'][:16]}…   E7 "
           f"{'PASS' if e7['pass'] else 'RED'}")
     print(f"  seeds    : {seeds}   (one shared quartus_map, {n} fits)")
-    print(f"  {'seed':>6}  {'Fmax':>8}  {'setup':>8}  {'ALMs':>16}  verdict")
+    print(f"  {'seed':>6}  {'Fmax':>8}  {'setup':>8}  {'ALMs':>8}  "
+          f"{'core-dom':>9}  {'class':>6}  verdict")
     for p in per_seed:
+        cd = p["core_domain"]
         print(f"  {p['seed']:>6}  {str(p['fmax_mhz']):>8}  "
-              f"{str(p['worst_setup_ns']):>8}  {str(p['alms']):>16}  "
+              f"{str(p['worst_setup_ns']):>8}  {str(p['alms']):>8}  "
+              f"{str(cd['fmax_mhz']):>9}  {str(cd['class']):>6}  "
               f"{p['verdict']}")
     f = dist["fmax"]
     print(f"  Fmax     : min {f['min']}  median {f['median']}  max {f['max']}"
@@ -1275,8 +1490,33 @@ def run_sweep(a, tree, receipt_path, logpath):
               f"max {s['max']}  spread {s['spread']}")
     print(f"  binding cone distinct endpoint pairs over {n} draws: "
           f"{dist['binding_class_flips']}")
-    print(f"\n  *** THE QUOTABLE FIGURE: {dist['worst_of_n']['quotable_as']} "
-          f"(worst seed {worst_seed}) ***")
+    # --- THE PAIR.  Two numbers, each with its cone named. ------------------ #
+    wd, cdd = paired["whole_design"], paired["core_domain"]
+    print("\n  *** THE QUOTABLE FIGURE IS A PAIR (standing_gates.md §A) ***")
+    print(f"  WHOLE-DESIGN : {wd['quotable_as']}   (seed {wd['seed']}, "
+          f"k={wd['k']})")
+    print(f"                 bound by {wd['binding_from']} -> {wd['binding_to']}")
+    print(f"                 ^ THE PROMOTION GATE.  E3/E4/E5 score this one.")
+    print(f"  CORE-DOMAIN  : {cdd['quotable_as']}   (seed {cdd['seed']})")
+    print(f"                 bound by {cdd['binding_from']} -> "
+          f"{cdd['binding_to']}")
+    print(f"                 ^ what an integration inherits.  NOT a gate; no "
+          f"bar reads it.")
+    for c in CORE_DOMAIN_CLASSES:
+        s = cdd["per_class_worst_of_n"][c]
+        print(f"                   {c:<6} worst-of-{n} {s['min']}  "
+              f"med {s['median']}  best {s['max']}")
+    print(f"                 ^ AN UPPER BOUND: each class row is that "
+          f"collection's worst BY SLACK, not by slack/k.")
+    if cdd["off_class_draws"]:
+        print(f"  ⚠ off-class rows (measured k != the label's k), by seed: "
+              f"{cdd['off_class_draws']}")
+    if cdd["n_draws_derivable"] != n:
+        print(f"  ⚠ the core-domain figure is derivable on only "
+              f"{cdd['n_draws_derivable']} of {n} draws -- see per-seed "
+              f"`core_domain.missing`")
+    print(f"\n  (legacy single-figure line, unchanged: "
+          f"{dist['worst_of_n']['quotable_as']}, worst seed {worst_seed})")
     if n < 5:
         print(f"  ⚠ N = {n} < 5: this is an INTERMEDIATE-WAVE measurement and "
               f"is NOT promotion evidence.")

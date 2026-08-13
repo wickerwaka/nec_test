@@ -155,7 +155,44 @@ derived ceilings and inter-draw claims are affected.)*
 
 ---
 
-### ⚠⚠⚠⚠ **CURRENT BAND — L1 LANDED 2026-08-13.  CONTROL `worst-of-5` 41.71 · RETENTION 43.50**
+### ⚠⚠⚠⚠ **CURRENT BAND — RE-MEASURED 2026-08-13 AS A PAIR, AND IT IS THE FIRST PAIRED REGISTRATION**
+
+`docs/notes/intcone_results_2026-08-13.md` §3.  **No RTL changed** since L1, so
+`hdl/` is byte-identical to L1's and the input manifest is the same
+**`d47c1d003d64c4c5…`**.
+
+| | **whole-design** `worst-of-5@seeds{1..5}` | binding cone (k) | **core-domain** `worst-of-5` ⚠ upper bound | binding cone (k) |
+|---|---:|---|---:|---|
+| **CONTROL** | **41.71** (seed 1) | `opc_from_modrm → ad_in_q[14]` (**1.0**) | **60.67** (seed 3) | `ucdecode M10K → v30u_eu\|wb_kind[0]` (**4.0**) |
+| **RETENTION** | **43.50** (seed 2) | `ucdecode M10K → ad_in_q[11]` (**1.0**) | **59.52** (seed 4) | `ucdecode M10K → v30u_eu\|Mux73~0` (**4.0**) |
+
+Records `ad7dc5db6e6a6002…` / `c487a9ae7bbd4f3c…`; both `verdict PASS` on
+E7-E10, **TNS 0.000 setup AND hold on every domain of all ten draws**, ALMs
+**24 %** (10,085-10,194), spreads **2.65 / 1.71**.
+
+⚠ **THE BANDS OVERLAP** ([41.71, 44.36] vs [43.50, 45.21]) — **no
+control-vs-retention delta may be computed.**
+⚠ **THREE OF THE TEN CORE-DOMAIN ROWS ARE OFF-CLASS** (CTL 1, 2; RET 5).  On
+both configurations the contamination went **upward**, so it did not set either
+minimum; both quoted core figures come from clean `k = 4.0` rows.
+✅ **TEN OF TEN DRAWS REPRODUCE L1 TO THE DIGIT** — Fmax, worst setup and ALMs,
+on independently produced maps, with both spreads identical.  **Fifth
+confirmation of §7's determinism finding.**
+✅ **THE CORE-DOMAIN HALF CLEARS 50 MHz ON BOTH CONFIGURATIONS (+10.67 /
++9.52); THE WHOLE-DESIGN HALF DOES NOT, and is short by 8.29 / 6.50 MHz.**
+⚠ **`c_int_q` IS BOOKED, NOT LANDED** (`intcone_results_2026-08-13.md` §1):
+with `c_int_q` excluded as a launch register the CONTROL worst draw's worst
+path is **+7.276 — its own binding path**, so a perfect fix of that cone is
+**+0.00 MHz** on `worst-of-5`.  Re-open **only** when the observation class no
+longer binds the worst draw of a configuration.
+⚠ **THE LADDER CANNOT NAME THE THIRD WALL**: `RUNG 2` returns the k=0.5 enable
+arc on RETENTION seed 2 (slack-ranked) and the `c_int_q` path it was meant to
+exclude on CONTROL seed 1 (the `~DUPLICATE` leak).  What is behind the two
+rig-crossing cones is **UNMEASURED**.
+
+*Superseded, kept because a ratchet is only readable against its own history:*
+
+### ⚠⚠⚠ **L1 LANDED 2026-08-13.  CONTROL `worst-of-5` 41.71 · RETENTION 43.50**
 
 `docs/notes/adcone_l1_results_2026-08-13.md`; anatomy first at `05bd462643` /
 `83c00e753f`, pre-registration `107c0e3877` **before the edit**, edit
@@ -309,6 +346,101 @@ landing on a ceiling of **43.59-51.23 / 44.26-50.37 MHz**, with
 **A perfect fix does not reach 50 MHz on a worst-of-8 basis**, and **any benefit
 claim quoted from one draw pair has an error bar of ±8 MHz — larger than either
 lever's own effect.**
+
+---
+
+### ⚠⚠⚠ **PAIRED Fmax REPORTING — REGISTERED 2026-08-13.  G6's OUTPUT IS TWO NUMBERS, NOT ONE.**
+
+`timing50_e1_rederivation_2026-08-12.md` §8.3 recommended it and made the
+recommendation **conditional**: reporting a core-domain figure beside the
+whole-design one is honest *"only if it is paired with the RTL item"* —
+shortening the core's own AD publication cone — because on its own it would
+*"re-scope a real core problem into invisibility"*.  **That item is L1**
+(`adcone_l1_results_2026-08-13.md`), landed 2026-08-13, so the precondition is
+**discharged** and the pairing is adopted.
+
+> **THE REGISTERED FORM.**  A `python3 sw/quartus_gate.py --seeds N` run reports
+> a **PAIR**, both halves worst-of-N over the **same N draws of the same map**:
+>
+> * **`whole-design worst-of-N@seeds{…}`** — Quartus's own Fmax, **the
+>   PROMOTION GATE, unchanged in role**.  E3 (≥ 32 MHz), E4 (worst setup > 0)
+>   and E5 (TNS 0.000 setup AND hold) score this and nothing else.  It is the
+>   number **the board must satisfy**.
+> * **`core-domain worst-of-N@seeds{…}`** — the worst path with **both**
+>   endpoints inside `v30u_eu`/`v30u_biu`, i.e. **what a downstream integration
+>   inherits**.  **IT IS NOT A GATE.  No bar reads it**, and
+>   `test_quartus_gate.py` Q16 asserts that per bar by name.
+>
+> **EACH HALF IS QUOTED WITH ITS BINDING CONE AND ITS `k`, AND NEITHER STANDS
+> IN FOR THE OTHER.**  The quoting form is *"the ucore's own logic closes at X
+> MHz (class C, k); the nec_test RIG closes at Y MHz, bound by cone Z"*.  A
+> core-domain figure quoted alone, or quoted as a G6 PASS, is a
+> mis-registration.
+
+**WHY THE CORE-DOMAIN FIGURE IS THREE CLASSES AND NOT ONE.**  `nec_test.sdc`
+collects `$v30u_ce` as (every `v30u_eu` + `v30u_biu` register) MINUS
+`t1_half2`, and `t1_half2` is **itself a `v30u_biu` register**.  So **three** of
+`sta_truefmax_probe.tcl`'s five classes are core-internal on both ends —
+**`k=4.0`** (`$v30u_ce → $v30u_ce`, the CE multicycle), **`k=1.5`**
+(`$v30u_ce → t1_half2`) and **`k=2.5`** (`t1_half2 → $v30u_ce`) — and the other
+two are not: `DEFAULT` is the whole design and **`k=0.5` is
+`(not $v30u_ce) → t1_half2`, whose LAUNCH side is outside the core by
+construction**.  The figure is the **minimum over the three**, with the binding
+one named.  Taking `k=4.0` alone would quote a ceiling while leaving two
+core-internal classes unlooked-at; including `k=0.5` would put a rig register
+inside a figure whose whole claim is that both endpoints are the core's.
+**In practice `k=4.0` binds** — but that is a MEASUREMENT, re-taken every draw,
+not a definition.
+
+⚠⚠ **THE CORE-DOMAIN FIGURE IS AN UPPER BOUND — AND FINDING OUT WHY REFUTES
+§6's "NEVER WRONG IN THE UNSAFE DIRECTION".**  On the **CONTROL seed 1** draw
+of 2026-08-13 the probe's `k=4.0  $v30u_ce → $v30u_ce` row returned
+
+```
+  to    : …|v30u_biu:u_biu|t1_half2~DUPLICATE
+  k = 1.5000   slack = +31.616   ->   98.30 MHz
+```
+
+— an arc **into the negedge register that class is defined by EXCLUDING**,
+measuring the `k=1.5` row's own `k` at a slack 0.003 ns from the `k=1.5` row's
+own (+31.613).  On **CONTROL seed 4**, which carries no `t1_half2~DUPLICATE` at
+all, the identical query is clean: **`k = 4.0000`, 60.99 MHz**.
+
+> **THE CONTAMINATED READING IS THE HIGHER ONE — 98.30 against 60.99 — i.e.
+> THE UNSAFE DIRECTION.**  The distribution gate's §6 says *"the five
+> exception-class rows are NOT affected … a missed duplicate can only make
+> those queries conservative, never wrong in the unsafe direction"*.  **That is
+> true of the three rows that use the collection as a destination they WANT,
+> and FALSE of `k=4.0`, whose collection is built by EXCLUDING an exact name on
+> BOTH ends** (`$v30u_ce = $v30u_regs − $v30u_half`).  It is struck for that
+> row.  ⚠ **The mechanism by which a duplicate lands in collections built from
+> `t1_half2` by exact name is NOT ESTABLISHED** — on seed 1 it appears in
+> `$v30u_half`'s answers *and* in `$v30u_ce`'s — and it is booked as an
+> instrument question rather than guessed at.
+
+So the figure is **flagged rather than trusted**: `core_domain.off_class` lists
+every row whose **measured** `k` disagrees with its label's, `k_measured`
+carries all three, `upper_bound: True` rides in the record, and the sweep
+prints the off-class draws.  **A core-domain number is quotable as an upper
+bound on the core-domain ceiling and as nothing tighter.**  The repair —
+match the duplicate suffix in the SDC-mirroring collections, and rank by
+`slack/k` *inside* each class — is **booked, not taken here**: it would
+silently re-base every figure taken with the current probe.
+
+⚠ **ABSENCE IS NOT DATA.**  If any of the three classes is missing from the
+probe's artifact, or present without a ceiling, `core_domain_fmax()` returns
+**no figure** and lists what was missing — it does **not** compute a minimum
+over the survivors, because a minimum over a subset is a ceiling that has not
+looked everywhere it claims to have looked.  The sweep then prints
+*"derivable on only M of N draws"*.
+
+⚠ **WHAT THE PAIR DOES NOT DO.**  It does not make the whole-design number
+smaller or larger, it does not move any bar, and **it does not make 50 MHz
+easier to claim**.  It makes visible a fact the single number hid: on this tree
+**both** cones that bind the whole design have **one endpoint in the RIG**
+(`nec_bus|ad_in_q`, `system_large|c_int_q`), while the core's own logic sits
+tens of ns clear.  Falsifier: `python3 sw/test_quartus_gate.py`
+(**240/240**, no Quartus needed; Q16 is the pairing's own section).
 
 ---
 

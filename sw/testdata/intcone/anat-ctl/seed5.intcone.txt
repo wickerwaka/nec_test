@@ -1,0 +1,29 @@
+c_int_q collection size: 1
+
+B. paths launched by c_int_q: 200   worst slack: 10.127
+   endpoint histogram:
+        65  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[0]
+        69  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+        66  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]~DUPLICATE
+   logic-level histogram:
+         3 paths at 24 levels
+        47 paths at 25 levels
+        99 paths at 26 levels
+        51 paths at 27 levels
+
+C. per-launch-register worst slack (the pin class):
+     c_int_q        10.127 ns   27 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+     c_nmi_q        29.978 ns    1 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|nmi_p[1]
+     c_ready_q      20.018 ns    8 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|rd_pending[1]
+     c_reset_q      19.960 ns    5 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[0]~1_OTERM3874
+     c_polln_q      29.153 ns    1 levels  -> emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|poll_pipe[2]
+
+D. CEILING -- worst setup path with c_int_q excluded as a LAUNCH register:
+        8.708 ns   21 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
+        8.742 ns   21 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[15]
+        8.764 ns   23 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
+
+E. CEILING -- worst setup path with the WHOLE pin class excluded as launch:
+        8.708 ns   21 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
+        8.742 ns   21 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[15]
+        8.764 ns   23 levels   emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[0]
