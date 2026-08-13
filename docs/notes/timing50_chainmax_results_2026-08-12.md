@@ -17,8 +17,10 @@ DOWN on CONTROL — and the pre-registration predicted neither.**
 | behaviour | **ZERO CHANGE, measured three independent ways** (§3) |
 | area | whole-design ALMs **12,271 → 10,358 (CTL)** and **12,317 → 10,355 (RET)**, **29 % → 25 %**; `v30u_eu` own combinational ALUTs **−24.8 % / −25.3 %**; registers **unmoved** |
 | band | **CONTROL 41.18 → 39.79 (−1.39)**, **RETENTION 42.28 → 43.76 (+1.48)**, worst-of-2, two agreeing draws each, every draw G6 PASS |
-| registered bars | **P-1 MET, P-4 MET** — the landing is unconditional. ⚠ **P-4 was pre-registered as PREDICTED TO MISS, so that prediction is REFUTED** (§5.2a) |
-| the finding | **the chain is not in this tree's binding cone** — 301 nets of `eu_*` fan-in, zero chain-written names (§4) — **and the band moved anyway**, which is the thing to carry forward |
+| registered bars | **P-1 MET · P-3 MET · P-4 MET · P-2 SPLIT** (MET RET, MISSED CTL). The landing is unconditional. ⚠ **P-4 was pre-registered as PREDICTED TO MISS, so that prediction is REFUTED** (§5.2a) |
+| finding 1 | **the chain is not in this tree's binding cone** — 301 nets of `eu_*` fan-in, zero chain-written names (§4) — **and the band moved anyway** |
+| finding 2 | **on RETENTION the AD-publication cone is now nearly spent as a lever: +0.39 MHz left, against the +1.82 the E-1 re-derivation registered.** The next RETENTION lever is `div_cnt → t1_half2` (§7.3) |
+| finding 3 | **the two configurations now disagree about which lever matters** — +0.39 MHz RET vs +4.21 MHz CTL behind the same class (§7.4) |
 
 ---
 
@@ -202,8 +204,8 @@ draws are identical to the digit in Fmax, slack **and** ALMs.
 | id | clause | result |
 |---|---|---|
 | **P-1** | whole-design ALMs strictly below 12,271 (CTL) / 12,317 (RET) | **MET** — §5.3 |
-| **P-2** | `CORE→CORE` worst slack improves | §7 |
-| **P-3** | the binding class stays `CORE→ANY`, `upc_opc → ad_in_q` | §7 |
+| **P-2** | `CORE→CORE` worst slack improves (> +30.696 CTL / > +30.789 RET) | **SPLIT — MET on RETENTION (+31.561), MISSED on CONTROL (+30.606, by 0.090 ns)**, §7.1a |
+| **P-3** | the binding class stays `CORE→ANY`, `upc_opc → ad_in_q` | **MET on both**, 60 of 60 in each, §7.1 / §7.2 |
 | **P-4** | worst-of-2 improves ≥ 1.0 MHz on at least one configuration | **MET on RETENTION (+1.48 MHz).** ⚠ **AND THE PRE-REGISTRATION PREDICTED IT WOULD MISS.** |
 
 **BOTH REGISTERED CLAUSES ARE MET, SO THE LANDING IS UNCONDITIONAL** — the
@@ -337,12 +339,37 @@ behaviour change rests on the three legs in §3, and this leg is reported as
 
 ### 7.1 CONTROL
 
+A **third CONTROL draw** was taken for the census, because a census needs a
+fitted `db` and each build deletes the last one. **It read 39.79 / +6.121 /
+10,358 again — three agreeing CONTROL draws** (`337e43ebbe021028…`), so the
+CONTROL loss is a property of the tree, not of a draw.
+
 | class | CHAIN_MAX 12 | **CHAIN_MAX 7** | |
 |---|---:|---:|---|
-| `CORE→CORE` | +30.696 (`upc_opc[4] → t1_half2`) | _pending_ | |
-| `CORE→ANY` | **+6.964** (`upc_opc[0]~DUPLICATE → ad_in_q[13]`, 29 levels) | _pending_ | |
-| `ANY→CORE` | +9.114 (`div_cnt[4] → t1_half2`) | _pending_ | |
-| `ANY→ANY` | +6.964 | _pending_ | |
+| `CORE→CORE` | +30.696 (`upc_opc[4] → t1_half2`) | **+30.606** (`upc_opc[7]~DUPLICATE → t1_half2`) | **−0.090 — P-2 MISSED here** |
+| `CORE→ANY` | **+6.964** (`upc_opc[0]~DUPLICATE → ad_in_q[13]`, **29** levels) | **+6.121** (`upc_opc[7]~DUPLICATE → ad_in_q[4]`, **36** levels) | **BINDS — P-3 MET**, −0.843 |
+| `ANY→CORE` | +9.114 (`div_cnt[4] → t1_half2`) | **+8.524** (`div_cnt[3] → t1_half2~DUPLICATE`) | −0.590 |
+| `ANY→ANY` | +6.964 | **+6.121** | = `CORE→ANY` |
+
+**Top-60: `CORE→OUT` 60 of 60**, launch `v30u_eu` 60, latch `nec_bus` 60 — same
+cone, same class, so **P-3 is met on this configuration too**.
+
+⚠ **BUT THE CONE GOT SEVEN LEVELS DEEPER: 29 → 36.** That is not placement
+noise; it is a different implementation of the same logic. Both CONTROL classes
+degraded together (`CORE→ANY` −0.843, `ANY→CORE` −0.590) while both RETENTION
+classes improved. **Recorded, not explained**, and explicitly NOT attributed to
+the chain: §4's fan-in measurement says the chain is not on this cone, and that
+measurement is about the source and still stands.
+
+#### 7.1a P-2 IS SPLIT, AND IS REPORTED SPLIT
+
+P-2 registered *"`CORE→CORE` worst slack improves: > +30.696 (CTL) / > +30.789
+(RET)"*. Measured: **RETENTION +31.561 MET**, **CONTROL +30.606 MISSED** by
+0.090 ns. `CORE→CORE` is the class the chain is actually in, so the honest
+reading is that the chain's own class improved on one configuration and was
+flat-to-marginally-worse on the other — **not** that removing 2,800 ALUTs from
+it made it slower in any mechanism this wave can name. Neither figure is near
+binding (both are ~22 ns clear).
 
 ### 7.2 RETENTION
 
@@ -392,9 +419,38 @@ retiming `t1_half2` to a posedge flop — **both behaviour-visible**, so both
 need their own campaign with a silicon-match bar. Nothing in this wave
 authorises touching it.
 
-**50 MHz remains out of reach by any constraint work**, and the measurement is
-now tighter than it was: behind the whole observation class the wall is
-**44.15 MHz (RET)**, and 50 needs the enable arc *and* the ucrom.
+### 7.4 ⚠ AND THE TWO CONFIGURATIONS NOW DISAGREE ABOUT WHICH LEVER MATTERS
+
+| | binding | wall behind the observation class | headroom that class still holds |
+|---|---:|---:|---:|
+| **RETENTION** | +8.396 → **43.76 MHz** | +8.598 → **44.15 MHz** | **+0.39 MHz** |
+| **CONTROL** | +6.121 → **39.79 MHz** | +8.524 → **44.00 MHz** | **+4.21 MHz** |
+
+**On RETENTION the AD cone is spent; on CONTROL it is the whole story.** Before
+this landing both configurations agreed it was the lever (+1.82 RET / +3.99
+CTL). They no longer do, and **a next-lever decision taken on one configuration
+is now a decision about that configuration only.** Which configuration a
+promotion should be ranked on is a question for the user, not for this
+document; note only that **the board is flashed with `X1_AD_RETENTION=1`**, so
+RETENTION is the configuration the fabric actually runs.
+
+### 7.5 HOW FAR TO 50
+
+**50 MHz remains out of reach by any constraint work, and the measurement is
+tighter than it was.** Behind the *entire* observation class the wall is
+**44.15 MHz (RET) / 44.00 MHz (CTL)**, and reaching 50 needs the enable arc
+**and** the ucrom, both behaviour-visible.
+
+Ranked by what is now measured, not by what was ranked before:
+
+1. **`div_cnt → t1_half2`** — worth the whole remaining gap on RETENTION, and
+   the wall on both configurations. Behaviour-visible; own campaign.
+2. **the `ucrom → assign ad_o` cone** — **re-quote it at +0.39 MHz (RET) /
+   +4.21 MHz (CTL)**, not at the +1.82/+3.99 the E-1 re-derivation registered.
+   On CONTROL it also got **7 logic levels deeper** in this wave without being
+   touched, which is worth understanding before it is worked on.
+3. **the ucrom as an M10K** — still a cycle of latency, still banned by the
+   zero-behaviour terms *by their terms*.
 
 ---
 

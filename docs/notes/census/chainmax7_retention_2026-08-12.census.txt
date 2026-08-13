@@ -1,0 +1,81 @@
+=== sta_census: nec_test / nec_test_ucore ===
+
+--- TOP 60 SETUP PATHS ---
+   slack  lvls  FROM (launch)                                               TO (latch)                                                
+   8.396    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.415    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.431    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.435    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.440    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.441    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+   8.443    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.450    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.454    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.459    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.460    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+   8.462    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.468    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.469    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.470    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.471    37  large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.475    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.477    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[6]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.478    37  m_large|v30_core:u_core|v30u_eu:u_eu|upc_page[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.480    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+   8.482    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.485    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+   8.487    37  large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.487    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.487    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.488    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.489    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.490    37  large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.494    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.495    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.496    34  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.496    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[6]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.497    37  m_large|v30_core:u_core|v30u_eu:u_eu|upc_page[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.499    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+   8.501    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.503    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.504    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.504    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+   8.504    34  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[6]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.505    33  m_large|v30_core:u_core|v30u_eu:u_eu|upc_page[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.506    37  large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.506    37  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.506    37  large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.506    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[2]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.511    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[11] 
+   8.512    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[6]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.513    37  m_large|v30_core:u_core|v30u_eu:u_eu|upc_page[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.513    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+   8.514    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+   8.514    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.515    36  large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.515    36  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[0]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.516    37  large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+   8.516    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.517    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.518    37  large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[1]  
+   8.519    37  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.522    37  large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]  
+   8.522    34  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10] 
+   8.522    38  em_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[6]~DUPLICATE  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[2]  
+
+--- CLASS CENSUS over those 60 paths ---
+  (CORE = v30u_eu / v30u_biu / v30u_ucrom.  Only CORE->CORE gets the
+   nec_test.sdc 4/3 CE multicycle; every other class is SINGLE-CYCLE.)
+  CORE->OUT    n=60   worst slack    8.396
+
+--- LAUNCH ENTITY HISTOGRAM ---
+  v30u_eu                                  60
+
+--- LATCH ENTITY HISTOGRAM ---
+  nec_bus                                  60
+
+--- WORST PATH PER CLASS, asked of the whole netlist ---
+  CORE->CORE       31.561  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[3]~DUPLICATE  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  ANY->CORE         8.598  emu:emu|system_large:system_large|nec_bus:bus|div_cnt[2]  ->  emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  CORE->ANY         8.396  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10]
+  ANY->ANY          8.396  emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|upc_opc[1]~DUPLICATE  ->  emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[10]
