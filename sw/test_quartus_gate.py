@@ -412,8 +412,14 @@ def q12_e8_seed_honoured():
     print("\nQ12 E8: the fitter HONOURED the seed  (the accepted-and-ignored trap)")
     check("both readings agree -> PASS",
           qg.seed_honoured_bar(5, {"command_line": 5, "settings": 5})["pass"])
-    check("one reading present and agreeing -> PASS",
-          qg.seed_honoured_bar(5, {"command_line": 5, "settings": None})["pass"])
+    # ⚠ THE STRONG READING IS THE FITTER SETTINGS ROW -- the seed Quartus USED.
+    # The `Info: Command:` echo says only what the binary was HANDED, so it
+    # cannot carry the bar on its own.
+    check("the command echo ALONE is NOT enough",
+          qg.seed_honoured_bar(5, {"command_line": 5, "settings": None})["pass"]
+          is False)
+    check("the settings row alone IS enough",
+          qg.seed_honoured_bar(5, {"command_line": None, "settings": 5})["pass"])
     check("a DISAGREEING settings echo -> RED",
           qg.seed_honoured_bar(5, {"command_line": 5, "settings": 1})["pass"]
           is False)
@@ -430,25 +436,56 @@ def q12_e8_seed_honoured():
     with tempfile.TemporaryDirectory(prefix="qgtest-") as d:
         tree = Path(d)
         rpt = tree / f"{qg.REVISION}.fit.rpt"
-        check("no fit.rpt -> both readings None",
+        check("no fit.rpt and no log -> nothing claimed",
               qg.parse_fit_seed(tree) == {"command_line": None,
-                                          "settings": None})
+                                          "settings": None,
+                                          "settings_row": None})
+        # ⚠ THE REAL FORMATS, AND THEY ARE NOT THE OBVIOUS ONES.  Measured on
+        # this tree's own reports: the row is `Fitter Initial Placement Seed`
+        # (NOT `Seed`), and `fit.rpt` contains NO `Info: Command:` line at all
+        # -- that echo goes to stdout, i.e. into the gate's transcript.  A
+        # first cut of the parser assumed both and E8 went RED on a fit that
+        # had honoured the seed exactly.
         rpt.write_text(
-            "Info: Command: quartus_fit --seed=42 --recompile=off nec_test "
-            "-c nec_test_ucore\n"
-            "; Fitter Settings                    ;\n"
-            "; Seed                               ; 42        ;\n")
-        check("both readings are recovered",
-              qg.parse_fit_seed(tree) == {"command_line": 42, "settings": 42},
-              str(qg.parse_fit_seed(tree)))
-        # The case that matters: asked 42, Quartus settled on 1.
-        rpt.write_text("Info: Command: quartus_fit --seed=42 nec_test\n"
-                       "; Seed ; 1 ;\n")
-        seen = qg.parse_fit_seed(tree)
+            "; Fitter Aggressive Routability Optimizations ; Automatically ; "
+            "Automatically ;\n"
+            "; Fitter Initial Placement Seed               ; 42            ; "
+            "42            ;\n"
+            "; Weak Pull-Up Resistor                       ; Off           ; "
+            "Off           ;\n")
+        log = ("Info: Command: quartus_fit --seed=42 --recompile=off nec_test "
+               "-c nec_test_ucore\n")
+        seen = qg.parse_fit_seed(tree, log)
+        check("both readings are recovered from the REAL formats",
+              seen["settings"] == 42 and seen["command_line"] == 42, str(seen))
+        check("...and the matched row is retained for audit",
+              "Fitter Initial Placement Seed" in (seen["settings_row"] or ""),
+              str(seen["settings_row"]))
+        check("...and E8 PASSES", qg.seed_honoured_bar(42, seen)["pass"])
+        check("the OLD `; Seed ;` guess finds nothing (regression guard)",
+              qg.parse_fit_seed(tree, "")["command_line"] is None)
+        # The sweep appends every stage to ONE log, so the LAST echo is this
+        # seed's -- an earlier seed's must not be read as the current one.
+        multi = log + ("Info: Command: quartus_fit --seed=43 nec_test\n")
+        check("the LAST fit echo in a shared log wins",
+              qg.parse_fit_seed(tree, multi)["command_line"] == 43)
+        # THE CASE THAT MATTERS: asked 42, Quartus placed with 1.
+        rpt.write_text("; Fitter Initial Placement Seed ; 1 ; 1 ;\n")
+        seen = qg.parse_fit_seed(tree, log)
         check("a fitter that IGNORED the seed is visible",
-              seen == {"command_line": 42, "settings": 1}, str(seen))
+              seen["settings"] == 1 and seen["command_line"] == 42, str(seen))
         check("...and E8 goes RED on it",
               qg.seed_honoured_bar(42, seen)["pass"] is False)
+
+    # AND THE GROUND TRUTH: if a real fit.rpt is on disk, the parser must read
+    # it.  Skipped when there is none, never silently passed.
+    live = ROOT / "hdl" / "output_files_ucore" / f"{qg.REVISION}.fit.rpt"
+    if live.is_file():
+        seen = qg.parse_fit_seed(live.parent, "")
+        check("the parser reads a REAL Quartus fit.rpt",
+              isinstance(seen["settings"], int), str(seen))
+    else:
+        print("  [skip] no live fit.rpt on disk to check the parser against")
 
 
 def q13_sweep_refusals():

@@ -638,24 +638,43 @@ def truefmax_command(outstem):
             PROJECT, REVISION, str(outstem)]
 
 
-def parse_fit_seed(tree):
-    """-> {'command_line': int|None, 'settings': int|None} -- the seed QUARTUS
-    used, read back out of its own fit report.
+def parse_fit_seed(tree, log_text=""):
+    """-> {'command_line': int|None, 'settings': int|None, 'settings_row': str}
+    -- the seed QUARTUS used, read back out of Quartus's own output.
 
     This is the `want_raw` lesson applied to `--seed`: verify the flag exists
-    AND that the callee honoured it.  Two independent readings, because the
-    command line proves only what was ASKED."""
-    out = {"command_line": None, "settings": None}
+    AND that the callee honoured it.  TWO INDEPENDENT READINGS, and they are
+    not the same claim:
+
+      * **`settings`** -- the Fitter Settings row **`Fitter Initial Placement
+        Seed`** in `<rev>.fit.rpt`.  This is the STRONG reading: it is Quartus
+        reporting the seed it actually placed with.
+      * **`command_line`** -- Quartus's own `Info: Command:` echo, which
+        `quartus_fit` prints to stdout (so it lands in this gate's transcript,
+        NOT in `fit.rpt` -- measured: `fit.rpt` contains no `Info: Command:`
+        line at all).  It proves what the binary RECEIVED, which is weaker
+        than what it USED, so it is the corroborating reading and never the
+        only one relied on.
+
+    ⚠ THE ROW IS NOT CALLED `Seed`.  A first cut of this parser matched
+    `; Seed ;` and found nothing, so E8 went RED on a fit that had in fact
+    honoured the seed exactly.  That RED was correct behaviour -- absence must
+    not read as agreement -- and it is why the bar exists rather than a
+    comment."""
+    out = {"command_line": None, "settings": None, "settings_row": None}
     rpt = tree / f"{REVISION}.fit.rpt"
-    if not rpt.exists():
-        return out
-    txt = rpt.read_text(errors="replace")
-    m = re.search(r"Info: Command:[^\n]*--seed=(\d+)", txt)
-    if m:
-        out["command_line"] = int(m.group(1))
-    m = re.search(r";\s*Seed\s*;\s*(\d+)\s*;", txt)
-    if m:
-        out["settings"] = int(m.group(1))
+    if rpt.exists():
+        txt = rpt.read_text(errors="replace")
+        m = re.search(r";\s*Fitter Initial Placement Seed\s*;\s*(\d+)\s*;", txt)
+        if m:
+            out["settings"] = int(m.group(1))
+            out["settings_row"] = m.group(0).strip()
+    # The LAST quartus_fit echo in the transcript is this seed's: the log is
+    # appended stage by stage across the whole sweep.
+    hits = re.findall(r"Info: Command: quartus_fit[^\n]*--seed=(\d+)",
+                      log_text or "")
+    if hits:
+        out["command_line"] = int(hits[-1])
     return out
 
 
@@ -726,11 +745,18 @@ def seed_honoured_bar(asked, seen):
     report.  Without this a sweep whose `--seed` was ignored reports a spread
     of 0.00 MHz, which reads as a REASSURING result."""
     cl, st = seen.get("command_line"), seen.get("settings")
-    agree = [v for v in (cl, st) if v is not None]
-    return {"bar": f"quartus_fit honoured --seed={asked} (echoed by its own "
-                   f"fit.rpt: Info: Command: and the Fitter Settings row)",
-            "value": {"asked": asked, "command_line": cl, "settings": st},
-            "pass": bool(agree) and all(v == asked for v in agree)}
+    present = [v for v in (cl, st) if v is not None]
+    return {"bar": f"quartus_fit honoured --seed={asked}: the `Fitter Initial "
+                   f"Placement Seed` row of its own fit.rpt (the seed it USED) "
+                   f"must say so, corroborated by Quartus's `Info: Command:` "
+                   f"echo (the seed it RECEIVED)",
+            "value": {"asked": asked, "command_line": cl, "settings": st,
+                      "settings_row": seen.get("settings_row")},
+            # The STRONG reading must be present -- a corroborating echo alone
+            # says only what the binary was handed, and this bar is about what
+            # it did.  And every reading that IS present must agree.
+            "pass": (st == asked and bool(present)
+                     and all(v == asked for v in present))}
 
 
 def build(tree, keep_db, logpath, retention=False):
@@ -984,7 +1010,7 @@ def run_sweep(a, tree, receipt_path, logpath):
         log_text = logpath.read_text(errors="replace") if logpath.exists() else ""
         cfg, cfg_detail = parse_configuration(tree)
         bars, figs = score(tree, log_text, a)
-        seen = parse_fit_seed(tree)
+        seen = parse_fit_seed(tree, log_text)
         bars["E8_seed_honoured"] = seed_honoured_bar(seed, seen)
         truefmax = parse_truefmax(tf_path) if tf_path else {}
 
