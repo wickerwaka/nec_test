@@ -1,0 +1,1648 @@
+{
+ "E1_gen_ucore_qsf": {
+  "bar": "hdl/nec_test_ucore.qsf is a faithful derivative of hdl/nec_test.qsf",
+  "out": "gen_ucore_qsf: nec_test_ucore.qsf is up to date",
+  "pass": true,
+  "rc": 0
+ },
+ "alms": [
+  "10,014 / 41,910 ( 24 % )",
+  "10,027 / 41,910 ( 24 % )",
+  "10,053 / 41,910 ( 24 % )",
+  "10,085 / 41,910 ( 24 % )"
+ ],
+ "artifact_dir": "sw/testdata/g6dist/t1half2-posedge-control-n5",
+ "bars": {
+  "E10_promotion_width": {
+   "bar": "N >= 5 for a PROMOTION figure (N = 2 is an intermediate-wave measurement and prints its own caveat)",
+   "pass": true,
+   "value": 5
+  },
+  "E7_input_stability": {
+   "bar": "no input moved between the hash taken before quartus_map and the hash taken after the last stage, except the one DECLARED \u00a770.7 exemption (Quartus rewrites the revision .qsf it compiles): hdl/nec_test_ucore.qsf",
+   "pass": true,
+   "value": {
+    "exemptions": [
+     "hdl/nec_test_ucore.qsf"
+    ],
+    "moved": [
+     "hdl/nec_test_ucore.qsf"
+    ],
+    "moved_exempt": [
+     "hdl/nec_test_ucore.qsf"
+    ],
+    "moved_offending": [],
+    "n_moved": 1,
+    "post_sha256": "2cfd0218f7f69ad2afbe6128652124323e2ae625d9068161b81f0be13d91ddad",
+    "pre_sha256": "b7b5dff2353c4747e3a3bf9035105f379cbb35df58d9188fdd219bb961f82c6f"
+   }
+  },
+  "E8_all_seeds_honoured": {
+   "bar": "every fit used the seed it was given",
+   "pass": true,
+   "value": []
+  },
+  "E9_all_seeds_pass": {
+   "bar": "every one of the 5 draws is a G6 PASS (E1-E5)",
+   "pass": true,
+   "value": []
+  }
+ },
+ "binding_class_flips": 5,
+ "binding_path_per_seed": [
+  {
+   "fmax_mhz": 42.06,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG",
+   "k": 1.0,
+   "seed": 1,
+   "to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8]"
+  },
+  {
+   "fmax_mhz": 44.3,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+   "k": 1.0,
+   "seed": 2,
+   "to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]"
+  },
+  {
+   "fmax_mhz": 43.96,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm",
+   "k": 1.0,
+   "seed": 3,
+   "to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[5]"
+  },
+  {
+   "fmax_mhz": 43.85,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a2~PORT_A_WRITE_ENABLE_REG",
+   "k": 1.0,
+   "seed": 4,
+   "to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8]"
+  },
+  {
+   "fmax_mhz": 46.2,
+   "from": "emu:emu|system_large:system_large|c_int_q",
+   "k": 1.0,
+   "seed": 5,
+   "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cmt_addr[10]"
+  }
+ ],
+ "build_id": {
+  "note": "a build input NOT in input_manifest: it is a %y%m%d date stamp and would move the manifest hash daily",
+  "present": true,
+  "sha256": "35f631218f2191586c04f6e4247160687be29c05825804b0aaaca0a15b5c1320",
+  "text": "`define BUILD_DATE \"260813\""
+ },
+ "by_class": {
+  "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": {
+   "max": 63.57,
+   "median": 61.87,
+   "min": 58.42,
+   "n": 5,
+   "sorted": [
+    58.42,
+    60.68,
+    61.87,
+    62.39,
+    63.57
+   ],
+   "spread": 5.15
+  },
+  "DEFAULT (whole-design worst, expect k=1)": {
+   "max": 46.2,
+   "median": 43.96,
+   "min": 42.06,
+   "n": 5,
+   "sorted": [
+    42.06,
+    43.85,
+    43.96,
+    44.3,
+    46.2
+   ],
+   "spread": 4.14
+  },
+  "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": {
+   "max": 168.86,
+   "median": 141.2,
+   "min": 112.1,
+   "n": 5,
+   "sorted": [
+    112.1,
+    126.82,
+    141.2,
+    145.37,
+    168.86
+   ],
+   "spread": 56.76
+  },
+  "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": {
+   "max": 134.78,
+   "median": 124.58,
+   "min": 123.08,
+   "n": 5,
+   "sorted": [
+    123.08,
+    124.12,
+    124.58,
+    126.06,
+    134.78
+   ],
+   "spread": 11.7
+  },
+  "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": {
+   "max": 194.67,
+   "median": 183.0,
+   "min": 172.77,
+   "n": 5,
+   "sorted": [
+    172.77,
+    182.07,
+    183.0,
+    187.72,
+    194.67
+   ],
+   "spread": 21.9
+  },
+  "RUNG 1: not latching in an observation register": {
+   "max": 49.55,
+   "median": 46.2,
+   "min": 44.32,
+   "n": 5,
+   "sorted": [
+    44.32,
+    45.43,
+    46.2,
+    46.65,
+    49.55
+   ],
+   "spread": 5.23
+  },
+  "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": {
+   "max": 49.55,
+   "median": 46.2,
+   "min": 44.32,
+   "n": 5,
+   "sorted": [
+    44.32,
+    45.43,
+    46.2,
+    46.65,
+    49.55
+   ],
+   "spread": 5.23
+  },
+  "RUNG 2: ...and not launching from c_int_q": {
+   "max": 70.43,
+   "median": 62.08,
+   "min": 61.53,
+   "n": 5,
+   "sorted": [
+    61.53,
+    62.05,
+    62.08,
+    63.04,
+    70.43
+   ],
+   "spread": 8.9
+  },
+  "RUNG 3: ...and not latching in row_posted": {
+   "max": 70.43,
+   "median": 62.08,
+   "min": 61.53,
+   "n": 5,
+   "sorted": [
+    61.53,
+    62.05,
+    62.08,
+    63.04,
+    70.43
+   ],
+   "spread": 8.9
+  }
+ },
+ "command": [
+  [
+   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_map",
+   "nec_test",
+   "-c",
+   "nec_test_ucore"
+  ],
+  [
+   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit",
+   "--seed=1",
+   "--recompile=off",
+   "nec_test",
+   "-c",
+   "nec_test_ucore"
+  ],
+  [
+   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm",
+   "nec_test",
+   "-c",
+   "nec_test_ucore"
+  ],
+  [
+   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+   "nec_test",
+   "-c",
+   "nec_test_ucore"
+  ]
+ ],
+ "completed": "2026-08-13T23:25:20Z",
+ "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt",
+ "env": {},
+ "fmax": {
+  "max": 46.2,
+  "median": 43.96,
+  "min": 42.06,
+  "n": 5,
+  "sorted": [
+   42.06,
+   43.85,
+   43.96,
+   44.3,
+   46.2
+  ],
+  "spread": 4.14
+ },
+ "gate": "quartus_gate",
+ "gate_version": 1,
+ "git": {
+  "describe": "0f9f165382-dirty",
+  "dirty_tracked": true,
+  "head": "0f9f1653825b42f419b27657c8463ebe839c724b"
+ },
+ "id": "e6eccba417c122aa5898a03ee180f848ed42f744f1e3f7228d78ae3275a5ce3a",
+ "input_manifest": {
+  "files": {
+   "hdl/files_ucore.qip": "88de032b628152698981594826b9cf53b09d53dbb1940093fa9c91ca1002b88e",
+   "hdl/nec_test.qsf": "acc19782ba4d8ab32681020ab2d885f3ca0522b86dc46a870e86e3a066ebab29",
+   "hdl/nec_test.sdc": "96de5d083d8a09673963830ce2d8057f44db7431d54f5727fc3ddf1e121c6ace",
+   "hdl/nec_test.sv": "b04e85a3e88f14e06d182e319a71714a2865e1b182acfb9f0cdc363801ce5e6b",
+   "hdl/nec_test_ucore.qsf": "39f72a35baeafc4f7459161007a06cb26116db926b0286f04c15b9175d85f762",
+   "hdl/rtl/capture_buf.sv": "5eb48ef11ff0f8b2961151b76eedbd4a228528f162f604a70f822872c78dea66",
+   "hdl/rtl/hps_axi_slave.sv": "f7567ac588c496821cd113ceefa726998c408a62d44839e87562696263cf3721",
+   "hdl/rtl/iords_buf.sv": "b7744500def2a14af97228562a4371cd0531e7d68719e173fa431924f4ac76f8",
+   "hdl/rtl/nec_bus.sv": "99c778bde307d5e804f8cf4523b827e219ec461d07f8e9df96536aab3d688109",
+   "hdl/rtl/system_large.sv": "8d3fc7e669b33a2583fb1c58892b66f05253be9c52ebb87f7bc55c7affeff4aa",
+   "hdl/rtl/test_mem.sv": "a0e09360c7359ab8679f5189a4c9d4765956dcb33c7ab4fa4b93f3c0e27c8249",
+   "hdl/rtl/ucore/README.md": "4dca7eb0212907909f770fcb9448e3804d00de7357ea8574620ad9768bc82419",
+   "hdl/rtl/ucore/pla3_tables.svh": "0d9693c01a289c7eb258ef9478c3405c93492417ee2cf42a28e4552360f61302",
+   "hdl/rtl/ucore/ucdecode.hex": "f5cf6e2bef1d3bec371d0b0227fb7cbcaaf62fd68f2ba3e505d345f492e08bda",
+   "hdl/rtl/ucore/ucrom.hex": "d9cfcddd4cb473f0c21f112bd64419e91d9395a256158e0205137e12ba3e531d",
+   "hdl/rtl/ucore/ucrom_census.json": "c97ad035e2a8e3e7209804321dc158e9129b9c83af1ce8229052447f65bfd7c9",
+   "hdl/rtl/ucore/v30_core.sv": "a63e856d80ac3ebcdeef0fbc621f359324efd1809f781fffbb25476d8c9a36fc",
+   "hdl/rtl/ucore/v30u_biu.sv": "99a8518877210a8be59fc6d8530c40d1fd2d589e7502d1dbdbfac643bc8d4c31",
+   "hdl/rtl/ucore/v30u_eu.sv": "4577782bbbbd1268e986427f94bcbd86fdba455f7579c240144ec85e3c28b67c",
+   "hdl/rtl/ucore/v30u_eu_1bl.svh": "8f22d7cd81a85092cb084996b17f8d70b70d19705ef79645dfd2a68bd83798f2",
+   "hdl/rtl/ucore/v30u_eu_cond.svh": "88eefe030009584d26dc647d89a87cfa10e70b016a8b48648b772748fb72cb66",
+   "hdl/rtl/ucore/v30u_eu_iend_late.svh": "e7ecc8f7fb62ec279d331389d37421bbf23b1675dc37eb049aa78a825559ba33",
+   "hdl/rtl/ucore/v30u_eu_poste.svh": "0466f790d6f20633f07ece674481ede059c4e1bea0a785fcca819e5e0127584b",
+   "hdl/rtl/ucore/v30u_eu_row.svh": "5c80014d4064586e35f7fafea0c97c2e2847b664155338ca90dd6421d8e4e409",
+   "hdl/rtl/ucore/v30u_eu_ss_read.svh": "62898d25785213829789d3a9347d310e15c03b111e9fb42e16ead2bf0d4fd53d",
+   "hdl/rtl/ucore/v30u_eu_ss_write.svh": "75d626cffe04a9329842bcdcb6c1de03ae412b4d2237f47ce63592ccfff5c392",
+   "hdl/rtl/ucore/v30u_eu_step.svh": "716bf63d0f2863ac761bccfe7b03910c761c8352069ba050949dc14416027ea4",
+   "hdl/rtl/ucore/v30u_eu_wd1.svh": "1eb016ccef3daeae9e25208bc55443e7441a58a88c685411bf188e4dd7527683",
+   "hdl/rtl/ucore/v30u_ss_pkg.sv": "00a078e87fa41afb24d4e0a02ed025d81027908890cfbc4f9a79ed7e7b6c9abf",
+   "hdl/rtl/ucore/v30u_ucrom.sv": "60aa81810bbccaa3ab6041394429e1762ab880b051f5aa037ffe15b1df931718",
+   "hdl/rtl/video_gen.v": "d7058700f636c5f3bf27995c0a3561cecb6e0d5ff68bcac7c35fa78a8d0241e0",
+   "hdl/rtl/wvec_buf.sv": "50beb8d66d3e8b6840295cca3e5921ad49a180617f4431594a13f91283ac675f",
+   "hdl/sys/alsa.sv": "74943b658cd3f4adc5b74c72f225fb42b95122a1c5e453df860a4c6a9bf72fc9",
+   "hdl/sys/arcade_video.v": "ce64cdd7f900ded7b9cd9aa728dab7383b7561cdc75dfe82ab23fe27a3d217d3",
+   "hdl/sys/ascal.vhd": "08c21b36a95f22c813161066d9943c2d6959e8790d8ed840ee29ed335322d4c5",
+   "hdl/sys/audio_out.v": "565dd9badb00052dbd324e70f7ab66e8c6ecd0c5c2791aebffe477a2c0669363",
+   "hdl/sys/build_id.tcl": "148dc6a8124d36ac2898a45d085960cc05178a76d7297fde8877925fc0a74e88",
+   "hdl/sys/ddr_svc.sv": "8dfa874b9a93b4dbbe3b2fcf4f9035a895262cc090d398f4099941a626f41c08",
+   "hdl/sys/f2sdram_safe_terminator.sv": "400bcbcfc0b4aae324fe813866a5443d577bf4de9b4ab1454cb068733d170261",
+   "hdl/sys/gamma_corr.sv": "2754944c6fe05d921374d1fecc26621782520b3bc6fbf600ca561e9f37c7af88",
+   "hdl/sys/hps_io.sv": "1182da0710483a1030687c12e6601025a5293ab90f2eb15cdf5fdea38ea4c275",
+   "hdl/sys/hq2x.sv": "2146b69cf63c26a4b41407e9ac1b4462db4d7e3ea6d8a99f31ba12712d68f975",
+   "hdl/sys/i2c.v": "09bd7ebd5d84fb57f6a9d569e5214f3154c49e55826c15bd78884f3c781fec5b",
+   "hdl/sys/i2s.v": "927d2aea6797fb837f383e5e8a3259609e132ed24883127240ab21601f467efa",
+   "hdl/sys/iir_filter.v": "570a8095c15af84a60015b5eab105cee6e2d7edde77e20f0ce40c075ab2db8b7",
+   "hdl/sys/ltc2308.sv": "825fa1197c8e9f31c19c2fef1b01693133fb7df3cfb2dd831f2848a98fc6899c",
+   "hdl/sys/math.sv": "d384fa9fcf73100cb28a2affc5db1e4aacc87620287971c3882507fc3af056cc",
+   "hdl/sys/mcp23009.sv": "f168485e0b64c0545060f25b858c9f1c12b57024ce441754bb6a0cb0e9072e3f",
+   "hdl/sys/mt32pi.sv": "4ad39571d16a4b25347030d75ffdf601803ddec71e2e3fcabe962103cc45a1a2",
+   "hdl/sys/osd.v": "68ec08401a6ddaf68c95a2e976b9085b77f0002d5b64ffed7454055dbcc48062",
+   "hdl/sys/pll.13.qip": "f25f58e7c0290583f33ee0fdd729a4470cc69312686f0f1ecb95c61115d61cec",
+   "hdl/sys/pll_audio.13.qip": "60edce734c54e4b9f9d56f078bc797841e52c6817f4d27e0cfe77db5d77b2596",
+   "hdl/sys/pll_audio.qip": "278496eefe70d18f6b3ccf624c3a4595ccca74a9a6740eb4520200f1e929a236",
+   "hdl/sys/pll_audio.v": "1662fff7650cd443db81db7f0707f5583d223372b3e3c41af2d41ea4f3ac38f3",
+   "hdl/sys/pll_audio/pll_audio_0002.qip": "4cedd5394006286e0be61acdcbb6455f35cdf5c1488f4eb4a76b60e20eb43fb8",
+   "hdl/sys/pll_audio/pll_audio_0002.v": "2b24d2a561d81cc8b20f725884ee9c243e619058e42ebcdcf6f491d33008696c",
+   "hdl/sys/pll_cfg.qip": "7c1573f321012132479272242434d02058b1bcfe8d89843130ef11173a901eae",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_core.v": "9058d2c68e9cb0b1b6b3ab5487daad8aeaf04461e162aba317857dd133329189",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_top.v": "34c11c19e6bf3797d2db2e41314ce802f5a01041265ce943b54e7f20eb2027c9",
+   "hdl/sys/pll_cfg/pll_cfg.v": "e07ae93193537830b3bc9029465e763a6bfe354c25b7e7747eeeb4094b08ad10",
+   "hdl/sys/pll_cfg/pll_cfg_hdmi.v": "d3874dda124af03656054fa1ae1ee70f1a4d3cea6d4670795a5168325bb6760a",
+   "hdl/sys/pll_hdmi.13.qip": "625df824716313233400454bc1142615fb3a234a494225691c8a554753b1731b",
+   "hdl/sys/pll_hdmi.qip": "5571604010bf98858a0797a2286d2389e105d32a97b42508865b02ba4237dd0d",
+   "hdl/sys/pll_hdmi.v": "499561547c1045a46f1137558e2bab83d8e026e5d32669b5c5779a264b7ed676",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.qip": "de648286a832ee72839dd6abb444231a4238d32b2c26f29426399d2221d7bf5b",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.v": "27c77f35c89e97994477801f83edf3c7e9c5b9e57df49864434d300c40e9f1f7",
+   "hdl/sys/pll_hdmi_adj.vhd": "ae18c82eef2f6b9c7783c68ac272d03f570eb1bdaddce14a1908c351da51a71b",
+   "hdl/sys/pll_q13.qip": "c2b9c95a49d9b1100b0640bbdeea1acff845b0a8cbc11a7259c0913d2c61cfa8",
+   "hdl/sys/pll_q17.qip": "7139faf33ae28066e805f290b15401eddb092d4b7d31b529a3ce1f0213fbc90a",
+   "hdl/sys/scandoubler.v": "d36181c5fde9df0a504c547e23f60bcf201420052ada2682f081b00fd9485e6b",
+   "hdl/sys/scanlines.v": "1fc7ac5359fd224a3fc06388f7671e07bf57cf6a39f35803a265661c56c564d4",
+   "hdl/sys/sd_card.sv": "25114f9a0e9ab4dd702633ae927fc825dc79a4d9f7746c1bb75dbd10d61eb6d6",
+   "hdl/sys/shadowmask.sv": "88429d137b4ce9f6538a052f03d874604f46decf6d69b3fc824cc795efcf3193",
+   "hdl/sys/sigma_delta_dac.v": "352d31dd185bce14d9d1e8a4999fbb5f2b5b2e42b048bdc9f4b828119cc5127a",
+   "hdl/sys/spdif.v": "a617bba332c4611caf81ba585b8f6828c7899aec5f81664a870f10419cb9b451",
+   "hdl/sys/sys.qip": "3854d7f172097e01a40037e0a82dfd1a4178391ea0964767492979216279f31d",
+   "hdl/sys/sys.tcl": "8ed838a8c1e36327f862288ed36b681e320d940263ceb3436ae65a7a6c887676",
+   "hdl/sys/sys_analog.tcl": "36a875d6c59ba21b6d8936619db60f1bfcd8dbed5d5082aa43c72f22b22fd68f",
+   "hdl/sys/sys_dual_sdram.tcl": "4f41376069b2070079d8ba4ae4a722c8ecfe3ca4b99798d0bdd8cda986b5ad5b",
+   "hdl/sys/sys_top.sdc": "9c975aff0a05b115e4bcabb63d0e62c83b53957895e1c1920b304e8ed9054183",
+   "hdl/sys/sys_top.v": "8f8d493cde9d2e5a32604adf61fe9284a75291869c5018bd483b3f34a9332216",
+   "hdl/sys/sysmem.sv": "9f8cf78563cc31beb7dfc6d7048c51ba536ff4f1f9f640b4ff9f8d574456c94e",
+   "hdl/sys/vga_out.sv": "02a533c3dfd547afddea2946019ecc79bbe9c27bb6128c0999fa5fc9e78f8108",
+   "hdl/sys/video_cleaner.sv": "44b986d9bf8412e56bf8e4eae3dc87e04b4c378e58ec6119de5a8aed320e3572",
+   "hdl/sys/video_freak.sv": "6a9b8565f66894a8f2ec10c916593e980d260f29f1886bfe70bf6f3b0cf6edc0",
+   "hdl/sys/video_freezer.sv": "0f3f4710b072b7e90b0b6bfe7607dec18dbd6bed78d1994f32d6fa72a6b7aef3",
+   "hdl/sys/video_mixer.sv": "31ed2c917bd6680b4d60328e71a4f28015bd5fcec21e15b290eacec88971167d",
+   "hdl/sys/yc_out.sv": "c52d7bfcc8dbc5a0cda2b3117172cbba790fb97b7de61722ddac205f6ec8bc20"
+  },
+  "n_files": 88,
+  "sha256": "b7b5dff2353c4747e3a3bf9035105f379cbb35df58d9188fdd219bb961f82c6f"
+ },
+ "inputs": {
+  "files": {
+   "hdl/files_ucore.qip": "88de032b628152698981594826b9cf53b09d53dbb1940093fa9c91ca1002b88e",
+   "hdl/nec_test.qsf": "acc19782ba4d8ab32681020ab2d885f3ca0522b86dc46a870e86e3a066ebab29",
+   "hdl/nec_test.sdc": "96de5d083d8a09673963830ce2d8057f44db7431d54f5727fc3ddf1e121c6ace",
+   "hdl/nec_test.sv": "b04e85a3e88f14e06d182e319a71714a2865e1b182acfb9f0cdc363801ce5e6b",
+   "hdl/nec_test_ucore.qsf": "39f72a35baeafc4f7459161007a06cb26116db926b0286f04c15b9175d85f762",
+   "hdl/rtl/capture_buf.sv": "5eb48ef11ff0f8b2961151b76eedbd4a228528f162f604a70f822872c78dea66",
+   "hdl/rtl/hps_axi_slave.sv": "f7567ac588c496821cd113ceefa726998c408a62d44839e87562696263cf3721",
+   "hdl/rtl/iords_buf.sv": "b7744500def2a14af97228562a4371cd0531e7d68719e173fa431924f4ac76f8",
+   "hdl/rtl/nec_bus.sv": "99c778bde307d5e804f8cf4523b827e219ec461d07f8e9df96536aab3d688109",
+   "hdl/rtl/system_large.sv": "8d3fc7e669b33a2583fb1c58892b66f05253be9c52ebb87f7bc55c7affeff4aa",
+   "hdl/rtl/test_mem.sv": "a0e09360c7359ab8679f5189a4c9d4765956dcb33c7ab4fa4b93f3c0e27c8249",
+   "hdl/rtl/ucore/README.md": "4dca7eb0212907909f770fcb9448e3804d00de7357ea8574620ad9768bc82419",
+   "hdl/rtl/ucore/pla3_tables.svh": "0d9693c01a289c7eb258ef9478c3405c93492417ee2cf42a28e4552360f61302",
+   "hdl/rtl/ucore/ucdecode.hex": "f5cf6e2bef1d3bec371d0b0227fb7cbcaaf62fd68f2ba3e505d345f492e08bda",
+   "hdl/rtl/ucore/ucrom.hex": "d9cfcddd4cb473f0c21f112bd64419e91d9395a256158e0205137e12ba3e531d",
+   "hdl/rtl/ucore/ucrom_census.json": "c97ad035e2a8e3e7209804321dc158e9129b9c83af1ce8229052447f65bfd7c9",
+   "hdl/rtl/ucore/v30_core.sv": "a63e856d80ac3ebcdeef0fbc621f359324efd1809f781fffbb25476d8c9a36fc",
+   "hdl/rtl/ucore/v30u_biu.sv": "99a8518877210a8be59fc6d8530c40d1fd2d589e7502d1dbdbfac643bc8d4c31",
+   "hdl/rtl/ucore/v30u_eu.sv": "4577782bbbbd1268e986427f94bcbd86fdba455f7579c240144ec85e3c28b67c",
+   "hdl/rtl/ucore/v30u_eu_1bl.svh": "8f22d7cd81a85092cb084996b17f8d70b70d19705ef79645dfd2a68bd83798f2",
+   "hdl/rtl/ucore/v30u_eu_cond.svh": "88eefe030009584d26dc647d89a87cfa10e70b016a8b48648b772748fb72cb66",
+   "hdl/rtl/ucore/v30u_eu_iend_late.svh": "e7ecc8f7fb62ec279d331389d37421bbf23b1675dc37eb049aa78a825559ba33",
+   "hdl/rtl/ucore/v30u_eu_poste.svh": "0466f790d6f20633f07ece674481ede059c4e1bea0a785fcca819e5e0127584b",
+   "hdl/rtl/ucore/v30u_eu_row.svh": "5c80014d4064586e35f7fafea0c97c2e2847b664155338ca90dd6421d8e4e409",
+   "hdl/rtl/ucore/v30u_eu_ss_read.svh": "62898d25785213829789d3a9347d310e15c03b111e9fb42e16ead2bf0d4fd53d",
+   "hdl/rtl/ucore/v30u_eu_ss_write.svh": "75d626cffe04a9329842bcdcb6c1de03ae412b4d2237f47ce63592ccfff5c392",
+   "hdl/rtl/ucore/v30u_eu_step.svh": "716bf63d0f2863ac761bccfe7b03910c761c8352069ba050949dc14416027ea4",
+   "hdl/rtl/ucore/v30u_eu_wd1.svh": "1eb016ccef3daeae9e25208bc55443e7441a58a88c685411bf188e4dd7527683",
+   "hdl/rtl/ucore/v30u_ss_pkg.sv": "00a078e87fa41afb24d4e0a02ed025d81027908890cfbc4f9a79ed7e7b6c9abf",
+   "hdl/rtl/ucore/v30u_ucrom.sv": "60aa81810bbccaa3ab6041394429e1762ab880b051f5aa037ffe15b1df931718",
+   "hdl/rtl/video_gen.v": "d7058700f636c5f3bf27995c0a3561cecb6e0d5ff68bcac7c35fa78a8d0241e0",
+   "hdl/rtl/wvec_buf.sv": "50beb8d66d3e8b6840295cca3e5921ad49a180617f4431594a13f91283ac675f",
+   "hdl/sys/alsa.sv": "74943b658cd3f4adc5b74c72f225fb42b95122a1c5e453df860a4c6a9bf72fc9",
+   "hdl/sys/arcade_video.v": "ce64cdd7f900ded7b9cd9aa728dab7383b7561cdc75dfe82ab23fe27a3d217d3",
+   "hdl/sys/ascal.vhd": "08c21b36a95f22c813161066d9943c2d6959e8790d8ed840ee29ed335322d4c5",
+   "hdl/sys/audio_out.v": "565dd9badb00052dbd324e70f7ab66e8c6ecd0c5c2791aebffe477a2c0669363",
+   "hdl/sys/build_id.tcl": "148dc6a8124d36ac2898a45d085960cc05178a76d7297fde8877925fc0a74e88",
+   "hdl/sys/ddr_svc.sv": "8dfa874b9a93b4dbbe3b2fcf4f9035a895262cc090d398f4099941a626f41c08",
+   "hdl/sys/f2sdram_safe_terminator.sv": "400bcbcfc0b4aae324fe813866a5443d577bf4de9b4ab1454cb068733d170261",
+   "hdl/sys/gamma_corr.sv": "2754944c6fe05d921374d1fecc26621782520b3bc6fbf600ca561e9f37c7af88",
+   "hdl/sys/hps_io.sv": "1182da0710483a1030687c12e6601025a5293ab90f2eb15cdf5fdea38ea4c275",
+   "hdl/sys/hq2x.sv": "2146b69cf63c26a4b41407e9ac1b4462db4d7e3ea6d8a99f31ba12712d68f975",
+   "hdl/sys/i2c.v": "09bd7ebd5d84fb57f6a9d569e5214f3154c49e55826c15bd78884f3c781fec5b",
+   "hdl/sys/i2s.v": "927d2aea6797fb837f383e5e8a3259609e132ed24883127240ab21601f467efa",
+   "hdl/sys/iir_filter.v": "570a8095c15af84a60015b5eab105cee6e2d7edde77e20f0ce40c075ab2db8b7",
+   "hdl/sys/ltc2308.sv": "825fa1197c8e9f31c19c2fef1b01693133fb7df3cfb2dd831f2848a98fc6899c",
+   "hdl/sys/math.sv": "d384fa9fcf73100cb28a2affc5db1e4aacc87620287971c3882507fc3af056cc",
+   "hdl/sys/mcp23009.sv": "f168485e0b64c0545060f25b858c9f1c12b57024ce441754bb6a0cb0e9072e3f",
+   "hdl/sys/mt32pi.sv": "4ad39571d16a4b25347030d75ffdf601803ddec71e2e3fcabe962103cc45a1a2",
+   "hdl/sys/osd.v": "68ec08401a6ddaf68c95a2e976b9085b77f0002d5b64ffed7454055dbcc48062",
+   "hdl/sys/pll.13.qip": "f25f58e7c0290583f33ee0fdd729a4470cc69312686f0f1ecb95c61115d61cec",
+   "hdl/sys/pll_audio.13.qip": "60edce734c54e4b9f9d56f078bc797841e52c6817f4d27e0cfe77db5d77b2596",
+   "hdl/sys/pll_audio.qip": "278496eefe70d18f6b3ccf624c3a4595ccca74a9a6740eb4520200f1e929a236",
+   "hdl/sys/pll_audio.v": "1662fff7650cd443db81db7f0707f5583d223372b3e3c41af2d41ea4f3ac38f3",
+   "hdl/sys/pll_audio/pll_audio_0002.qip": "4cedd5394006286e0be61acdcbb6455f35cdf5c1488f4eb4a76b60e20eb43fb8",
+   "hdl/sys/pll_audio/pll_audio_0002.v": "2b24d2a561d81cc8b20f725884ee9c243e619058e42ebcdcf6f491d33008696c",
+   "hdl/sys/pll_cfg.qip": "7c1573f321012132479272242434d02058b1bcfe8d89843130ef11173a901eae",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_core.v": "9058d2c68e9cb0b1b6b3ab5487daad8aeaf04461e162aba317857dd133329189",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_top.v": "34c11c19e6bf3797d2db2e41314ce802f5a01041265ce943b54e7f20eb2027c9",
+   "hdl/sys/pll_cfg/pll_cfg.v": "e07ae93193537830b3bc9029465e763a6bfe354c25b7e7747eeeb4094b08ad10",
+   "hdl/sys/pll_cfg/pll_cfg_hdmi.v": "d3874dda124af03656054fa1ae1ee70f1a4d3cea6d4670795a5168325bb6760a",
+   "hdl/sys/pll_hdmi.13.qip": "625df824716313233400454bc1142615fb3a234a494225691c8a554753b1731b",
+   "hdl/sys/pll_hdmi.qip": "5571604010bf98858a0797a2286d2389e105d32a97b42508865b02ba4237dd0d",
+   "hdl/sys/pll_hdmi.v": "499561547c1045a46f1137558e2bab83d8e026e5d32669b5c5779a264b7ed676",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.qip": "de648286a832ee72839dd6abb444231a4238d32b2c26f29426399d2221d7bf5b",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.v": "27c77f35c89e97994477801f83edf3c7e9c5b9e57df49864434d300c40e9f1f7",
+   "hdl/sys/pll_hdmi_adj.vhd": "ae18c82eef2f6b9c7783c68ac272d03f570eb1bdaddce14a1908c351da51a71b",
+   "hdl/sys/pll_q13.qip": "c2b9c95a49d9b1100b0640bbdeea1acff845b0a8cbc11a7259c0913d2c61cfa8",
+   "hdl/sys/pll_q17.qip": "7139faf33ae28066e805f290b15401eddb092d4b7d31b529a3ce1f0213fbc90a",
+   "hdl/sys/scandoubler.v": "d36181c5fde9df0a504c547e23f60bcf201420052ada2682f081b00fd9485e6b",
+   "hdl/sys/scanlines.v": "1fc7ac5359fd224a3fc06388f7671e07bf57cf6a39f35803a265661c56c564d4",
+   "hdl/sys/sd_card.sv": "25114f9a0e9ab4dd702633ae927fc825dc79a4d9f7746c1bb75dbd10d61eb6d6",
+   "hdl/sys/shadowmask.sv": "88429d137b4ce9f6538a052f03d874604f46decf6d69b3fc824cc795efcf3193",
+   "hdl/sys/sigma_delta_dac.v": "352d31dd185bce14d9d1e8a4999fbb5f2b5b2e42b048bdc9f4b828119cc5127a",
+   "hdl/sys/spdif.v": "a617bba332c4611caf81ba585b8f6828c7899aec5f81664a870f10419cb9b451",
+   "hdl/sys/sys.qip": "3854d7f172097e01a40037e0a82dfd1a4178391ea0964767492979216279f31d",
+   "hdl/sys/sys.tcl": "8ed838a8c1e36327f862288ed36b681e320d940263ceb3436ae65a7a6c887676",
+   "hdl/sys/sys_analog.tcl": "36a875d6c59ba21b6d8936619db60f1bfcd8dbed5d5082aa43c72f22b22fd68f",
+   "hdl/sys/sys_dual_sdram.tcl": "4f41376069b2070079d8ba4ae4a722c8ecfe3ca4b99798d0bdd8cda986b5ad5b",
+   "hdl/sys/sys_top.sdc": "9c975aff0a05b115e4bcabb63d0e62c83b53957895e1c1920b304e8ed9054183",
+   "hdl/sys/sys_top.v": "8f8d493cde9d2e5a32604adf61fe9284a75291869c5018bd483b3f34a9332216",
+   "hdl/sys/sysmem.sv": "9f8cf78563cc31beb7dfc6d7048c51ba536ff4f1f9f640b4ff9f8d574456c94e",
+   "hdl/sys/vga_out.sv": "02a533c3dfd547afddea2946019ecc79bbe9c27bb6128c0999fa5fc9e78f8108",
+   "hdl/sys/video_cleaner.sv": "44b986d9bf8412e56bf8e4eae3dc87e04b4c378e58ec6119de5a8aed320e3572",
+   "hdl/sys/video_freak.sv": "6a9b8565f66894a8f2ec10c916593e980d260f29f1886bfe70bf6f3b0cf6edc0",
+   "hdl/sys/video_freezer.sv": "0f3f4710b072b7e90b0b6bfe7607dec18dbd6bed78d1994f32d6fa72a6b7aef3",
+   "hdl/sys/video_mixer.sv": "31ed2c917bd6680b4d60328e71a4f28015bd5fcec21e15b290eacec88971167d",
+   "hdl/sys/yc_out.sv": "c52d7bfcc8dbc5a0cda2b3117172cbba790fb97b7de61722ddac205f6ec8bc20"
+  },
+  "n_files": 88,
+  "sha256": "b7b5dff2353c4747e3a3bf9035105f379cbb35df58d9188fdd219bb961f82c6f"
+ },
+ "inputs_post": {
+  "files": {
+   "hdl/files_ucore.qip": "88de032b628152698981594826b9cf53b09d53dbb1940093fa9c91ca1002b88e",
+   "hdl/nec_test.qsf": "acc19782ba4d8ab32681020ab2d885f3ca0522b86dc46a870e86e3a066ebab29",
+   "hdl/nec_test.sdc": "96de5d083d8a09673963830ce2d8057f44db7431d54f5727fc3ddf1e121c6ace",
+   "hdl/nec_test.sv": "b04e85a3e88f14e06d182e319a71714a2865e1b182acfb9f0cdc363801ce5e6b",
+   "hdl/nec_test_ucore.qsf": "026a4065b8b6efbae561493da47f5486b8e98d3ce716416773a0424d9dea4e15",
+   "hdl/rtl/capture_buf.sv": "5eb48ef11ff0f8b2961151b76eedbd4a228528f162f604a70f822872c78dea66",
+   "hdl/rtl/hps_axi_slave.sv": "f7567ac588c496821cd113ceefa726998c408a62d44839e87562696263cf3721",
+   "hdl/rtl/iords_buf.sv": "b7744500def2a14af97228562a4371cd0531e7d68719e173fa431924f4ac76f8",
+   "hdl/rtl/nec_bus.sv": "99c778bde307d5e804f8cf4523b827e219ec461d07f8e9df96536aab3d688109",
+   "hdl/rtl/system_large.sv": "8d3fc7e669b33a2583fb1c58892b66f05253be9c52ebb87f7bc55c7affeff4aa",
+   "hdl/rtl/test_mem.sv": "a0e09360c7359ab8679f5189a4c9d4765956dcb33c7ab4fa4b93f3c0e27c8249",
+   "hdl/rtl/ucore/README.md": "4dca7eb0212907909f770fcb9448e3804d00de7357ea8574620ad9768bc82419",
+   "hdl/rtl/ucore/pla3_tables.svh": "0d9693c01a289c7eb258ef9478c3405c93492417ee2cf42a28e4552360f61302",
+   "hdl/rtl/ucore/ucdecode.hex": "f5cf6e2bef1d3bec371d0b0227fb7cbcaaf62fd68f2ba3e505d345f492e08bda",
+   "hdl/rtl/ucore/ucrom.hex": "d9cfcddd4cb473f0c21f112bd64419e91d9395a256158e0205137e12ba3e531d",
+   "hdl/rtl/ucore/ucrom_census.json": "c97ad035e2a8e3e7209804321dc158e9129b9c83af1ce8229052447f65bfd7c9",
+   "hdl/rtl/ucore/v30_core.sv": "a63e856d80ac3ebcdeef0fbc621f359324efd1809f781fffbb25476d8c9a36fc",
+   "hdl/rtl/ucore/v30u_biu.sv": "99a8518877210a8be59fc6d8530c40d1fd2d589e7502d1dbdbfac643bc8d4c31",
+   "hdl/rtl/ucore/v30u_eu.sv": "4577782bbbbd1268e986427f94bcbd86fdba455f7579c240144ec85e3c28b67c",
+   "hdl/rtl/ucore/v30u_eu_1bl.svh": "8f22d7cd81a85092cb084996b17f8d70b70d19705ef79645dfd2a68bd83798f2",
+   "hdl/rtl/ucore/v30u_eu_cond.svh": "88eefe030009584d26dc647d89a87cfa10e70b016a8b48648b772748fb72cb66",
+   "hdl/rtl/ucore/v30u_eu_iend_late.svh": "e7ecc8f7fb62ec279d331389d37421bbf23b1675dc37eb049aa78a825559ba33",
+   "hdl/rtl/ucore/v30u_eu_poste.svh": "0466f790d6f20633f07ece674481ede059c4e1bea0a785fcca819e5e0127584b",
+   "hdl/rtl/ucore/v30u_eu_row.svh": "5c80014d4064586e35f7fafea0c97c2e2847b664155338ca90dd6421d8e4e409",
+   "hdl/rtl/ucore/v30u_eu_ss_read.svh": "62898d25785213829789d3a9347d310e15c03b111e9fb42e16ead2bf0d4fd53d",
+   "hdl/rtl/ucore/v30u_eu_ss_write.svh": "75d626cffe04a9329842bcdcb6c1de03ae412b4d2237f47ce63592ccfff5c392",
+   "hdl/rtl/ucore/v30u_eu_step.svh": "716bf63d0f2863ac761bccfe7b03910c761c8352069ba050949dc14416027ea4",
+   "hdl/rtl/ucore/v30u_eu_wd1.svh": "1eb016ccef3daeae9e25208bc55443e7441a58a88c685411bf188e4dd7527683",
+   "hdl/rtl/ucore/v30u_ss_pkg.sv": "00a078e87fa41afb24d4e0a02ed025d81027908890cfbc4f9a79ed7e7b6c9abf",
+   "hdl/rtl/ucore/v30u_ucrom.sv": "60aa81810bbccaa3ab6041394429e1762ab880b051f5aa037ffe15b1df931718",
+   "hdl/rtl/video_gen.v": "d7058700f636c5f3bf27995c0a3561cecb6e0d5ff68bcac7c35fa78a8d0241e0",
+   "hdl/rtl/wvec_buf.sv": "50beb8d66d3e8b6840295cca3e5921ad49a180617f4431594a13f91283ac675f",
+   "hdl/sys/alsa.sv": "74943b658cd3f4adc5b74c72f225fb42b95122a1c5e453df860a4c6a9bf72fc9",
+   "hdl/sys/arcade_video.v": "ce64cdd7f900ded7b9cd9aa728dab7383b7561cdc75dfe82ab23fe27a3d217d3",
+   "hdl/sys/ascal.vhd": "08c21b36a95f22c813161066d9943c2d6959e8790d8ed840ee29ed335322d4c5",
+   "hdl/sys/audio_out.v": "565dd9badb00052dbd324e70f7ab66e8c6ecd0c5c2791aebffe477a2c0669363",
+   "hdl/sys/build_id.tcl": "148dc6a8124d36ac2898a45d085960cc05178a76d7297fde8877925fc0a74e88",
+   "hdl/sys/ddr_svc.sv": "8dfa874b9a93b4dbbe3b2fcf4f9035a895262cc090d398f4099941a626f41c08",
+   "hdl/sys/f2sdram_safe_terminator.sv": "400bcbcfc0b4aae324fe813866a5443d577bf4de9b4ab1454cb068733d170261",
+   "hdl/sys/gamma_corr.sv": "2754944c6fe05d921374d1fecc26621782520b3bc6fbf600ca561e9f37c7af88",
+   "hdl/sys/hps_io.sv": "1182da0710483a1030687c12e6601025a5293ab90f2eb15cdf5fdea38ea4c275",
+   "hdl/sys/hq2x.sv": "2146b69cf63c26a4b41407e9ac1b4462db4d7e3ea6d8a99f31ba12712d68f975",
+   "hdl/sys/i2c.v": "09bd7ebd5d84fb57f6a9d569e5214f3154c49e55826c15bd78884f3c781fec5b",
+   "hdl/sys/i2s.v": "927d2aea6797fb837f383e5e8a3259609e132ed24883127240ab21601f467efa",
+   "hdl/sys/iir_filter.v": "570a8095c15af84a60015b5eab105cee6e2d7edde77e20f0ce40c075ab2db8b7",
+   "hdl/sys/ltc2308.sv": "825fa1197c8e9f31c19c2fef1b01693133fb7df3cfb2dd831f2848a98fc6899c",
+   "hdl/sys/math.sv": "d384fa9fcf73100cb28a2affc5db1e4aacc87620287971c3882507fc3af056cc",
+   "hdl/sys/mcp23009.sv": "f168485e0b64c0545060f25b858c9f1c12b57024ce441754bb6a0cb0e9072e3f",
+   "hdl/sys/mt32pi.sv": "4ad39571d16a4b25347030d75ffdf601803ddec71e2e3fcabe962103cc45a1a2",
+   "hdl/sys/osd.v": "68ec08401a6ddaf68c95a2e976b9085b77f0002d5b64ffed7454055dbcc48062",
+   "hdl/sys/pll.13.qip": "f25f58e7c0290583f33ee0fdd729a4470cc69312686f0f1ecb95c61115d61cec",
+   "hdl/sys/pll_audio.13.qip": "60edce734c54e4b9f9d56f078bc797841e52c6817f4d27e0cfe77db5d77b2596",
+   "hdl/sys/pll_audio.qip": "278496eefe70d18f6b3ccf624c3a4595ccca74a9a6740eb4520200f1e929a236",
+   "hdl/sys/pll_audio.v": "1662fff7650cd443db81db7f0707f5583d223372b3e3c41af2d41ea4f3ac38f3",
+   "hdl/sys/pll_audio/pll_audio_0002.qip": "4cedd5394006286e0be61acdcbb6455f35cdf5c1488f4eb4a76b60e20eb43fb8",
+   "hdl/sys/pll_audio/pll_audio_0002.v": "2b24d2a561d81cc8b20f725884ee9c243e619058e42ebcdcf6f491d33008696c",
+   "hdl/sys/pll_cfg.qip": "7c1573f321012132479272242434d02058b1bcfe8d89843130ef11173a901eae",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_core.v": "9058d2c68e9cb0b1b6b3ab5487daad8aeaf04461e162aba317857dd133329189",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_top.v": "34c11c19e6bf3797d2db2e41314ce802f5a01041265ce943b54e7f20eb2027c9",
+   "hdl/sys/pll_cfg/pll_cfg.v": "e07ae93193537830b3bc9029465e763a6bfe354c25b7e7747eeeb4094b08ad10",
+   "hdl/sys/pll_cfg/pll_cfg_hdmi.v": "d3874dda124af03656054fa1ae1ee70f1a4d3cea6d4670795a5168325bb6760a",
+   "hdl/sys/pll_hdmi.13.qip": "625df824716313233400454bc1142615fb3a234a494225691c8a554753b1731b",
+   "hdl/sys/pll_hdmi.qip": "5571604010bf98858a0797a2286d2389e105d32a97b42508865b02ba4237dd0d",
+   "hdl/sys/pll_hdmi.v": "499561547c1045a46f1137558e2bab83d8e026e5d32669b5c5779a264b7ed676",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.qip": "de648286a832ee72839dd6abb444231a4238d32b2c26f29426399d2221d7bf5b",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.v": "27c77f35c89e97994477801f83edf3c7e9c5b9e57df49864434d300c40e9f1f7",
+   "hdl/sys/pll_hdmi_adj.vhd": "ae18c82eef2f6b9c7783c68ac272d03f570eb1bdaddce14a1908c351da51a71b",
+   "hdl/sys/pll_q13.qip": "c2b9c95a49d9b1100b0640bbdeea1acff845b0a8cbc11a7259c0913d2c61cfa8",
+   "hdl/sys/pll_q17.qip": "7139faf33ae28066e805f290b15401eddb092d4b7d31b529a3ce1f0213fbc90a",
+   "hdl/sys/scandoubler.v": "d36181c5fde9df0a504c547e23f60bcf201420052ada2682f081b00fd9485e6b",
+   "hdl/sys/scanlines.v": "1fc7ac5359fd224a3fc06388f7671e07bf57cf6a39f35803a265661c56c564d4",
+   "hdl/sys/sd_card.sv": "25114f9a0e9ab4dd702633ae927fc825dc79a4d9f7746c1bb75dbd10d61eb6d6",
+   "hdl/sys/shadowmask.sv": "88429d137b4ce9f6538a052f03d874604f46decf6d69b3fc824cc795efcf3193",
+   "hdl/sys/sigma_delta_dac.v": "352d31dd185bce14d9d1e8a4999fbb5f2b5b2e42b048bdc9f4b828119cc5127a",
+   "hdl/sys/spdif.v": "a617bba332c4611caf81ba585b8f6828c7899aec5f81664a870f10419cb9b451",
+   "hdl/sys/sys.qip": "3854d7f172097e01a40037e0a82dfd1a4178391ea0964767492979216279f31d",
+   "hdl/sys/sys.tcl": "8ed838a8c1e36327f862288ed36b681e320d940263ceb3436ae65a7a6c887676",
+   "hdl/sys/sys_analog.tcl": "36a875d6c59ba21b6d8936619db60f1bfcd8dbed5d5082aa43c72f22b22fd68f",
+   "hdl/sys/sys_dual_sdram.tcl": "4f41376069b2070079d8ba4ae4a722c8ecfe3ca4b99798d0bdd8cda986b5ad5b",
+   "hdl/sys/sys_top.sdc": "9c975aff0a05b115e4bcabb63d0e62c83b53957895e1c1920b304e8ed9054183",
+   "hdl/sys/sys_top.v": "8f8d493cde9d2e5a32604adf61fe9284a75291869c5018bd483b3f34a9332216",
+   "hdl/sys/sysmem.sv": "9f8cf78563cc31beb7dfc6d7048c51ba536ff4f1f9f640b4ff9f8d574456c94e",
+   "hdl/sys/vga_out.sv": "02a533c3dfd547afddea2946019ecc79bbe9c27bb6128c0999fa5fc9e78f8108",
+   "hdl/sys/video_cleaner.sv": "44b986d9bf8412e56bf8e4eae3dc87e04b4c378e58ec6119de5a8aed320e3572",
+   "hdl/sys/video_freak.sv": "6a9b8565f66894a8f2ec10c916593e980d260f29f1886bfe70bf6f3b0cf6edc0",
+   "hdl/sys/video_freezer.sv": "0f3f4710b072b7e90b0b6bfe7607dec18dbd6bed78d1994f32d6fa72a6b7aef3",
+   "hdl/sys/video_mixer.sv": "31ed2c917bd6680b4d60328e71a4f28015bd5fcec21e15b290eacec88971167d",
+   "hdl/sys/yc_out.sv": "c52d7bfcc8dbc5a0cda2b3117172cbba790fb97b7de61722ddac205f6ec8bc20"
+  },
+  "n_files": 88,
+  "sha256": "2cfd0218f7f69ad2afbe6128652124323e2ae625d9068161b81f0be13d91ddad"
+ },
+ "kind": "quartus_distribution",
+ "label": "t1half2-posedge-control-n5",
+ "n_seeds": 5,
+ "name": "sw/testdata/g6dist/t1half2-posedge-control-n5/distribution.json",
+ "outputs": {},
+ "paired": {
+  "adopted": "2026-08-13, `standing_gates.md` \u00a7A; the precondition is timing50_e1_rederivation_2026-08-12.md \u00a78.3's PAIRED RTL ITEM, discharged by L1 (adcone_l1_results_2026-08-13.md)",
+  "contract": "G6 reports a PAIR, from the SAME --seeds N run: WHOLE-DESIGN worst-of-N (the PROMOTION gate, unchanged in role -- E3/E4/E5 score it and the board must satisfy it) and CORE-DOMAIN worst-of-N (what a downstream integration inherits).  Each is quoted with its BINDING CONE and its k.  NEITHER STANDS IN FOR THE OTHER, and the core-domain figure is NOT a gate: no bar reads it.",
+  "core_domain": {
+   "binding_from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+   "binding_to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|Mux58~0_OTERM3089DUPLICATE",
+   "class": "CE4",
+   "definition": "min over CE4, INTO, OUTOF -- the three SDC classes whose BOTH endpoints are v30u_eu/v30u_biu registers",
+   "fmax_mhz": 58.42,
+   "is_promotion_gate": false,
+   "k": 4.0,
+   "n": 5,
+   "n_draws_derivable": 5,
+   "off_class_draws": {},
+   "per_class_worst_of_n": {
+    "CE4": {
+     "max": 63.57,
+     "median": 61.87,
+     "min": 58.42,
+     "n": 5,
+     "sorted": [
+      58.42,
+      60.68,
+      61.87,
+      62.39,
+      63.57
+     ],
+     "spread": 5.15
+    },
+    "INTO": {
+     "max": 134.78,
+     "median": 124.58,
+     "min": 123.08,
+     "n": 5,
+     "sorted": [
+      123.08,
+      124.12,
+      124.58,
+      126.06,
+      134.78
+     ],
+     "spread": 11.7
+    },
+    "OUTOF": {
+     "max": 194.67,
+     "median": 183.0,
+     "min": 172.77,
+     "n": 5,
+     "sorted": [
+      172.77,
+      182.07,
+      183.0,
+      187.72,
+      194.67
+     ],
+     "spread": 21.9
+    }
+   },
+   "quotable_as": "core-domain worst-of-5@seeds{1,2,3,4,5} = 58.42 MHz (CE4, k=4.0)",
+   "seed": 2,
+   "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "source": "sta_truefmax_probe.tcl, one row per class",
+   "upper_bound": true
+  },
+  "whole_design": {
+   "binding_from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG",
+   "binding_to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8]",
+   "fmax_mhz": 42.06,
+   "is_promotion_gate": true,
+   "k": 1.0,
+   "n": 5,
+   "quotable_as": "whole-design worst-of-5@seeds{1,2,3,4,5} = 42.06 MHz",
+   "seed": 1,
+   "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "source": "Quartus's own Fmax Summary (E3), per draw"
+  }
+ },
+ "per_seed": [
+  {
+   "alms": "10,053 / 41,910 ( 24 % )",
+   "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt",
+   "core_domain": {
+    "caveat": "UPPER BOUND: each class row is the worst path in that collection BY SLACK, not by slack/k, so a row can return a path carrying a different exception than the class collects.  `off_class` lists the rows where the measured k and the class's DERIVED k (NOMINAL_K, from nec_test.sdc) disagree ON THIS DRAW.",
+    "class": "CE4",
+    "class_label": "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)",
+    "classes": {
+     "CE4": 62.39,
+     "INTO": 124.12,
+     "OUTOF": 183.0
+    },
+    "definition": "min over the three SDC classes whose BOTH endpoints are v30u_eu/v30u_biu registers: CE4, INTO, OUTOF",
+    "fmax_mhz": 62.39,
+    "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG",
+    "k": 4.0,
+    "k_measured": {
+     "CE4": 4.0,
+     "INTO": 2.0,
+     "OUTOF": 2.0
+    },
+    "k_nominal": 4.0,
+    "missing": [],
+    "off_class": [],
+    "slack": 60.891,
+    "t_min_ns": 16.027,
+    "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|tmpa[3]~DUPLICATE",
+    "upper_bound": true
+   },
+   "core_fmax_mhz": 62.39,
+   "fmax_mhz": 42.06,
+   "outputs": {
+    "hdl/output_files_ucore/nec_test_ucore.fit.summary": "19fd4ae26b1d61a9cf90789191c4717180d13dc99320da7825335cd47721e7ad",
+    "hdl/output_files_ucore/nec_test_ucore.rbf": "3d4700c0b0453ee3e444708da8c6a2988e40eb79af1c553fee82e98d77c66c2e",
+    "hdl/output_files_ucore/nec_test_ucore.sof": "9869214a0266ac58bbf1ecdf4ffe01c0afe5d30fee488acf7c508c36081741e8",
+    "hdl/output_files_ucore/nec_test_ucore.sta.summary": "847516706026e5a68ee6efbdd9c13e51148f63a506344edaf72a45d41915051f"
+   },
+   "receipt": "sw/testdata/g6dist/t1half2-posedge-control-n5/seed1_quartus_gate.json",
+   "receipt_id": "97371c29b2d7f6adfb2d8bba6515d2c1b6af8e89164059e1b6f1a8a6f6f62852",
+   "seconds": 476.0,
+   "seed": 1,
+   "seed_echo": {
+    "command_line": 1,
+    "settings": 1,
+    "settings_row": "; Fitter Initial Placement Seed                                              ; 1                                     ;"
+   },
+   "seed_honoured": true,
+   "tns_violations": [],
+   "truefmax": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": 62.39,
+    "DEFAULT (whole-design worst, expect k=1)": 42.06,
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": 141.2,
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": 124.12,
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": 183.0,
+    "RUNG 1: not latching in an observation register": 46.65,
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": 46.65,
+    "RUNG 2: ...and not launching from c_int_q": 62.08,
+    "RUNG 3: ...and not latching in row_posted": 62.08
+   },
+   "truefmax_full": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": {
+     "fmax_mhz": 62.39,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG",
+     "k": 4.0,
+     "slack": 60.891,
+     "t_min_ns": 16.027,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|tmpa[3]~DUPLICATE"
+    },
+    "DEFAULT (whole-design worst, expect k=1)": {
+     "fmax_mhz": 42.06,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG",
+     "k": 1.0,
+     "slack": 7.473,
+     "t_min_ns": 23.777,
+     "to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8]"
+    },
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": {
+     "fmax_mhz": 141.2,
+     "from": "emu:emu|system_large:system_large|nec_bus:bus|div_cnt[1]",
+     "k": 1.0,
+     "slack": 24.168,
+     "t_min_ns": 7.082,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": {
+     "fmax_mhz": 124.12,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+     "k": 2.0,
+     "slack": 46.387,
+     "t_min_ns": 8.056,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": {
+     "fmax_mhz": 183.0,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2",
+     "k": 2.0,
+     "slack": 51.571,
+     "t_min_ns": 5.465,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_data[10]"
+    },
+    "RUNG 1: not latching in an observation register": {
+     "fmax_mhz": 46.65,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 9.813,
+     "t_min_ns": 21.437,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+    },
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": {
+     "fmax_mhz": 46.65,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 9.813,
+     "t_min_ns": 21.437,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+    },
+    "RUNG 2: ...and not launching from c_int_q": {
+     "fmax_mhz": 62.08,
+     "from": "emu:emu|system_large:system_large|nec_bus:bus|div_cnt[3]",
+     "k": 1.0,
+     "slack": 15.143,
+     "t_min_ns": 16.107,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[1]~9_OTERM4126"
+    },
+    "RUNG 3: ...and not latching in row_posted": {
+     "fmax_mhz": 62.08,
+     "from": "emu:emu|system_large:system_large|nec_bus:bus|div_cnt[3]",
+     "k": 1.0,
+     "slack": 15.143,
+     "t_min_ns": 16.107,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[1]~9_OTERM4126"
+    }
+   },
+   "verdict": "PASS",
+   "worst_setup_ns": 7.473
+  },
+  {
+   "alms": "10,085 / 41,910 ( 24 % )",
+   "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt",
+   "core_domain": {
+    "caveat": "UPPER BOUND: each class row is the worst path in that collection BY SLACK, not by slack/k, so a row can return a path carrying a different exception than the class collects.  `off_class` lists the rows where the measured k and the class's DERIVED k (NOMINAL_K, from nec_test.sdc) disagree ON THIS DRAW.",
+    "class": "CE4",
+    "class_label": "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)",
+    "classes": {
+     "CE4": 58.42,
+     "INTO": 124.58,
+     "OUTOF": 172.77
+    },
+    "definition": "min over the three SDC classes whose BOTH endpoints are v30u_eu/v30u_biu registers: CE4, INTO, OUTOF",
+    "fmax_mhz": 58.42,
+    "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+    "k": 4.0,
+    "k_measured": {
+     "CE4": 4.0,
+     "INTO": 2.0,
+     "OUTOF": 2.0
+    },
+    "k_nominal": 4.0,
+    "missing": [],
+    "off_class": [],
+    "slack": 56.532,
+    "t_min_ns": 17.117,
+    "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|Mux58~0_OTERM3089DUPLICATE",
+    "upper_bound": true
+   },
+   "core_fmax_mhz": 58.42,
+   "fmax_mhz": 44.3,
+   "outputs": {
+    "hdl/output_files_ucore/nec_test_ucore.fit.summary": "637ed01e4c421096ebb25999a7920c7619e94658137b0316e2503eafb20c1b2a",
+    "hdl/output_files_ucore/nec_test_ucore.rbf": "62d726d3ff4d5d695ed935de6547eb06674a87099eee7efc94783f28b4b8a00b",
+    "hdl/output_files_ucore/nec_test_ucore.sof": "1c29e7810304a2bef3f579ee18275e81c941612bf134d7265ae42b24c5f530d1",
+    "hdl/output_files_ucore/nec_test_ucore.sta.summary": "1b66a8e87f1a75b99d56e92288b8fb1bc23b5141d4fcecec541b9acf7e5a8dda"
+   },
+   "receipt": "sw/testdata/g6dist/t1half2-posedge-control-n5/seed2_quartus_gate.json",
+   "receipt_id": "d063b7c47950cfe82015fbf440172a16cb0dcdfa7feb946ca649bc604e0731e9",
+   "seconds": 409.1,
+   "seed": 2,
+   "seed_echo": {
+    "command_line": 2,
+    "settings": 2,
+    "settings_row": "; Fitter Initial Placement Seed                                              ; 2                                     ;"
+   },
+   "seed_honoured": true,
+   "tns_violations": [],
+   "truefmax": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": 58.42,
+    "DEFAULT (whole-design worst, expect k=1)": 44.3,
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": 145.37,
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": 124.58,
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": 172.77,
+    "RUNG 1: not latching in an observation register": 45.43,
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": 45.43,
+    "RUNG 2: ...and not launching from c_int_q": 70.43,
+    "RUNG 3: ...and not latching in row_posted": 70.43
+   },
+   "truefmax_full": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": {
+     "fmax_mhz": 58.42,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+     "k": 4.0,
+     "slack": 56.532,
+     "t_min_ns": 17.117,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|Mux58~0_OTERM3089DUPLICATE"
+    },
+    "DEFAULT (whole-design worst, expect k=1)": {
+     "fmax_mhz": 44.3,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+     "k": 1.0,
+     "slack": 8.677,
+     "t_min_ns": 22.573,
+     "to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[14]"
+    },
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": {
+     "fmax_mhz": 145.37,
+     "from": "emu:emu|system_large:system_large|nec_bus:bus|div_cnt[1]",
+     "k": 1.0,
+     "slack": 24.371,
+     "t_min_ns": 6.879,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": {
+     "fmax_mhz": 124.58,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+     "k": 2.0,
+     "slack": 46.446,
+     "t_min_ns": 8.027,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": {
+     "fmax_mhz": 172.77,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2",
+     "k": 2.0,
+     "slack": 50.924,
+     "t_min_ns": 5.788,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_data[4]~DUPLICATE"
+    },
+    "RUNG 1: not latching in an observation register": {
+     "fmax_mhz": 45.43,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 9.24,
+     "t_min_ns": 22.01,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+    },
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": {
+     "fmax_mhz": 45.43,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 9.24,
+     "t_min_ns": 22.01,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+    },
+    "RUNG 2: ...and not launching from c_int_q": {
+     "fmax_mhz": 70.43,
+     "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|host_reset~DUPLICATE",
+     "k": 1.0,
+     "slack": 17.052,
+     "t_min_ns": 14.198,
+     "to": "emu:emu|system_large:system_large|test_mem:mem|altsyncram:mem_odd|altsyncram_cc91:auto_generated|altsyncram_s082:altsyncram1|ram_block3a10~porta_we_reg"
+    },
+    "RUNG 3: ...and not latching in row_posted": {
+     "fmax_mhz": 70.43,
+     "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|host_reset~DUPLICATE",
+     "k": 1.0,
+     "slack": 17.052,
+     "t_min_ns": 14.198,
+     "to": "emu:emu|system_large:system_large|test_mem:mem|altsyncram:mem_odd|altsyncram_cc91:auto_generated|altsyncram_s082:altsyncram1|ram_block3a10~porta_we_reg"
+    }
+   },
+   "verdict": "PASS",
+   "worst_setup_ns": 8.677
+  },
+  {
+   "alms": "10,014 / 41,910 ( 24 % )",
+   "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt",
+   "core_domain": {
+    "caveat": "UPPER BOUND: each class row is the worst path in that collection BY SLACK, not by slack/k, so a row can return a path carrying a different exception than the class collects.  `off_class` lists the rows where the measured k and the class's DERIVED k (NOMINAL_K, from nec_test.sdc) disagree ON THIS DRAW.",
+    "class": "CE4",
+    "class_label": "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)",
+    "classes": {
+     "CE4": 61.87,
+     "INTO": 123.08,
+     "OUTOF": 194.67
+    },
+    "definition": "min over the three SDC classes whose BOTH endpoints are v30u_eu/v30u_biu registers: CE4, INTO, OUTOF",
+    "fmax_mhz": 61.87,
+    "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG",
+    "k": 4.0,
+    "k_measured": {
+     "CE4": 4.0,
+     "INTO": 2.0,
+     "OUTOF": 2.0
+    },
+    "k_nominal": 4.0,
+    "missing": [],
+    "off_class": [],
+    "slack": 60.351,
+    "t_min_ns": 16.162,
+    "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[0]",
+    "upper_bound": true
+   },
+   "core_fmax_mhz": 61.87,
+   "fmax_mhz": 43.96,
+   "outputs": {
+    "hdl/output_files_ucore/nec_test_ucore.fit.summary": "105aefdf23165b308dddca117480efedbbd306b2f854a808e7f2807c6edde6ae",
+    "hdl/output_files_ucore/nec_test_ucore.rbf": "fdd1c3feafe184850ce79ca5632412ee062fc261b9e17be8ea6c7f6efd037df0",
+    "hdl/output_files_ucore/nec_test_ucore.sof": "522d973de72a17679755f922820b752d30c7a32eb17eb455253e5906259035ab",
+    "hdl/output_files_ucore/nec_test_ucore.sta.summary": "627c8c12b5122f5dd164051451f092ee69e1d46e30d63b42d76aa6472b7ed134"
+   },
+   "receipt": "sw/testdata/g6dist/t1half2-posedge-control-n5/seed3_quartus_gate.json",
+   "receipt_id": "e2b4aa99072e466e31dae4496bd1845a82c528beb391d00829715034893009f6",
+   "seconds": 350.9,
+   "seed": 3,
+   "seed_echo": {
+    "command_line": 3,
+    "settings": 3,
+    "settings_row": "; Fitter Initial Placement Seed                                              ; 3                                     ;"
+   },
+   "seed_honoured": true,
+   "tns_violations": [],
+   "truefmax": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": 61.87,
+    "DEFAULT (whole-design worst, expect k=1)": 43.96,
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": 126.82,
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": 123.08,
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": 194.67,
+    "RUNG 1: not latching in an observation register": 49.55,
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": 49.55,
+    "RUNG 2: ...and not launching from c_int_q": 63.04,
+    "RUNG 3: ...and not latching in row_posted": 63.04
+   },
+   "truefmax_full": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": {
+     "fmax_mhz": 61.87,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG",
+     "k": 4.0,
+     "slack": 60.351,
+     "t_min_ns": 16.162,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[0]"
+    },
+    "DEFAULT (whole-design worst, expect k=1)": {
+     "fmax_mhz": 43.96,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_from_modrm",
+     "k": 1.0,
+     "slack": 8.504,
+     "t_min_ns": 22.746,
+     "to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[5]"
+    },
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": {
+     "fmax_mhz": 126.82,
+     "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[3]",
+     "k": 1.0,
+     "slack": 23.365,
+     "t_min_ns": 7.885,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": {
+     "fmax_mhz": 123.08,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG",
+     "k": 2.0,
+     "slack": 46.251,
+     "t_min_ns": 8.125,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": {
+     "fmax_mhz": 194.67,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2",
+     "k": 2.0,
+     "slack": 52.226,
+     "t_min_ns": 5.137,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_data[14]"
+    },
+    "RUNG 1: not latching in an observation register": {
+     "fmax_mhz": 49.55,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 11.069,
+     "t_min_ns": 20.181,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+    },
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": {
+     "fmax_mhz": 49.55,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 11.069,
+     "t_min_ns": 20.181,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+    },
+    "RUNG 2: ...and not launching from c_int_q": {
+     "fmax_mhz": 63.04,
+     "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[3]",
+     "k": 1.0,
+     "slack": 15.386,
+     "t_min_ns": 15.864,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[0]~1_OTERM3801"
+    },
+    "RUNG 3: ...and not latching in row_posted": {
+     "fmax_mhz": 63.04,
+     "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[3]",
+     "k": 1.0,
+     "slack": 15.386,
+     "t_min_ns": 15.864,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[0]~1_OTERM3801"
+    }
+   },
+   "verdict": "PASS",
+   "worst_setup_ns": 8.504
+  },
+  {
+   "alms": "10,053 / 41,910 ( 24 % )",
+   "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt",
+   "core_domain": {
+    "caveat": "UPPER BOUND: each class row is the worst path in that collection BY SLACK, not by slack/k, so a row can return a path carrying a different exception than the class collects.  `off_class` lists the rows where the measured k and the class's DERIVED k (NOMINAL_K, from nec_test.sdc) disagree ON THIS DRAW.",
+    "class": "CE4",
+    "class_label": "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)",
+    "classes": {
+     "CE4": 63.57,
+     "INTO": 126.06,
+     "OUTOF": 182.07
+    },
+    "definition": "min over the three SDC classes whose BOTH endpoints are v30u_eu/v30u_biu registers: CE4, INTO, OUTOF",
+    "fmax_mhz": 63.57,
+    "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a0~PORT_A_WRITE_ENABLE_REG",
+    "k": 4.0,
+    "k_measured": {
+     "CE4": 4.0,
+     "INTO": 2.0,
+     "OUTOF": 2.0
+    },
+    "k_nominal": 4.0,
+    "missing": [],
+    "off_class": [],
+    "slack": 62.081,
+    "t_min_ns": 15.73,
+    "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|Mux56~0_OTERM3077",
+    "upper_bound": true
+   },
+   "core_fmax_mhz": 63.57,
+   "fmax_mhz": 43.85,
+   "outputs": {
+    "hdl/output_files_ucore/nec_test_ucore.fit.summary": "651360afc59e4e88d291974c7798ee0bfa77dd636113b94e0a603a22da97469e",
+    "hdl/output_files_ucore/nec_test_ucore.rbf": "ec27c4eceb3197a64d0ae4cdfc5d6693b47f6932b7fb1c69cf6d89637f640bec",
+    "hdl/output_files_ucore/nec_test_ucore.sof": "a58f56b016c18f61f7f6a8f4fcb33fdcb5790c9f9d4d709e0d49b864177834dd",
+    "hdl/output_files_ucore/nec_test_ucore.sta.summary": "374de2764abcfe7f7be0b2547e1f70a3d53815761bd44834c03ed1fa2176631b"
+   },
+   "receipt": "sw/testdata/g6dist/t1half2-posedge-control-n5/seed4_quartus_gate.json",
+   "receipt_id": "620a7591477da4e9b66ccfa1b2eb84b3ebbd2dfc927c8088d3dd8293788784bb",
+   "seconds": 368.8,
+   "seed": 4,
+   "seed_echo": {
+    "command_line": 4,
+    "settings": 4,
+    "settings_row": "; Fitter Initial Placement Seed                                              ; 4                                     ;"
+   },
+   "seed_honoured": true,
+   "tns_violations": [],
+   "truefmax": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": 63.57,
+    "DEFAULT (whole-design worst, expect k=1)": 43.85,
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": 168.86,
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": 126.06,
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": 182.07,
+    "RUNG 1: not latching in an observation register": 44.32,
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": 44.32,
+    "RUNG 2: ...and not launching from c_int_q": 61.53,
+    "RUNG 3: ...and not latching in row_posted": 61.53
+   },
+   "truefmax_full": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": {
+     "fmax_mhz": 63.57,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a0~PORT_A_WRITE_ENABLE_REG",
+     "k": 4.0,
+     "slack": 62.081,
+     "t_min_ns": 15.73,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|Mux56~0_OTERM3077"
+    },
+    "DEFAULT (whole-design worst, expect k=1)": {
+     "fmax_mhz": 43.85,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a2~PORT_A_WRITE_ENABLE_REG",
+     "k": 1.0,
+     "slack": 8.446,
+     "t_min_ns": 22.804,
+     "to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8]"
+    },
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": {
+     "fmax_mhz": 168.86,
+     "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[1]",
+     "k": 1.0,
+     "slack": 25.328,
+     "t_min_ns": 5.922,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": {
+     "fmax_mhz": 126.06,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a6~PORT_A_WRITE_ENABLE_REG",
+     "k": 2.0,
+     "slack": 46.634,
+     "t_min_ns": 7.933,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": {
+     "fmax_mhz": 182.07,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2",
+     "k": 2.0,
+     "slack": 51.515,
+     "t_min_ns": 5.492,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_data[8]"
+    },
+    "RUNG 1: not latching in an observation register": {
+     "fmax_mhz": 44.32,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 8.687,
+     "t_min_ns": 22.563,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+    },
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": {
+     "fmax_mhz": 44.32,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 8.687,
+     "t_min_ns": 22.563,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+    },
+    "RUNG 2: ...and not launching from c_int_q": {
+     "fmax_mhz": 61.53,
+     "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[2]",
+     "k": 1.0,
+     "slack": 14.999,
+     "t_min_ns": 16.251,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[1]~9_OTERM4126"
+    },
+    "RUNG 3: ...and not latching in row_posted": {
+     "fmax_mhz": 61.53,
+     "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[2]",
+     "k": 1.0,
+     "slack": 14.999,
+     "t_min_ns": 16.251,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[1]~9_OTERM4126"
+    }
+   },
+   "verdict": "PASS",
+   "worst_setup_ns": 8.446
+  },
+  {
+   "alms": "10,027 / 41,910 ( 24 % )",
+   "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt",
+   "core_domain": {
+    "caveat": "UPPER BOUND: each class row is the worst path in that collection BY SLACK, not by slack/k, so a row can return a path carrying a different exception than the class collects.  `off_class` lists the rows where the measured k and the class's DERIVED k (NOMINAL_K, from nec_test.sdc) disagree ON THIS DRAW.",
+    "class": "CE4",
+    "class_label": "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)",
+    "classes": {
+     "CE4": 60.68,
+     "INTO": 134.78,
+     "OUTOF": 187.72
+    },
+    "definition": "min over the three SDC classes whose BOTH endpoints are v30u_eu/v30u_biu registers: CE4, INTO, OUTOF",
+    "fmax_mhz": 60.68,
+    "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a6~PORT_A_WRITE_ENABLE_REG",
+    "k": 4.0,
+    "k_measured": {
+     "CE4": 4.0,
+     "INTO": 2.0,
+     "OUTOF": 2.0
+    },
+    "k_nominal": 4.0,
+    "missing": [],
+    "off_class": [],
+    "slack": 59.085,
+    "t_min_ns": 16.479,
+    "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|ev_val~8_OTERM4130",
+    "upper_bound": true
+   },
+   "core_fmax_mhz": 60.68,
+   "fmax_mhz": 46.2,
+   "outputs": {
+    "hdl/output_files_ucore/nec_test_ucore.fit.summary": "beb41f488d9bdb0246d45cb20b9ea578454cb78cb1e9f721be366c1dd44f0e12",
+    "hdl/output_files_ucore/nec_test_ucore.rbf": "4fdcb0f63c6ab05245a5b53c7c746ae9c3dd13f4ac780ac8ccdd594069492293",
+    "hdl/output_files_ucore/nec_test_ucore.sof": "67f72456d52690842ef6fdaa4f1fde839c417647032d935a7b3b12c4653d2122",
+    "hdl/output_files_ucore/nec_test_ucore.sta.summary": "2419762023691beb419a673e7e83cf009c4fa1ba8f468e56d3673d22b32699b1"
+   },
+   "receipt": "sw/testdata/g6dist/t1half2-posedge-control-n5/seed5_quartus_gate.json",
+   "receipt_id": "38e9e7ed1663a26a0427bf3865f3201e18d78da3f09cb2c915a5fdda58a2efca",
+   "seconds": 384.6,
+   "seed": 5,
+   "seed_echo": {
+    "command_line": 5,
+    "settings": 5,
+    "settings_row": "; Fitter Initial Placement Seed                                              ; 5                                     ;"
+   },
+   "seed_honoured": true,
+   "tns_violations": [],
+   "truefmax": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": 60.68,
+    "DEFAULT (whole-design worst, expect k=1)": 46.2,
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": 112.1,
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": 134.78,
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": 187.72,
+    "RUNG 1: not latching in an observation register": 46.2,
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": 46.2,
+    "RUNG 2: ...and not launching from c_int_q": 62.05,
+    "RUNG 3: ...and not latching in row_posted": 62.05
+   },
+   "truefmax_full": {
+    "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0)": {
+     "fmax_mhz": 60.68,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a6~PORT_A_WRITE_ENABLE_REG",
+     "k": 4.0,
+     "slack": 59.085,
+     "t_min_ns": 16.479,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|ev_val~8_OTERM4130"
+    },
+    "DEFAULT (whole-design worst, expect k=1)": {
+     "fmax_mhz": 46.2,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 9.603,
+     "t_min_ns": 21.647,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cmt_addr[10]"
+    },
+    "ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0)": {
+     "fmax_mhz": 112.1,
+     "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[3]",
+     "k": 1.0,
+     "slack": 22.329,
+     "t_min_ns": 8.921,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "INTO   $v30u_ce -> t1_half2   (expect k=2.0)": {
+     "fmax_mhz": 134.78,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a6~PORT_A_WRITE_ENABLE_REG",
+     "k": 2.0,
+     "slack": 47.661,
+     "t_min_ns": 7.419,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+    },
+    "OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0)": {
+     "fmax_mhz": 187.72,
+     "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2",
+     "k": 2.0,
+     "slack": 51.846,
+     "t_min_ns": 5.327,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_data[15]"
+    },
+    "RUNG 1: not latching in an observation register": {
+     "fmax_mhz": 46.2,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 9.603,
+     "t_min_ns": 21.647,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cmt_addr[10]"
+    },
+    "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": {
+     "fmax_mhz": 46.2,
+     "from": "emu:emu|system_large:system_large|c_int_q",
+     "k": 1.0,
+     "slack": 9.603,
+     "t_min_ns": 21.647,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cmt_addr[10]"
+    },
+    "RUNG 2: ...and not launching from c_int_q": {
+     "fmax_mhz": 62.05,
+     "from": "emu:emu|system_large:system_large|nec_bus:bus|div_cnt[3]",
+     "k": 1.0,
+     "slack": 15.133,
+     "t_min_ns": 16.117,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[1]~9_OTERM4128"
+    },
+    "RUNG 3: ...and not latching in row_posted": {
+     "fmax_mhz": 62.05,
+     "from": "emu:emu|system_large:system_large|nec_bus:bus|div_cnt[3]",
+     "k": 1.0,
+     "slack": 15.133,
+     "t_min_ns": 16.117,
+     "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[1]~9_OTERM4128"
+    }
+   },
+   "verdict": "PASS",
+   "worst_setup_ns": 9.603
+  }
+ ],
+ "rc": 0,
+ "schema": "nec_test/receipt",
+ "schema_version": 1,
+ "seconds": 2146.5,
+ "seeds": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "stages": [
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sh",
+    "-t",
+    "sys/build_id.tcl",
+    "preflow",
+    "nec_test",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 0.6,
+   "tag": "preflow"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_map",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 156.2,
+   "tag": "map"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit",
+    "--seed=1",
+    "--recompile=off",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 426.1,
+   "tag": "seed1:quartus_fit"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 14.0,
+   "tag": "seed1:quartus_asm"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 9.5,
+   "tag": "seed1:quartus_sta"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "-t",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/sw/sta_truefmax_probe.tcl",
+    "nec_test",
+    "nec_test_ucore",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/hdl/output_files_ucore/g6dist_seed1"
+   ],
+   "rc": 0,
+   "seconds": 23.4,
+   "tag": "seed1:truefmax"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit",
+    "--seed=2",
+    "--recompile=off",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 365.0,
+   "tag": "seed2:quartus_fit"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 13.0,
+   "tag": "seed2:quartus_asm"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 8.6,
+   "tag": "seed2:quartus_sta"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "-t",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/sw/sta_truefmax_probe.tcl",
+    "nec_test",
+    "nec_test_ucore",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/hdl/output_files_ucore/g6dist_seed2"
+   ],
+   "rc": 0,
+   "seconds": 20.1,
+   "tag": "seed2:truefmax"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit",
+    "--seed=3",
+    "--recompile=off",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 306.9,
+   "tag": "seed3:quartus_fit"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 12.9,
+   "tag": "seed3:quartus_asm"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 8.7,
+   "tag": "seed3:quartus_sta"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "-t",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/sw/sta_truefmax_probe.tcl",
+    "nec_test",
+    "nec_test_ucore",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/hdl/output_files_ucore/g6dist_seed3"
+   ],
+   "rc": 0,
+   "seconds": 19.6,
+   "tag": "seed3:truefmax"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit",
+    "--seed=4",
+    "--recompile=off",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 323.7,
+   "tag": "seed4:quartus_fit"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 13.1,
+   "tag": "seed4:quartus_asm"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 9.3,
+   "tag": "seed4:quartus_sta"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "-t",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/sw/sta_truefmax_probe.tcl",
+    "nec_test",
+    "nec_test_ucore",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/hdl/output_files_ucore/g6dist_seed4"
+   ],
+   "rc": 0,
+   "seconds": 20.0,
+   "tag": "seed4:truefmax"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit",
+    "--seed=5",
+    "--recompile=off",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 337.9,
+   "tag": "seed5:quartus_fit"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 16.1,
+   "tag": "seed5:quartus_asm"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "nec_test",
+    "-c",
+    "nec_test_ucore"
+   ],
+   "rc": 0,
+   "seconds": 8.3,
+   "tag": "seed5:quartus_sta"
+  },
+  {
+   "cmd": [
+    "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+    "-t",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/sw/sta_truefmax_probe.tcl",
+    "nec_test",
+    "nec_test_ucore",
+    "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/hdl/output_files_ucore/g6dist_seed5"
+   ],
+   "rc": 0,
+   "seconds": 19.6,
+   "tag": "seed5:truefmax"
+  }
+ ],
+ "started": "2026-08-13T22:49:33Z",
+ "tool": "Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition",
+ "tool_name": "quartus_sh",
+ "tool_probe": null,
+ "tool_sha256": null,
+ "tool_version": "Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition",
+ "tree": "/home/wickerwaka/src/nec_test/.claude/worktrees/agent-ac041bd45b357a3a5/hdl/output_files_ucore",
+ "ts": "2026-08-13T22:49:33Z",
+ "verdict": "PASS",
+ "worst_of_n": {
+  "fmax_mhz": 42.06,
+  "n": 5,
+  "promotion_grade": true,
+  "quotable_as": "worst-of-5@seeds{1,2,3,4,5} = 42.06 MHz",
+  "seed": 1,
+  "seeds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ "worst_setup_ns": {
+  "max": 9.603,
+  "median": 8.504,
+  "min": 7.473,
+  "n": 5,
+  "sorted": [
+   7.473,
+   8.446,
+   8.504,
+   8.677,
+   9.603
+  ],
+  "spread": 2.13
+ }
+}

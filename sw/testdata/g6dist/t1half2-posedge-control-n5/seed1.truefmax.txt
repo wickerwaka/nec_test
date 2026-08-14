@@ -1,0 +1,75 @@
+=== sta_truefmax_probe: nec_test / nec_test_ucore ===
+T0 = 31.250 ns   (clock emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk)
+v30u_regs 2027  v30u_ce 2026  v30u_half 1
+
+==========================================================================
+ THE FIVE EXCEPTION CLASSES, EACH WITH ITS OWN k
+==========================================================================
+
+--- DEFAULT (whole-design worst, expect k=1) ---
+  from  : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG
+  to    : emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8]
+  k = 1.0000   slack =   +7.473   ->  T_min  23.777 ns  =    42.06 MHz
+
+--- CE4    $v30u_ce -> $v30u_ce   (the CE multicycle, expect k=4.0) ---
+  from  : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a5~PORT_A_WRITE_ENABLE_REG
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|tmpa[3]~DUPLICATE
+  k = 4.0000   slack =  +60.891   ->  T_min  16.027 ns  =    62.39 MHz
+
+--- INTO   $v30u_ce -> t1_half2   (expect k=2.0) ---
+  from  : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  k = 2.0000   slack =  +46.387   ->  T_min   8.056 ns  =   124.12 MHz
+
+--- OUTOF  t1_half2 -> $v30u_ce   (expect k=2.0) ---
+  from  : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_data[10]
+  k = 2.0000   slack =  +51.571   ->  T_min   5.465 ns  =   183.00 MHz
+
+--- ENABLE (not $v30u_ce) -> t1_half2   (the ENABLE arc, expect k=1.0) ---
+  from  : emu:emu|system_large:system_large|nec_bus:bus|div_cnt[1]
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2
+  k = 1.0000   slack =  +24.168   ->  T_min   7.082 ns  =   141.20 MHz
+
+  observation endpoints (incl. core_ad_hold if RETENTION): 44
+
+==========================================================================
+ THE LADDER BEHIND THE BINDING CONE
+==========================================================================
+
+ ⚠ EVERY RUNG IS RESTRICTED TO divclk -> divclk.  Quartus's own Fmax
+   Summary note says FMAX is computed ONLY for paths whose source and
+   destination are driven by the SAME clock, so a cross-domain path
+   (the JTAG hub, the HPS bridge) is not a divclk ceiling and must not
+   be quoted as one.  A first run of this script without the filter
+   returned the sld_jtag_hub at rung 2; that hit is EXCLUDED here for
+   that reason, and this note is why.
+
+--- RUNG 1: not latching in an observation register ---
+  from  : emu:emu|system_large:system_large|c_int_q
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted
+  k = 1.0000   slack =   +9.813   ->  T_min  21.437 ns  =    46.65 MHz
+
+--- RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor) ---
+  from  : emu:emu|system_large:system_large|c_int_q
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted
+  k = 1.0000   slack =   +9.813   ->  T_min  21.437 ns  =    46.65 MHz
+
+--- RUNG 2: ...and not launching from c_int_q ---
+  from  : emu:emu|system_large:system_large|nec_bus:bus|div_cnt[3]
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[1]~9_OTERM4126
+  k = 1.0000   slack =  +15.143   ->  T_min  16.107 ns  =    62.08 MHz
+
+--- RUNG 3: ...and not latching in row_posted ---
+  from  : emu:emu|system_large:system_large|nec_bus:bus|div_cnt[3]
+  to    : emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|b_m[1]~9_OTERM4126
+  k = 1.0000   slack =  +15.143   ->  T_min  16.107 ns  =    62.08 MHz
+
+==========================================================================
+ TRUE CEILING over the five classes: T_min 23.777 ns = 42.06 MHz
+   bound by: DEFAULT (whole-design worst, expect k=1)   (emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a4~PORT_A_WRITE_ENABLE_REG -> emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[8])
+==========================================================================
+
+ Compare against Quartus's OWN Fmax Summary in <rev>.sta.rpt, which is
+ the authority.  Its note says it scales the rising and falling edges
+ along with FMAX, so it handles the negedge destination itself.
