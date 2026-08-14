@@ -20,7 +20,7 @@ def run_cases(form, cases, waits=0):
     td = tempfile.mkdtemp(); b = f"{td}/b"
     CC.compose_batch(cases, b)
     r = subprocess.run([str(CC.BIN), f"+batch={b}", f"+out={td}/o",
-                        f"+waits={waits}", "+ce_div=1"],
+                        f"+waits={waits}", f"+ce_div={CC.CE_DIV_DEFAULT}"],
                        cwd=CC.ROOT, capture_output=True, text=True, timeout=120)
     return CC.parse_out(f"{td}/o")
 

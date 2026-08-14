@@ -71,7 +71,7 @@ def run_three_way(form, cases):
     b = f"{td}/b"
     CC.compose_batch(cases, b)
     subprocess.run([str(CC.BIN), f"+batch={b}", f"+out={td}/o", "+waits=0",
-                    "+ce_div=1"], cwd=CC.ROOT, capture_output=True, text=True)
+                    f"+ce_div={CC.CE_DIV_DEFAULT}"], cwd=CC.ROOT, capture_output=True, text=True)
     sims = CC.parse_out(f"{td}/o")
     bad = []
     for c in cases:

@@ -80,7 +80,7 @@ def main():
         batch, outf = Path(td) / "b.txt", Path(td) / "o.txt"
         check_core.compose_batch([c], batch)
         r = subprocess.run([str(binp), f"+batch={batch}", f"+out={outf}",
-                            f"+waits={a.waits}", "+ce_div=1", "+eutrace"],
+                            f"+waits={a.waits}", f"+ce_div={check_core.CE_DIV_DEFAULT}", "+eutrace"],
                            cwd=ROOT, capture_output=True, text=True)
         eul = [ln for ln in r.stdout.splitlines() if ln.startswith("EU ")]
         sims = {}

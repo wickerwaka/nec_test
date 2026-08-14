@@ -93,6 +93,41 @@ them).
 
 ## Gate quick reference
 
+### ⚠⚠⚠ READ FIRST — **THE ce/ce_half CONTRACT IS THE OPERATING ENVELOPE (USER RULING 2026-08-13), AND THE GOLDEN SCORER'S BASIS MOVED**
+
+`sw/check_core.py` defaulted to `--ce-div 1`, where `tb_v30_core` asserted `CE`
+and `CE_HALF` **on the same clock** — exactly what premise **C-a** forbids.
+Every golden case, every HLT sweep, every `evt` cell and `ulockstep` had been
+scored **outside the core's own declared operating contract** since the contract
+was written, and nothing saw it.
+
+* **`--ce-div` defaults to 4 and 1/2/3 are REFUSED** (exit 2, clause cited).
+  ⚠ **4, not the briefed 2**: `ce_half <= ce` put the enables on ADJACENT
+  clocks at *every* divisor, so div 2 fixes C-a and leaves **C-b** broken.
+  `tb_v30_core` now puts `ce_half` at the CPU-cycle MIDPOINT, where `nec_bus`
+  has always had it, and 4 is then the minimum legal divisor **for `nec_bus`
+  too**.
+* **The contract is a GATE**: `hdl/tb/ce_contract_check.sv` `$fatal`s on C-a,
+  C-b and C-c in `tb_v30_core`, `tb_sys` and `tb_chain_lfsr`; non-vacuity
+  demonstrated on all three clauses.
+* **THE WHOLE RE-REGISTRATION IS ZERO-DELTA** — every figure in this file's
+  `check_core` family, plus `check_boot`, `ulockstep`, S16, `check_ab_sim`,
+  `ghost_launch_law`, `qdepth_probe`, `ss_lint`, measured on both bases and
+  unmoved, with `--ce-div 8` as a cross-divisor control.
+* **`v30u_biu.sv`'s `t1_half2` IS A POSEDGE FLOP** since the same date — the
+  design's LAST negedge flop, re-landed after the instrument was fixed.  The
+  `k = 0.5` SDC class **ceases to exist**, `ce_half → ce` tightens
+  `-setup 3 -hold 2` → `-setup 2 -hold 1`, and the `truefmax` class labels are
+  structural names (`DEFAULT` / `CE4` / `INTO` / `OUTOF` / `ENABLE`) so that
+  **every negedge-era `truefmax` artifact stops parsing — which is correct.**
+* ⚠ **A SILICON BAR IS OWED AND UNPAID**: the pin moves in time, so FLASH #21
+  clauses **(v)** and **(vi)** gate this landing's confirmation.  Nothing here
+  has been on a board.
+
+`docs/notes/ce_contract_reland_prereg_2026-08-13.md` (committed before the first
+edit) and `..._results_2026-08-13.md`; `standing_gates.md` §A and §B carry the
+authoritative rows.
+
 ### ⚠ READ FIRST IF YOU ARE ON `fuzz-v2-on-relanding` (2026-08-10, tip `399ba6729d`)
 
 Two campaigns closed on this branch and **the authoritative re-registration is

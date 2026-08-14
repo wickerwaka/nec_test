@@ -115,12 +115,27 @@ logic [31:0] l_mem, l_ce, l_rdy, l_pin, l_aux;
 //---------------------------------------------------------------------------
 // THE CE TRAIN.  Reading B and nothing narrower.
 //
-//   phase 0 : assert ce            (one fabric clock)
-//   phase 1 : assert ce_half       (the next fabric clock -- never coincident)
-//   phase 2 : idle for g clocks, g drawn from L_CE in [0, 7]
+// ⚠ CORRECTED 2026-08-13.  THIS TRAIN VIOLATED THIS FILE'S OWN CLAUSE (b).
+// The header above states the assumables as "(b) >= 1 idle cycle between
+// assertions", and the train asserted `ce_half` on the fabric clock
+// IMMEDIATELY AFTER `ce` -- zero idle cycles -- at every gap draw.  It also
+// reached `ce -> ce` = 2, where C-c requires >= 4.  `nec_test.sdc`'s arc
+// arithmetic ("ce -> ce_half  launch n+1, latch n+2.5 (C-b)") is only true
+// under the >= 2 reading, so the train was tighter than every constraint the
+// design is closed against.  A stimulus harness may not be the one instrument
+// that disagrees with the contract it says it is built to.
 //
-// `g == 0` goes straight back to phase 0, i.e. ce at clock k, ce_half at k+1,
-// ce at k+2.  That is the contract's minimum and the harness must reach it.
+//   phase 0 : assert ce            (one fabric clock)
+//   phase 1 : idle                 (C-b's mandatory gap)
+//   phase 2 : assert ce_half       (never coincident, never adjacent)
+//   phase 3 : idle                 (C-b's mandatory gap)
+//   phase 4 : idle for g more clocks, g drawn from L_CE in [0, 7]
+//
+// `g == 0` goes straight back to phase 0, i.e. ce at clock k, ce_half at k+2,
+// ce at k+4.  THAT is the contract's minimum -- C-b and C-c at equality, and
+// it is M72's catch-up-burst rate -- and reaching it is a REGISTERED bar
+// (H-2), because a train that never reaches the minimum is our div-8 train
+// wearing a disguise.
 //---------------------------------------------------------------------------
 logic       ce      = 1'b0;
 logic       ce_half = 1'b0;
@@ -143,14 +158,20 @@ always @(posedge clk) begin
             ce       <= 1'b1;
             ce_phase <= 1;
         end
-        1: begin
+        1: begin                       // C-b's mandatory idle clock
+            ce_phase <= 2;
+        end
+        2: begin
             ce_half  <= 1'b1;
             l_ce      = lfsr_next(l_ce);
             ce_gap   <= l_ce[2:0];
             gap_hist[l_ce[2:0]] = gap_hist[l_ce[2:0]] + 1;
-            ce_phase <= (l_ce[2:0] == 3'd0) ? 0 : 2;
+            ce_phase <= 3;
         end
-        default: begin
+        3: begin                       // C-b's mandatory idle clock
+            ce_phase <= (ce_gap == 3'd0) ? 0 : 4;
+        end
+        default: begin                 // the LFSR-drawn extra idle
             if (ce_gap <= 1) ce_phase <= 0;
             else             ce_gap   <= ce_gap - 1;
         end
@@ -162,6 +183,14 @@ always @(posedge clk) begin
     if (ce && ce_half) ce_coincide = ce_coincide + 1;
     if (ce) ce_count = ce_count + 1;
 end
+
+// ...and clauses (a), (b) AND (c), asserted by the SHARED checker, which
+// $fatals rather than counting.  `ce_coincide` is kept: it is this harness's
+// own reported census and the gate reads it.
+`ifndef SYNTHESIS
+ce_contract_check #(.WHO("tb_chain_lfsr")) u_ce_contract (
+    .clk(clk), .ce(ce), .ce_half(ce_half));
+`endif
 
 //---------------------------------------------------------------------------
 // reset

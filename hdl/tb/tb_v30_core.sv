@@ -62,27 +62,62 @@ initial forever #5 clk = ~clk;
 logic reset = 1;
 
 //----------------------------------------------------------------------------
-// clock-enable train (Campaign 4 CE refactor). The core runs on the fast
+// clock-enable train (Campaign 4 CE refactor).  The core runs on the fast
 // fabric clk but only advances state when CE is asserted.
-//   +ce_div=1 (default): CE and CE_HALF high every clk = the pre-CE core
-//     exactly, the golden path (bit- and cycle-identical baseline).
-//   +ce_div=N (N>1): CE asserts one posedge in N; CE_HALF is its negedge
-//     partner (the clk-low half right after the CE-high posedge). The core
-//     AND the TB's own clocked observer/latches below advance only on those
-//     enabled clocks, so per-CPU-cycle output must match N=1 and the core's
-//     internal state must NOT change on CE-low fabric clocks.
+//
+// ⚠ RE-DERIVED 2026-08-13 UNDER THE ce/ce_half PORTABILITY CONTRACT
+//   (`hdl/tb/ce_contract_check.sv`, `hdl/nec_test.sdc`,
+//    `docs/notes/ce_contract_reland_prereg_2026-08-13.md` §2).
+//
+//   WHAT WAS HERE BEFORE, AND WHY IT WAS WRONG.  `ce_div` defaulted to 1 --
+//   CE and CE_HALF high on EVERY clock, which is a C-a violation -- and
+//   `ce_half <= ce` put CE_HALF on the fabric clock IMMEDIATELY AFTER CE at
+//   EVERY divisor, which is a C-b violation at every divisor.  So moving the
+//   divisor alone would have fixed C-a and left C-b broken.  This testbench
+//   had never had the PHASE RELATIONSHIP of the integration it stands in for:
+//   `nec_bus.sv:175-176` puts CE (`tick_rise`) and CE_HALF (`tick_fall`) HALF
+//   A CPU CYCLE apart -- four fabric clocks each way at the divider of record.
+//
+//   THE TRAIN NOW MIRRORS `nec_bus`:  `ce` during count 0, `ce_half` during
+//   count ce_div/2.  That makes the MINIMUM legal divisor 4 (gaps 2 / 2 / 4,
+//   which is exactly C-b and C-c at equality) -- and 4 is `nec_bus`'s minimum
+//   too, for the same reason.  1, 2 and 3 are REFUSED below, loudly.
+//
+//   +ce_div=N (N>=4): CE asserts one posedge in N; CE_HALF asserts one posedge
+//     in N, half a CPU cycle later.  The core AND the TB's own clocked
+//     observer/latches below advance only on those enabled clocks, so
+//     per-CPU-cycle output must be independent of N, and the core's internal
+//     state must NOT change on CE-low fabric clocks (`+ce_hold_check`).
 //----------------------------------------------------------------------------
-integer ce_div = 1;
-initial if (!$value$plusargs("ce_div=%d", ce_div)) ce_div = 1;
+localparam int CE_DIV_MIN     = 4;    // the contract minimum -- see above
+localparam int CE_DIV_DEFAULT = 4;    // == sw/check_core.py CE_DIV_DEFAULT
+integer ce_div = CE_DIV_DEFAULT;
+initial begin
+    if (!$value$plusargs("ce_div=%d", ce_div)) ce_div = CE_DIV_DEFAULT;
+    if (ce_div < CE_DIV_MIN)
+        $fatal(1, "tb_v30_core: +ce_div=%0d is OUTSIDE THE ce/ce_half CONTRACT.  C-a forbids coincident enables (div 1); C-b requires >= 1 idle fabric clock between assertions and C-c requires ce->ce >= 4, so the minimum legal divisor is %0d.  1:1 is an unsupported mode (USER RULING 2026-08-13).  See hdl/tb/ce_contract_check.sv.",
+               ce_div, CE_DIV_MIN);
+    if (ce_div % 2 != 0)
+        $fatal(1, "tb_v30_core: +ce_div=%0d is ODD; `ce_half` is the CPU clock's HALF-CYCLE marker and an odd divisor cannot place it symmetrically.  Use an even divisor >= %0d.",
+               ce_div, CE_DIV_MIN);
+end
 integer ce_cnt = 0;
 logic   ss_park = 1'b0;
 wire    ce = !ss_park && (ce_cnt == 0);
-logic   ce_half = 1'b1;
+// CE_HALF stays a REGISTERED signal so `ss_park`'s "one parked posedge lowers
+// CE_HALF" discipline (the ss_controller below) is unchanged.
+logic   ce_half = 1'b0;
 always @(posedge clk) begin
     if (!ss_park)
         ce_cnt <= (ce_cnt >= ce_div - 1) ? 0 : ce_cnt + 1;
-    ce_half <= ce;   // high through the clk-low half after a CE-high posedge
+    ce_half <= !ss_park && (ce_cnt == (ce_div / 2) - 1);
 end
+
+// THE CONTRACT IS A GATE, NOT A COMMENT.
+`ifndef SYNTHESIS
+ce_contract_check #(.WHO("tb_v30_core")) u_ce_contract (
+    .clk(clk), .ce(ce), .ce_half(ce_half));
+`endif
 
 // backdoor
 // wait-state insertion (+waits=N): mirrors hdl/rtl/nec_bus.sv - the
@@ -1244,8 +1279,9 @@ initial begin
         // (the first posedge after release emits one benign pre-window row)
         // fabric-clock budgets scale with ce_div: the window still closes
         // on fcount (CPU-cycle F pops via the CE-gated observer), maxcyc and
-        // the settle repeats are in CPU cycles so multiply by ce_div. All
-        // ce_div==1 (default) => unchanged.
+        // the settle repeats are in CPU cycles so multiply by ce_div.  (This
+        // used to read "all ce_div==1 (default) => unchanged"; the default is
+        // 4 since 2026-08-13 and the scaling is what makes that a no-op.)
         while (fcount < nf && cyc < maxcyc * ce_div) begin
             @(posedge clk);
             if (!ss_park) cyc = cyc + 1;
@@ -1309,7 +1345,8 @@ end
 // clock; on any clock whose PRECEDING edge had CE low (ce_p==0) and was
 // out of reset, the watched state must be unchanged from that edge. Any
 // change is a gating bug (the core ran on a disabled clock). Used with
-// +ce_div=N (N>1); harmless at N=1 (ce_p is always high so never checks).
+// +ce_div=N.  (It used to say "harmless at N=1 (ce_p is always high so never
+// checks)" -- N=1 is REFUSED since 2026-08-13, so the check now always runs.)
 //----------------------------------------------------------------------------
 logic        ce_hold_check;
 initial      ce_hold_check = $test$plusargs("ce_hold_check");

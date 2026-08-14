@@ -55,7 +55,7 @@ def main():
             b, o = Path(td) / "b", Path(td) / "o"
             check_core.compose_batch(cases, b)
             r = subprocess.run([str(binp), f"+batch={b}", f"+out={o}",
-                                f"+waits={a.waits}", "+ce_div=1"],
+                                f"+waits={a.waits}", f"+ce_div={check_core.CE_DIV_DEFAULT}"],
                                cwd=ROOT, capture_output=True, text=True)
             if not o.exists():
                 print(f"{form}: SIM FAILED")

@@ -42,29 +42,48 @@ derive_clock_uncertainty
 #        premise is no weaker than the core's own operating requirement.  If it
 #        is ever wanted, EVERY exception here collapses to `-setup 2`.
 #
-# THE CORE HAS TWO ENABLE PHASES AND THEY NEED DIFFERENT NUMBERS.  Measured
-# over all 88 declared build inputs: exactly ONE synthesised negedge-clocked
-# flop exists, `v30u_biu|t1_half2` (`v30u_biu.sv:1087`), enabled by `ce_half`.
-# Everything else is a posedge flop enabled by `ce`.  Convention below: an
-# enable asserted "in cycle n" means a posedge flop captures at posedge n+1 and
-# a negedge flop captures at negedge n+0.5.
+# THE CORE HAS TWO ENABLE PHASES AND THEY NEED DIFFERENT NUMBERS.
+#
+# ⚠ RE-DERIVED 2026-08-13.  THERE IS NO LONGER A NEGEDGE FLOP IN THE
+# SYNTHESISED DESIGN.  `v30u_biu|t1_half2` -- the last one -- became a POSEDGE
+# flop enabled by `ce_half` (`v30u_biu.sv`, one word); the enable phase is
+# unchanged, only the edge.  So EVERY register in the core is now a posedge
+# flop, and the split below is about WHICH ENABLE gates it and nothing else.
+# `docs/notes/ce_contract_reland_prereg_2026-08-13.md` §6.
+#
+# Convention below: an enable asserted "in cycle n" means the flop it gates
+# captures at posedge n+1.  (It used to need a second sentence for negedge
+# destinations and sources; that sentence is deleted with the thing it
+# described.)
 #
 #   ce -> ce            launch n+1, latch n+5 (C-c)      4.0 periods  -setup 4
-#   ce -> ce_half       launch n+1, latch n+2.5 (C-b)    1.5 periods  -setup 2
-#   ce_half -> ce       launch m+0.5, latch m+3 (C-b)    2.5 periods  -setup 3
+#   ce -> ce_half       launch n+1, latch m+1, m >= n+2  2.0 periods  -setup 2
+#   ce_half -> ce       launch m+1, latch p+1, p >= m+2  2.0 periods  -setup 2
 #
-# For a NEGEDGE destination the Nth latch edge is at N-0.5 periods, which is
-# why 1.5 is spelled `-setup 2`; for a negedge SOURCE the Nth latch edge is at
-# N-0.5 from the posedge grid, which is why 2.5 is spelled `-setup 3`.
+# ⚠ THE `-setup 2` ON `ce -> ce_half` IS THE SAME NUMBER IT WAS AND MEANS
+# SOMETHING DIFFERENT: it used to be 1.5 periods spelled `-setup 2` because the
+# destination edge was half a period early.  STA computes the destination edge;
+# it is not told.  `ce_half -> ce` DID move, 2.5 -> 2.0, i.e.
+# `-setup 3 -hold 2` -> `-setup 2 -hold 1`, WHICH IS A TIGHTENING.
 #
-# ⚠ WHAT THIS FIXED.  Until 2026-08-12 the `-setup 4 -hold 3` below was applied
-# to ALL v30u registers UNIFORMLY, and `t1_half2` is a `v30u_biu` register, so
-# it sat in both the `-from` and the `-to` collection.  MEASURED by
-# `sw/sta_negedge_probe.tcl`: `setup_end_multicycle 1/4`, latch time 109.375 ns
-# = 3.5 x 31.250, where the contract warrants 46.875.  THE CONSTRAINT WAS
-# OPTIMISTIC BY TWO FULL PERIODS ON THAT ARC and by one on the way back out.
-# No standing gate could see it -- `r7_lint` does not model exceptions,
-# Verilator does not see them, and G6 believes this file.
+# ⚠ AND THE `div_cnt -> t1_half2` ENABLE ARC WENT FROM 0.5 PERIODS TO 1.0.
+# An enable had to be valid at the NEGEDGE inside the cycle it is asserted in,
+# so that arc was a TRUE half period and the `k = 0.5` class existed.  It does
+# not any more: the enable must be valid at the POSEDGE ending that cycle, the
+# default single-cycle check is now EXACTLY right rather than exactly-right-
+# and-tight, and the arc's budget DOUBLES with no exception written.
+#
+# ⚠ WHAT THE 2026-08-12 SPLIT FIXED -- HISTORY, NOT A DESCRIPTION OF THIS TREE.
+# Until 2026-08-12 the `-setup 4 -hold 3` below was applied to ALL v30u
+# registers UNIFORMLY, and `t1_half2` is a `v30u_biu` register, so it sat in
+# both the `-from` and the `-to` collection.  MEASURED by
+# `sw/sta_negedge_probe.tcl` ON THE NEGEDGE TREE: `setup_end_multicycle 1/4`,
+# latch time 109.375 ns = 3.5 x 31.250, where the contract warranted 46.875.
+# THE CONSTRAINT WAS OPTIMISTIC BY TWO FULL PERIODS ON THAT ARC and by one on
+# the way back out.  No standing gate could see it -- `r7_lint` does not model
+# exceptions, Verilator does not see them, and G6 believes this file.  Kept
+# because a ratchet is only readable against its own history; the tree it
+# describes no longer exists.
 #
 # THESE EXCEPTIONS ARE ONLY LEGAL BECAUSE OF THE ENABLE-FORM REFACTOR, and it was
 # measured false before it.  Until U4 pass 3 the two core modules put `ce`
@@ -91,11 +110,13 @@ derive_clock_uncertainty
 # ⚠ AND ONE ARC INSIDE THE CORE IS DELIBERATELY *NOT* EXCEPTED EITHER:
 # `nec_bus|div_cnt[*] -> t1_half2`.  `div_cnt` has no clock enable and reaches
 # this flop ONLY through `ce_half` at its ENABLE pin, never in its data cone.
-# An enable must be valid at the negedge INSIDE the cycle in which it is
-# asserted, so that arc is a TRUE half period -- exactly what the default
-# posedge->negedge check already assumes, measured at `setup_end_multicycle 1`.
-# A relaxation there would be a false PASS, the dangerous direction.  It is the
-# #2 cone in both configurations and it is an RTL problem, not an SDC one.
+# THE DISPOSITION SURVIVES 2026-08-13 AND ITS CONTENT DOES NOT: the enable must
+# now be valid at the POSEDGE ENDING the cycle it is asserted in, so the arc is
+# a FULL period and the plain single-cycle check is exactly right.  It is no
+# longer a "TRUE half period" and there is no longer a `k = 0.5` class.  An
+# exception here would still be a false PASS, the dangerous direction, so there
+# still is none -- the reason is now "the default is correct" rather than "the
+# default is correct and tight".
 #
 # The FSM revision (`nec_test`) has no `v30u_*` instances, so the collections
 # are empty there and the guards make this a no-op rather than a warning -- the
@@ -107,6 +128,22 @@ set v30u_regs [add_to_collection \
 # the core; everything else is `ce`-gated.  Splitting the collection is what
 # makes the three arcs above expressible -- a single uniform number cannot be
 # honest for all three, and the one that used to be applied was not.
+#
+# ⚠ THIS COLLECTION SURVIVES THE NEGEDGE'S REMOVAL, AND SO DOES ITS HAZARD.
+# It exists because `t1_half2` is the one flop gated by the OTHER ENABLE, NOT
+# because it was negedge-clocked: `ce_half -> ce` is 2.0 periods where
+# `ce -> ce` is 4.0, so leaving it inside `$v30u_ce` would hand a 2.0-period
+# arc a 4.0-period exception -- the optimistic direction.
+# `set v30u_half` matches by EXACT NAME, so a fitter-created `t1_half2~DUPLICATE`
+# falls into `$v30u_ce` instead and would draw `-setup 4` where 2 is honest.
+# That hazard is a property of the NAME, was not created by the edge and is not
+# removed by removing it; widening the pattern to `t1_half2*` would silently
+# re-base every figure taken with the current collections, so it stays BOOKED,
+# with this paragraph as its record and `sw/sta_negedge_probe.tcl`'s
+# collection-size line as its live falsifier.
+# (`docs/notes/ce_contract_reland_prereg_2026-08-13.md` §6.1 registered this
+# answer BEFORE the measurement, and `timing50_distribution_2026-08-13.md` §6
+# and `quartus_gate.py`'s `core_domain_fmax()` already book it.)
 set v30u_half [get_registers -nowarn {*|v30u_biu:*|t1_half2}]
 set v30u_ce   [remove_from_collection $v30u_regs $v30u_half]
 if {[get_collection_size $v30u_ce] > 0} {
@@ -116,14 +153,16 @@ if {[get_collection_size $v30u_ce] > 0} {
         "nec_test.sdc: CE multicycle 4/3 applied to [get_collection_size $v30u_ce] ce-gated v30u core registers"
 }
 if {[get_collection_size $v30u_ce] > 0 && [get_collection_size $v30u_half] > 0} {
-    # ce -> ce_half : 1.5 periods on a negedge destination
+    # ce -> ce_half : 2.0 periods (C-b puts the ce_half >= 2 clocks after)
     set_multicycle_path -setup 2 -from $v30u_ce   -to $v30u_half
     set_multicycle_path -hold  1 -from $v30u_ce   -to $v30u_half
-    # ce_half -> ce : 2.5 periods from a negedge source
-    set_multicycle_path -setup 3 -from $v30u_half -to $v30u_ce
-    set_multicycle_path -hold  2 -from $v30u_half -to $v30u_ce
+    # ce_half -> ce : 2.0 periods (C-b again, the other way).  This was
+    # `-setup 3 -hold 2` while t1_half2 was a negedge flop; a POSEDGE source
+    # launches half a period later, so it is 2.0 now -- a TIGHTENING.
+    set_multicycle_path -setup 2 -from $v30u_half -to $v30u_ce
+    set_multicycle_path -hold  1 -from $v30u_half -to $v30u_ce
     post_message -type info \
-        "nec_test.sdc: CE cross-phase multicycles 2/1 (ce->ce_half) and 3/2\
+        "nec_test.sdc: CE cross-phase multicycles 2/1 (ce->ce_half) and 2/1\
          (ce_half->ce) applied to [get_collection_size $v30u_half] ce_half-gated register(s)"
 }
 

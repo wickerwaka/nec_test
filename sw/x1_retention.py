@@ -117,7 +117,9 @@ def _rtl():
             + [ROOT / "hdl" / "rtl" / f for f in HARNESS_RTL]
             + [UCORE_DIR / f for f in ("v30_core.sv", "v30u_biu.sv",
                                        "v30u_ucrom.sv", "v30u_eu.sv")]
-            + [TB_DIR / "tb_sys.sv"])
+            # the ce/ce_half contract checker (2026-08-13): tb_sys instantiates
+            # it on `nec_bus`'s own train, so it is a real dependency
+            + [TB_DIR / "ce_contract_check.sv", TB_DIR / "tb_sys.sv"])
 
 
 def build_deps():

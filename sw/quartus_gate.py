@@ -753,7 +753,21 @@ def parse_truefmax(path):
 INPUT_FLIP_EXEMPT = ("hdl/nec_test_ucore.qsf",)
 
 
-TRUEFMAX_CLASSES = ("DEFAULT", "k=4.0", "k=1.5", "k=2.5", "k=0.5")
+# ⚠ THE LABELS ARE STRUCTURAL SINCE 2026-08-13, AND THAT IS THE POINT.
+# They used to ASSERT a `k` in the string ("k=1.5", "k=2.5", "k=0.5").  When
+# `t1_half2` stopped being a negedge flop the measured k's became
+# 1.0 / 4.0 / 2.0 / 2.0 / 1.0, so three of the five labels would have been
+# PERMANENTLY WRONG and `core_domain_fmax()` would have flagged two rows
+# off-class on EVERY draw.  A permanently-firing flag is a flag nobody reads --
+# exactly the failure mode `r7_lint` exists to prevent.  The `k` each class
+# SHOULD measure now lives in the `nominal` table below, where it is CHECKED
+# rather than asserted in a string.
+#
+# ⚠ CONSEQUENCE, AND IT IS THE CORRECT BEHAVIOUR: every NEGEDGE-ERA `truefmax`
+# artifact stops parsing into these names, `truefmax_complete()` returns False
+# and `core_domain_fmax()` returns NO FIGURE with the missing classes listed.
+# *Absence must not read as data.*
+TRUEFMAX_CLASSES = ("DEFAULT", "CE4", "INTO", "OUTOF", "ENABLE")
 
 # --------------------------------------------------------------------------- #
 # THE PAIRED FIGURE -- `standing_gates.md` §A, adopted 2026-08-13.
@@ -778,16 +792,22 @@ TRUEFMAX_CLASSES = ("DEFAULT", "k=4.0", "k=1.5", "k=2.5", "k=0.5")
 # ONE.  `nec_test.sdc` collects `$v30u_ce` as (every `v30u_eu` + `v30u_biu`
 # register) MINUS `t1_half2`, and `t1_half2` is itself a `v30u_biu` register.
 # So THREE of the probe's five classes are core-internal on both ends --
-#     k=4.0  $v30u_ce -> $v30u_ce      (the CE multicycle; the one that binds)
-#     k=1.5  $v30u_ce -> t1_half2
-#     k=2.5  t1_half2 -> $v30u_ce
-# -- and the other two are not: `DEFAULT` is the whole design, and `k=0.5` is
+#     CE4    $v30u_ce -> $v30u_ce      (the CE multicycle; the one that binds)
+#     INTO   $v30u_ce -> t1_half2
+#     OUTOF  t1_half2 -> $v30u_ce
+# -- and the other two are not: `DEFAULT` is the whole design, and `ENABLE` is
 # `(not $v30u_ce) -> t1_half2`, whose launch side is by construction OUTSIDE
 # the core.  Taking only k=4.0 would quote a ceiling while leaving two
 # core-internal classes unexamined, so the figure is the MINIMUM over the three
 # and the binding one is NAMED with its own `k`.  A ceiling quoted without `k`
 # is not quotable (`standing_gates.md` §A).
-CORE_DOMAIN_CLASSES = ("k=4.0", "k=1.5", "k=2.5")
+#
+# ⚠ `ENABLE`'s launch side is still outside the core, so it is still not a
+# core-domain class -- but it is no longer a HALF-period arc: with `t1_half2` a
+# posedge flop the enable must be valid at the posedge ENDING the cycle it is
+# asserted in, so its nominal k is 1.0 and the `k = 0.5` class no longer exists
+# anywhere in this design.
+CORE_DOMAIN_CLASSES = ("CE4", "INTO", "OUTOF")
 
 
 def core_domain_fmax(tf):
@@ -842,7 +862,12 @@ def core_domain_fmax(tf):
     # CONSEQUENCE, stated rather than papered over: **the core-domain figure is
     # an UPPER BOUND on the core-domain ceiling.**  Flagged per row, never
     # silently averaged away.
-    nominal = {"k=4.0": 4.0, "k=1.5": 1.5, "k=2.5": 2.5}
+    # THE k EACH CLASS SHOULD MEASURE, derived from `nec_test.sdc`'s three
+    # arcs: 4.0 / 2.0 / 2.0 since 2026-08-13.  `INTO` and `OUTOF` were 1.5 and
+    # 2.5 while `t1_half2` was a negedge destination/source; the `-setup`
+    # SPELLING of `INTO` did not change and its MEANING did, which is why the k
+    # is checked here and not read off the constraint.
+    nominal = {"CE4": 4.0, "INTO": 2.0, "OUTOF": 2.0}
     off = [c for c, r in rows.items()
            if r.get("k") is not None and abs(r["k"] - nominal[c]) > 1e-6]
     binding = min(rows.items(), key=lambda kv: kv[1]["fmax_mhz"])

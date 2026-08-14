@@ -202,7 +202,7 @@ def cmd_offline(a):
             cc.compose_batch(cases, b)
             r = subprocess.run(
                 [str(binp), f"+batch={b}", f"+out={o}", f"+waits={w}",
-                 "+ce_div=1"], cwd=ROOT, capture_output=True, text=True)
+                 f"+ce_div={cc.CE_DIV_DEFAULT}"], cwd=ROOT, capture_output=True, text=True)
             if r.returncode != 0 or not o.exists():
                 print(f"  SIM FAIL w{w}/p{p}/{form}")
                 continue

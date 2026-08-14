@@ -7,11 +7,16 @@
 #
 #   * `CORE->ANY`  (upc_opc -> nec_bus|ad_in_q)   single-cycle    k = 1.0
 #   * `CORE->CORE` (the 4/3 CE multicycle)                        k = 4.0
-#   * `ANY->CORE`  (div_cnt -> t1_half2, the ENABLE arc)          k = 0.5
+#   * `ANY->CORE`  (div_cnt -> t1_half2, the ENABLE arc)          k = 1.0
 #
-# `timing50_census_2026-08-12.md` sec.6.3 MEASURED k for the last of these:
-# launch 0.000 ns, latch 15.625 ns, `setup_end_multicycle 1`, on a NEGEDGE
-# destination -- i.e. HALF a period, not one.
+# ⚠ THE THIRD ROW WAS `k = 0.5` UNTIL 2026-08-13 AND IS NOW 1.0.
+# `timing50_census_2026-08-12.md` sec.6.3 MEASURED the 0.5: launch 0.000 ns,
+# latch 15.625 ns, `setup_end_multicycle 1`, on a NEGEDGE destination -- i.e.
+# HALF a period, not one.  `t1_half2` is a POSEDGE flop enabled by `ce_half`
+# now, so the enable must be valid at the posedge ENDING its cycle and the arc
+# is a FULL period.  **THE `k = 0.5` CLASS NO LONGER EXISTS ANYWHERE IN THIS
+# DESIGN**, and every artifact of this probe taken before that date measured a
+# tree that had it.  `docs/notes/ce_contract_reland_prereg_2026-08-13.md` §6.
 #
 # A path's slack is  slack(T) = k*T + C  with C period-independent (cell and
 # net delays, clock-network delays, uncertainty and setup time do not scale

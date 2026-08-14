@@ -139,7 +139,7 @@ def engine_rows(core, cases, w):
             b, o = Path(td) / "b.txt", Path(td) / "o.txt"
             cc.compose_batch(cases, b)
             rr = subprocess.run([str(binp), f"+batch={b}", f"+out={o}",
-                                 f"+waits={w}", "+ce_div=1"],
+                                 f"+waits={w}", f"+ce_div={cc.CE_DIV_DEFAULT}"],
                                 cwd=ROOT, capture_output=True, text=True)
             if rr.returncode != 0 or not o.exists():
                 return None

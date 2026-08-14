@@ -93,8 +93,12 @@
 //  --- CE DISCIPLINE (docs/notes/ce_plan.md) --------------------------------
 //
 //  Nothing clocked runs unless `srst` or `ce`; reset is ungated so `bkd_load`
-//  fires regardless of CE.  There is exactly ONE negedge process, `t1_half2`
-//  (the T1 AD half), gated by `ce_half`.
+//  fires regardless of CE.  There is NO negedge process in the BIU -- and,
+//  with `v30u_eu.sv:48`, none anywhere in the synthesised core, since
+//  2026-08-13.  `t1_half2` (the T1 AD half) is a POSEDGE flop enabled by
+//  `ce_half`; it was the last negedge flop in the design.
+//  ⚠ THE ARCHIVED FSM CORE (`hdl/rtl/core/v30_biu.sv`) KEEPS ITS NEGEDGE
+//  `t1_half2` and is deliberately NOT touched -- `fsm_core_archive_2026-08-04.md`.
 //
 //============================================================================
 
@@ -390,7 +394,8 @@ reg [15:0] rd_land;
 // --- M2r: the ONLY wait mechanism -----------------------------------------
 reg        ready_prev;
 
-// --- the one negedge process ----------------------------------------------
+// --- the T1 AD half: a POSEDGE flop enabled by `ce_half` (was the design's
+//     one negedge process until 2026-08-13) ---------------------------------
 reg        t1_half2;
 
 // --- THE REGISTERS (F7).  Written ONLY by the one `always_ff` at
@@ -867,8 +872,11 @@ assign ss_bus_quiet = !r_run && !r_cmt_valid && (r_rq_n == 2'd0) && !r_halt_pend
 //----------------------------------------------------------------------------
 // PIN DRIVE.  The comparator stack samples AD twice per clock: mid-clock (the
 // ADDRESS phase) and at the clock's end (the DATA phase).  `t1_half2` is the
-// negedge flop that switches a WRITE's AD15-0 from address to write data, so
-// the external T1-falling-edge address latch still sees the address.
+// `ce_half`-enabled flop that switches a WRITE's AD15-0 from address to write
+// data.  It flips at `ce_half`+1.0 fabric periods (it was +0.5 until
+// 2026-08-13), which is strictly inside the free window, so the external
+// T1-falling-edge address latch still sees the address -- and now sees it
+// unambiguously rather than by NBA ordering on the same edge.
 //----------------------------------------------------------------------------
 wire disp_inta = display && r_cmt_noaddr;
 wire cur_inta  = r_run && (r_ts == TS_T1) && r_cur_noaddr;
@@ -1084,7 +1092,24 @@ assign ad_oe_data = (vector_follow_preview && t1_half2) ||
 assign rd_n = !(r_run && ((r_ts == TS_T2) || (r_ts == TS_T3) || (r_ts == TS_TW)) &&
                 !r_cur_wr && !r_cur_halt);
 
-always @(negedge clk)
+// THE T1 AD HALF.  `negedge` -> `posedge` 2026-08-13: this was the design's
+// LAST negedge-clocked flop, and it is now a plain posedge flop enabled by the
+// same `ce_half`.  An enable is not a term, so the value still HOLDS between
+// `ce_half`s -- the turnaround simply moves from `ce_half`+0.5 fabric periods
+// to `ce_half`+1.0, which is strictly inside the free window C-PIN-1 names.
+// The `ss_we` arm travels with it and keeps its save-state address, its bit
+// and its meaning, so the save-state stream is unchanged.  (Naming that
+// address here would be a THIRD textual reference and `ss_lint` counts them --
+// it caught exactly that on the first draft of this comment.)
+//
+// It was proved instrument-identical on every contract-legal platform and
+// REVERTED once, by a scorer running the core at `--ce-div 1` where the
+// testbench asserted CE and CE_HALF on the same clock -- outside the core's
+// own declared operating contract.  That instrument is fixed
+// (`hdl/tb/ce_contract_check.sv`); this is the re-land.
+// `docs/notes/t1_half2_posedge_prereg_2026-08-13.md` §2/§3 (hold windows,
+// D-cone stability), `docs/notes/ce_contract_reland_prereg_2026-08-13.md`.
+always @(posedge clk)
     if (ss_we && ss_addr == SSA_B_T1_HALF2) t1_half2 <= ss_wdata[0];
     else if (ce_half) t1_half2 <= (r_run && (r_ts == TS_T1)) ||
                                   vector_follow_preview;

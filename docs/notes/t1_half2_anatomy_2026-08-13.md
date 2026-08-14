@@ -4,6 +4,37 @@
 `t1_half2` half-period-arc campaign's first deliverable.  Tree `41a60bd42c`
 (`master`).  **Offline.  NO board, NO flash.**
 
+> ## ⚠ STATUS, 2026-08-13 — **THE FLOP IS NO LONGER A NEGEDGE FLOP, AND THIS
+> ## DOCUMENT'S ANATOMY IS OTHERWISE UNCHANGED**
+>
+> `always @(negedge clk)` became `always @(posedge clk)`, one word, same
+> `ce_half` enable, no new register
+> (`docs/notes/ce_contract_reland_prereg_2026-08-13.md`).  Read this document
+> with three substitutions and nothing else:
+>
+> * **The turnaround sits at `ce_half`+1.0 fabric periods, not +0.5.**  §2.4's
+>   window `(ce_half+0, ce_half+div/2)` is unchanged and **+1.0 is strictly
+>   inside it for every legal divisor** (the minimum is 4, so the window is at
+>   least `(0, 2)`).  **C-PIN-1, C-PIN-2 and C-PIN-3 are all MET** — measured,
+>   not argued: every contract-legal instrument in the tree is byte-identical
+>   across the change (`tb_sys` 306 seeds / ~1.24 M rows, 2,200 + 528 directed
+>   cells, `check_ab_sim`, and the whole `check_core` family).
+> * **The margin on the ADDRESS side is 1.0 fabric period of SEPARATION rather
+>   than 0.0**: the TB's and M72's `ce_half`-negedge address latches sample at
+>   `ce_half`+0.5, which used to be the *same edge* the flop flipped on — the
+>   address survived by NBA ordering in RTL and by clock-to-Q in fabric.  It
+>   now survives unambiguously.  That is the one place this change is an
+>   improvement rather than a neutral simplification.
+> * **§1's "the one negedge process" and §3's `k = 0.5` arc are HISTORY.**  The
+>   enable arc is `k = 1.0` and the `k = 0.5` class no longer exists anywhere in
+>   the design; `nec_test.sdc`'s `ce_half → ce` tightened `-setup 3 -hold 2` →
+>   `-setup 2 -hold 1`.
+>
+> ⚠ **THE SILICON BAR IS OWED AND UNPAID**: this moves a pin in time, so
+> FLASH #21 clauses (v) and (vi) — write-T1 rows byte-identical on silicon, and
+> the turnaround visible at the correct instant in the two-sample rows — gate
+> the landing's confirmation.  Nothing here has been on a board.
+
 > **SIMPLICITY: this is 80's era hardware — nothing on the die is wasted.
 > Complex or confusing observed behavior is likely simple systems interacting
 > in ways not yet understood. A large fitted table, a many-cased rule, or a

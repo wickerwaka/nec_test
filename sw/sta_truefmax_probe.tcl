@@ -94,6 +94,10 @@ proc klass {fh label T0 args} {
 emit $fh ""
 emit $fh "=========================================================================="
 emit $fh " THE FIVE EXCEPTION CLASSES, EACH WITH ITS OWN k"
+emit $fh " (labels are STRUCTURAL since 2026-08-13; the k each one SHOULD measure"
+emit $fh "  lives in quartus_gate.py's checked `nominal` table, not in a string:"
+emit $fh "  DEFAULT 1.0 * CE4 4.0 * INTO 2.0 * OUTOF 2.0 * ENABLE 1.0.  A label that"
+emit $fh "  ASSERTS a k it no longer measures is a flag nobody reads.)"
 emit $fh "=========================================================================="
 
 # k=1: no exception applies.  Approximated as "the whole-design worst path",
@@ -101,10 +105,10 @@ emit $fh "======================================================================
 # slack, so the global worst IS in the default class here -- and the class
 # queries below prove it rather than assume it.
 klass $fh "DEFAULT (whole-design worst, expect k=1)" $T0
-klass $fh "k=4.0  \$v30u_ce -> \$v30u_ce   (the CE multicycle)" $T0 -from $v30u_ce -to $v30u_ce
-klass $fh "k=1.5  \$v30u_ce -> t1_half2" $T0 -from $v30u_ce -to $v30u_half
-klass $fh "k=2.5  t1_half2 -> \$v30u_ce" $T0 -from $v30u_half -to $v30u_ce
-klass $fh "k=0.5  (not \$v30u_ce) -> t1_half2   -- the ENABLE arc" $T0 -from $notce -to $v30u_half
+klass $fh "CE4    \$v30u_ce -> \$v30u_ce   (the CE multicycle)" $T0 -from $v30u_ce -to $v30u_ce
+klass $fh "INTO   \$v30u_ce -> t1_half2" $T0 -from $v30u_ce -to $v30u_half
+klass $fh "OUTOF  t1_half2 -> \$v30u_ce" $T0 -from $v30u_half -to $v30u_ce
+klass $fh "ENABLE (not \$v30u_ce) -> t1_half2   -- the ENABLE arc" $T0 -from $notce -to $v30u_half
 
 # And the ladder BEHIND the binding cone, so the next lever is named rather
 # than guessed.  Each rung excludes the previous rung's latch endpoints.
@@ -139,7 +143,7 @@ klass $fh "RUNG 1: not latching in an observation register" $T0 \
 # ⚠ The rung queries return the worst path by SLACK, which is exactly the
 # ordering §2 says cannot find the binding path.  RUNG 1a drops t1_half2 as a
 # destination as well, so the worst SINGLE-CYCLE survivor is named -- on
-# RETENTION the raw-slack survivor is the k=0.5 ENABLE arc, which is precisely
+# RETENTION the raw-slack survivor was the k=0.5 ENABLE arc, which is precisely
 # the substitution the campaign's ceiling made.
 klass $fh "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)" $T0 \
     -from_clock $dc -to_clock $dc -to [remove_from_collection $rung1 $v30u_half]

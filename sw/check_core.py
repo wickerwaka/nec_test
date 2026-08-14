@@ -58,8 +58,9 @@ BIN = OBJ / "Vtb_v30_core"
 CORE_DIR = {"fsm": ROOT / "hdl" / "rtl" / "core",
             "ucore": ROOT / "hdl" / "rtl" / "ucore"}
 CORE_RTL = {
-    "fsm": ["v30_ss_pkg.sv", "@tb", "v30_core.sv", "v30_biu.sv", "v30_eu.sv"],
-    "ucore": ["v30u_ss_pkg.sv", "@tb", "v30_core.sv", "v30u_biu.sv",
+    "fsm": ["v30_ss_pkg.sv", "@cec", "@tb", "v30_core.sv", "v30_biu.sv",
+            "v30_eu.sv"],
+    "ucore": ["v30u_ss_pkg.sv", "@cec", "@tb", "v30_core.sv", "v30u_biu.sv",
               "v30u_ucrom.sv", "v30u_eu.sv"],
 }
 # tb_v30_core.sv's in-DUT probes (the `d`/`g`/`p` dumps and the coverage
@@ -94,11 +95,62 @@ CORE_RTL = {
 # pattern `docs/notes/artifact_receipt_layer.md` tracks by name.
 CORE_DEFS = {"fsm": ["-DV30_FSM_PROBES"], "ucore": ["-DV30_UCORE"]}
 
+# --------------------------------------------------------------------------- #
+# THE ce/ce_half CONTRACT'S DIVISOR -- ONE DECLARATION, ALL CONSUMERS.
+#
+# This was `1` until 2026-08-13, and `1` is the DEGENERATE 1:1 TRAIN in which
+# `tb_v30_core` asserts CE and CE_HALF ON THE SAME CLOCK.  That is exactly what
+# premise C-a of the ce/ce_half portability contract forbids (USER RULING
+# 2026-08-12, quoted verbatim in `hdl/nec_test.sdc`), so the core -- and with
+# it all 169,000 golden cases, the four HLT sweeps, the `evt` cells and
+# `ulockstep` -- was scored OUTSIDE ITS OWN DECLARED OPERATING CONTRACT from
+# the day the contract was written, and nothing saw it.
+# (`docs/notes/t1_half2_posedge_results_2026-08-13.md` §5.1.)
+#
+# USER RULING 2026-08-13: the contract IS the operating envelope, and **1:1 is
+# an unsupported mode.**
+#
+# WHY 4 AND NOT 2.  C-a is not the only premise.  C-b requires >= 1 IDLE clock
+# between any two enable assertions and C-c requires `ce -> ce` >= 4, so the
+# minimum legal train is `ce` at clock 0, `ce_half` at 2, `ce` at 4.  `nec_bus`
+# -- the integration that gets flashed -- has the same minimum for the same
+# reason (`CE = tick_rise`, `CE_HALF = tick_fall`, adjacent at cfg_clk_div=2).
+# `hdl/tb/tb_v30_core.sv` now places `ce_half` at the CPU-cycle midpoint, which
+# is where `nec_bus` has always put it; 1, 2 and 3 are REFUSED, not silently
+# accepted.  Full derivation:
+# `docs/notes/ce_contract_reland_prereg_2026-08-13.md` §2.
+CE_DIV_DEFAULT = 4
+CE_DIV_MIN = 4
+
+
+def ce_div_refuse(div):
+    """REFUSE-WITH-REASON, not accepted-and-ignored.  -> str reason or None."""
+    if div < CE_DIV_MIN:
+        return (f"--ce-div {div} is OUTSIDE THE ce/ce_half CONTRACT and is "
+                f"REFUSED.\n"
+                f"  C-a  `ce` and `ce_half` are never asserted on the same "
+                f"clock            -> forbids div 1\n"
+                f"  C-b  successive enable assertions are >= 2 clocks apart "
+                f"              -> forbids div 2 and 3\n"
+                f"  C-c  `ce -> ce` is >= 4 clocks (the core needs a "
+                f"`ce_half` between)  -> forbids div 2 and 3\n"
+                f"  USER RULING 2026-08-13: the contract IS the operating "
+                f"envelope; 1:1 is an unsupported mode.\n"
+                f"  The minimum legal divisor is {CE_DIV_MIN} (the default). "
+                f"See hdl/nec_test.sdc, hdl/tb/ce_contract_check.sv and\n"
+                f"  docs/notes/ce_contract_reland_prereg_2026-08-13.md §2.")
+    if div % 2 != 0:
+        return (f"--ce-div {div} is ODD and is REFUSED: `ce_half` is the CPU "
+                f"clock's HALF-CYCLE marker and an odd divisor cannot place "
+                f"it symmetrically.  Use an even divisor >= {CE_DIV_MIN}.")
+    return None
+
 
 def core_paths(core):
     d = CORE_DIR[core]
-    return [(TB_DIR / "tb_v30_core.sv") if f == "@tb" else (d / f)
-            for f in CORE_RTL[core]]
+    special = {"@tb": TB_DIR / "tb_v30_core.sv",
+               "@cec": TB_DIR / "ce_contract_check.sv"}
+    return [special[f] if f in special else (d / f) for f in CORE_RTL[core]]
 
 
 def core_objdir(core):
@@ -647,9 +699,13 @@ def main():
     ap.add_argument("--keep", action="store_true",
                     help="keep batch/output temp files")
     ap.add_argument("--suite-dir", default=str(SUITE))
-    ap.add_argument("--ce-div", type=int, default=1,
-                    help="core clock-enable divisor (1=CE high every clk); "
-                         ">1 exercises the CE-hold path (rows must match N=1)")
+    ap.add_argument("--ce-div", type=int, default=CE_DIV_DEFAULT,
+                    help=f"core clock-enable divisor, fabric clocks per CPU "
+                         f"cycle (default {CE_DIV_DEFAULT}).  Values below "
+                         f"{CE_DIV_MIN}, and odd values, are REFUSED: they "
+                         f"leave the ce/ce_half portability contract "
+                         f"(C-a/C-b/C-c).  Per-CPU-cycle rows must be "
+                         f"independent of this.")
     ap.add_argument("--ce-hold-check", action="store_true",
                     help="assert core internal state freezes on CE-low clocks")
     ap.add_argument("--ss-sweep", nargs="?", const=1, type=int, metavar="STRIDE",
@@ -695,6 +751,13 @@ def main():
                     help="disable ALL flags masking (compare raw PSW both sides). "
                          "Exposes V20-undefined bits our V30 computes deterministically.")
     args = ap.parse_args()
+    # THE CONTRACT IS ENFORCED HERE, NOT DOCUMENTED HERE.  A request outside it
+    # is REFUSED with the reason printed -- the accepted-and-ignored family's
+    # fix pattern.  Exit 2, so a script cannot mistake it for a score.
+    reason = ce_div_refuse(args.ce_div)
+    if reason:
+        print(f"check_core: {reason}", file=sys.stderr)
+        return 2
     if args.ss_sweep is not None and args.ss_sweep < 1:
         ap.error("--ss-sweep stride must be >= 1")
     try:

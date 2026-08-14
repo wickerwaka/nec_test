@@ -33,7 +33,8 @@
 module v30_core (
     input             CLK,
     input             CE,        // clock-enable: advance core state this clk
-    input             CE_HALF,   // clock-enable for the T1 negedge half-cycle
+    input             CE_HALF,   // clock-enable marking the CPU clock's HALF
+                                 // cycle: the T1 AD address->data turnaround
     input             RESET,
     input             READY,
     input             INT,

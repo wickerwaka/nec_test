@@ -315,7 +315,7 @@ def run_rtl_batch(cases, waits):
         check_core.compose_batch(cases, batch)
         r = subprocess.run([str(check_core.core_bin("ucore")),
                             f"+batch={batch}", f"+out={out}",
-                            f"+waits={waits}", "+ce_div=1"],
+                            f"+waits={waits}", f"+ce_div={check_core.CE_DIV_DEFAULT}"],
                            cwd=ROOT, capture_output=True, text=True)
         if not out.exists():
             sys.exit(f"rtl leg produced no output: {r.stdout[-800:]}")
