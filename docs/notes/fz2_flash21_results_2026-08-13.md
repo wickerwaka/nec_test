@@ -557,3 +557,14 @@ python3 sw/ss_lint.py --core ucore ; python3 sw/r7_lint.py ; python3 sw/test_art
 
 **A FABRIC FIGURE TAKEN ON ANY EARLIER FLASH MAY NOT BE QUOTED AGAINST THIS
 TREE.**
+
+---
+
+> **COORDINATOR NOTE (2026-08-13, post-sitting).** §"Two things to flag" item 1
+> — the commit `54849ca0c7` this sitting reported as UNEXPLAINED — is the
+> coordinator's: the sitting's own `fz2_idle.json` board-idle record, left
+> unstaged at the sitting's close, was committed by the session coordinator
+> with the message "board-idle record from the FLASH #21 close (the sitting's
+> own last write)". The sitting was right to report an unattributed commit
+> rather than guess; the attribution is now on the record. No hook, no
+> automation — a human-supervised coordinator action.
