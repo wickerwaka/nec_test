@@ -1,0 +1,1053 @@
+{
+ "result": {
+  "VI_A": {
+   "addr_eq_chip": 36874,
+   "ambiguous": 7,
+   "early": [
+    {
+     "ad_addr": 254,
+     "ad_data": 254,
+     "idx": 699,
+     "pos": 666,
+     "ps": 0,
+     "seed": "fz2c/400016"
+    },
+    {
+     "ad_addr": 254,
+     "ad_data": 254,
+     "idx": 3534,
+     "pos": 3501,
+     "ps": 0,
+     "seed": "fz2c/400016"
+    },
+    {
+     "ad_addr": 359842,
+     "ad_data": 32162,
+     "idx": 1718,
+     "pos": 1685,
+     "ps": 5,
+     "seed": "fz2c/408012"
+    },
+    {
+     "ad_addr": 52428,
+     "ad_data": 52428,
+     "idx": 273,
+     "pos": 240,
+     "ps": 0,
+     "seed": "fz2c/409014"
+    },
+    {
+     "ad_addr": 0,
+     "ad_data": 0,
+     "idx": 3077,
+     "pos": 3044,
+     "ps": 0,
+     "seed": "fz2c/411054"
+    },
+    {
+     "ad_addr": 254,
+     "ad_data": 254,
+     "idx": 3579,
+     "pos": 3546,
+     "ps": 0,
+     "seed": "fz2e/518009"
+    },
+    {
+     "ad_addr": 736908,
+     "ad_data": 16012,
+     "idx": 1163,
+     "pos": 1130,
+     "ps": 11,
+     "seed": "fz2e/527037"
+    }
+   ],
+   "early_turnaround": 7,
+   "hits": [],
+   "not_write_word": 42281,
+   "rows": 42288,
+   "rows_clean": 36874
+  },
+  "VI_B": {
+   "data_eq_chip": 36870,
+   "data_holds": 42288,
+   "data_moves": 0,
+   "hits": [],
+   "rows": 42288,
+   "rows_clean": 36874,
+   "t2_present": 42288
+  },
+  "VI_C": {
+   "hits": [],
+   "not_turned": 0,
+   "rows": 42288,
+   "turned": 42288
+  },
+  "V_A": {
+   "differing": 41,
+   "diffs": [
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 792,
+     "pos": 759,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 798,
+     "pos": 765,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 981,
+     "pos": 948,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1064,
+     "pos": 1031,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1072,
+     "pos": 1039,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1078,
+     "pos": 1045,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1096,
+     "pos": 1063,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1120,
+     "pos": 1087,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1144,
+     "pos": 1111,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1170,
+     "pos": 1137,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1195,
+     "pos": 1162,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1209,
+     "pos": 1176,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1227,
+     "pos": 1194,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1269,
+     "pos": 1236,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1287,
+     "pos": 1254,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1305,
+     "pos": 1272,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1323,
+     "pos": 1290,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1341,
+     "pos": 1308,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1359,
+     "pos": 1326,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1377,
+     "pos": 1344,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1395,
+     "pos": 1362,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 1419,
+     "pos": 1386,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3306,
+     "pos": 3273,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3314,
+     "pos": 3281,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3320,
+     "pos": 3287,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3338,
+     "pos": 3305,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3362,
+     "pos": 3329,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3386,
+     "pos": 3353,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3412,
+     "pos": 3379,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3437,
+     "pos": 3404,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3451,
+     "pos": 3418,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3469,
+     "pos": 3436,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3511,
+     "pos": 3478,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3529,
+     "pos": 3496,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3547,
+     "pos": 3514,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3565,
+     "pos": 3532,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3583,
+     "pos": 3550,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3601,
+     "pos": 3568,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3619,
+     "pos": 3586,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3637,
+     "pos": 3604,
+     "seed": "fz2e/519072"
+    },
+    {
+     "fields": [
+      "ps"
+     ],
+     "idx": 3661,
+     "pos": 3628,
+     "seed": "fz2e/519072"
+    }
+   ],
+   "identical": 42088,
+   "len_mismatch": 0,
+   "membership_moved": 0,
+   "rows": 42129,
+   "seeds_after": 647,
+   "seeds_before": 645,
+   "seeds_shared": 644
+  },
+  "V_B": {
+   "differing": 3031,
+   "differing_clean": 4,
+   "diffs": [
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 295,
+     "pos": 262,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 302,
+     "pos": 269,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 308,
+     "pos": 275,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 438,
+     "pos": 405,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 445,
+     "pos": 412,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 452,
+     "pos": 419,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 586,
+     "pos": 553,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 594,
+     "pos": 561,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 600,
+     "pos": 567,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 869,
+     "pos": 836,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 877,
+     "pos": 844,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 883,
+     "pos": 850,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1065,
+     "pos": 1032,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ube_n",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1103,
+     "pos": 1070,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ube_n",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1237,
+     "pos": 1204,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ube_n",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1268,
+     "pos": 1235,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1298,
+     "pos": 1265,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ube_n",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1323,
+     "pos": 1290,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1495,
+     "pos": 1462,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ube_n",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1526,
+     "pos": 1493,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1541,
+     "pos": 1508,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1561,
+     "pos": 1528,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1569,
+     "pos": 1536,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1642,
+     "pos": 1609,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1655,
+     "pos": 1622,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1663,
+     "pos": 1630,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1714,
+     "pos": 1681,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1722,
+     "pos": 1689,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1730,
+     "pos": 1697,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1749,
+     "pos": 1716,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1774,
+     "pos": 1741,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1799,
+     "pos": 1766,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1825,
+     "pos": 1792,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1856,
+     "pos": 1823,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1872,
+     "pos": 1839,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1891,
+     "pos": 1858,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1944,
+     "pos": 1911,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1968,
+     "pos": 1935,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 1987,
+     "pos": 1954,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 2010,
+     "pos": 1977,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 2029,
+     "pos": 1996,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 2044,
+     "pos": 2011,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 2061,
+     "pos": 2028,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 2082,
+     "pos": 2049,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 2104,
+     "pos": 2071,
+     "seed": "fz2c/404049"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "bs_early",
+      "qs",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 594,
+     "pos": 561,
+     "seed": "fz2c/405002"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "bs_early",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 601,
+     "pos": 568,
+     "seed": "fz2c/405002"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "bs_early",
+      "ube_n",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 607,
+     "pos": 574,
+     "seed": "fz2c/405002"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "bs_early",
+      "ube_n",
+      "qs",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 778,
+     "pos": 745,
+     "seed": "fz2c/405002"
+    },
+    {
+     "clean": false,
+     "fields": [
+      "t",
+      "bs_early",
+      "qs",
+      "ad_addr",
+      "ad_data"
+     ],
+     "idx": 800,
+     "pos": 767,
+     "seed": "fz2c/405002"
+    }
+   ],
+   "diffs_clean": [
+    {
+     "clean": true,
+     "fields": [
+      "ad_data"
+     ],
+     "idx": 3558,
+     "pos": 3525,
+     "seed": "fz2c/406046"
+    },
+    {
+     "clean": true,
+     "fields": [
+      "ad_data"
+     ],
+     "idx": 394,
+     "pos": 361,
+     "seed": "fz2e/521016"
+    },
+    {
+     "clean": true,
+     "fields": [
+      "ad_data"
+     ],
+     "idx": 940,
+     "pos": 907,
+     "seed": "fz2e/529009"
+    },
+    {
+     "clean": true,
+     "fields": [
+      "ad_data"
+     ],
+     "idx": 1044,
+     "pos": 1011,
+     "seed": "fz2e/531039"
+    }
+   ],
+   "identical": 39257,
+   "policy": [
+    "t",
+    "bs_early",
+    "ube_n",
+    "qs",
+    "ad_addr",
+    "ad_data"
+   ],
+   "qs_flicker_only": 0,
+   "rows": 42288,
+   "rows_clean": 36874,
+   "unscored_cols_differ": 40413
+  }
+ },
+ "verdicts": {
+  "V-A core era-vs-era": "MISSED",
+  "V-B core-vs-chip (clean rows)": "MET",
+  "VI-A address sample": "MET",
+  "VI-B data sample": "MET",
+  "VI-C turnaround by T2": "MET"
+ }
+}

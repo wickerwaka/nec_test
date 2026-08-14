@@ -1,0 +1,60 @@
+== single-writer / reachability
+  uptime: 22:48:13  up 30 days  3:14,  0 users,  load average: 0.00, 0.00, 0.00
+  no v30/serve process on the board -> SINGLE WRITER
+== flash pin: 20 entries, sof 26c19f613e2caae8...
+  [div guard] preflight: div=8 (4 MHz), commanded by this connection   -> PINNED
+  [div guard] nop: div=8 (4 MHz), commanded by this connection   -> PINNED
+  nop: 16 cells  (1s cumulative)
+  [div guard] clc: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 16 previously measured cells -> 32
+  clc: 16 cells  (1s cumulative)
+  [div guard] incaw: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 32 previously measured cells -> 48
+  incaw: 16 cells  (2s cumulative)
+  [div guard] movi: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 48 previously measured cells -> 64
+  movi: 16 cells  (2s cumulative)
+  [div guard] addrr: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 64 previously measured cells -> 80
+  addrr: 16 cells  (3s cumulative)
+  [div guard] pfx1: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 80 previously measured cells -> 96
+  pfx1: 16 cells  (3s cumulative)
+  [div guard] pfx2: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 96 previously measured cells -> 112
+  pfx2: 16 cells  (4s cumulative)
+  [div guard] pfx3: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 112 previously measured cells -> 128
+  pfx3: 16 cells  (4s cumulative)
+  [div guard] pfx4: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 128 previously measured cells -> 144
+  pfx4: 16 cells  (5s cumulative)
+  [div guard] x13: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 144 previously measured cells -> 160
+  x13: 16 cells  (6s cumulative)
+  [div guard] x1b: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 160 previously measured cells -> 176
+  x1b: 16 cells  (6s cumulative)
+  [div guard] x18: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 176 previously measured cells -> 192
+  x18: 16 cells  (7s cumulative)
+  [div guard] x28: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 192 previously measured cells -> 208
+  x28: 16 cells  (7s cumulative)
+  [div guard] x33: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 208 previously measured cells -> 224
+  x33: 16 cells  (8s cumulative)
+  [div guard] y1e: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 224 previously measured cells -> 240
+  y1e: 16 cells  (8s cumulative)
+  [div guard] z1b: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 240 previously measured cells -> 256
+  z1b: 16 cells  (9s cumulative)
+  [div guard] notf: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 256 previously measured cells -> 272
+  notf: 16 cells  (10s cumulative)
+  [div guard] final: div=8 (4 MHz), commanded by this connection   -> PINNED
+  merged with 272 previously measured cells -> 272
+
+  board: 272 cells in 10s, 0 transport errors, 0 TAKE-unstable
+  SHA256SUMS: 70 files

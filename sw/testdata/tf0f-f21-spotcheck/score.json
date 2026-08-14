@@ -1,0 +1,1234 @@
+{
+ "controls": {
+  "notf": {
+   "cells": 16,
+   "entry_counts": [
+    0
+   ],
+   "nonzero": []
+  },
+  "v_notf": {
+   "cells": 16,
+   "entry_counts": [
+    0
+   ],
+   "nonzero": []
+  }
+ },
+ "boundary": {
+  "nop": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_off": 6,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "clc": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_off": 6,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "incaw": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_off": 6,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "movi": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 8,
+    "K5": 8,
+    "K4": 8,
+    "K2": 8,
+    "KM": 8,
+    "KC": 8
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "addrr": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 7,
+    "K7": 7,
+    "K3": 7,
+    "K5": 7,
+    "K4": 7,
+    "K2": 7,
+    "KM": 7,
+    "KC": 7
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "pfx1": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 7,
+    "K5": 7,
+    "K4": 7,
+    "K2": 7,
+    "KM": 7,
+    "KC": 7
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "pfx2": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 9,
+    "K3": 8,
+    "K5": 8,
+    "K4": 6,
+    "K2": 6,
+    "KM": 8,
+    "KC": 8
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K3",
+    "K5",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "pfx3": {
+   "chip": {
+    "9": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "K1": 10,
+    "K7": 10,
+    "K3": 9,
+    "K5": 9,
+    "K4": 6,
+    "K2": 6,
+    "KM": 9,
+    "KC": 9
+   },
+   "chip_unique": true,
+   "chip_off": 9,
+   "core_off": 9,
+   "kinds_matched": [
+    "K3",
+    "K5",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "pfx4": {
+   "chip": {
+    "10": 96
+   },
+   "core": {
+    "10": 96
+   },
+   "pred": {
+    "K1": 11,
+    "K7": 11,
+    "K3": 10,
+    "K5": 10,
+    "K4": 6,
+    "K2": 6,
+    "KM": 10,
+    "KC": 10
+   },
+   "chip_unique": true,
+   "chip_off": 10,
+   "core_off": 10,
+   "kinds_matched": [
+    "K3",
+    "K5",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "x13": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "x1b": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 8,
+    "K3": 9,
+    "K5": 8,
+    "K4": 9,
+    "K2": 8,
+    "KM": 8,
+    "KC": 9
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "x18": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 8,
+    "K3": 9,
+    "K5": 8,
+    "K4": 9,
+    "K2": 8,
+    "KM": 8,
+    "KC": 9
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "x28": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "x33": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "y1e": {
+   "chip": {
+    "10": 96
+   },
+   "core": {
+    "10": 96
+   },
+   "pred": {
+    "K1": 11,
+    "K7": 10,
+    "K3": 11,
+    "K5": 10,
+    "K4": 11,
+    "K2": 10,
+    "KM": 10,
+    "KC": 11
+   },
+   "chip_unique": true,
+   "chip_off": 10,
+   "core_off": 10,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "z1b": {
+   "chip": {
+    "9": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "K1": 10,
+    "K7": 9,
+    "K3": 9,
+    "K5": 6,
+    "K4": 9,
+    "K2": 6,
+    "KM": 9,
+    "KC": 9
+   },
+   "chip_unique": true,
+   "chip_off": 9,
+   "core_off": 9,
+   "kinds_matched": [
+    "K7",
+    "K3",
+    "K4",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "der"
+  },
+  "v_p2x": {
+   "chip": {
+    "10": 96
+   },
+   "core": {
+    "10": 96
+   },
+   "pred": {
+    "K1": 11,
+    "K7": 10,
+    "K3": 10,
+    "K5": 7,
+    "K4": 6,
+    "K2": 6,
+    "KM": 10,
+    "KC": 10
+   },
+   "chip_unique": true,
+   "chip_off": 10,
+   "core_off": 10,
+   "kinds_matched": [
+    "K7",
+    "K3",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_p4x": {
+   "chip": {
+    "12": 96
+   },
+   "core": {
+    "12": 96
+   },
+   "pred": {
+    "K1": 13,
+    "K7": 12,
+    "K3": 12,
+    "K5": 9,
+    "K4": 6,
+    "K2": 6,
+    "KM": 12,
+    "KC": 12
+   },
+   "chip_unique": true,
+   "chip_off": 12,
+   "core_off": 12,
+   "kinds_matched": [
+    "K7",
+    "K3",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_pfxi": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 9,
+    "K3": 8,
+    "K5": 8,
+    "K4": 8,
+    "K2": 8,
+    "KM": 8,
+    "KC": 8
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_rep": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 7,
+    "K5": 7,
+    "K4": 7,
+    "K2": 7,
+    "KM": 7,
+    "KC": 7
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_lock": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 7,
+    "K5": 7,
+    "K4": 7,
+    "K2": 7,
+    "KM": 7,
+    "KC": 7
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_x39": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 8,
+    "K3": 9,
+    "K5": 8,
+    "K4": 9,
+    "K2": 8,
+    "KM": 8,
+    "KC": 9
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_x1f": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 8,
+    "K3": 9,
+    "K5": 8,
+    "K4": 9,
+    "K2": 8,
+    "KM": 8,
+    "KC": 9
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_x10": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_x2a": {
+   "chip": {
+    "7": 96
+   },
+   "core": {
+    "7": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 7,
+    "K3": 8,
+    "K5": 7,
+    "K4": 8,
+    "K2": 7,
+    "KM": 7,
+    "KC": 8
+   },
+   "chip_unique": true,
+   "chip_off": 7,
+   "core_off": 7,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_y13": {
+   "chip": {
+    "9": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "K1": 10,
+    "K7": 9,
+    "K3": 10,
+    "K5": 9,
+    "K4": 10,
+    "K2": 9,
+    "KM": 9,
+    "KC": 10
+   },
+   "chip_unique": true,
+   "chip_off": 9,
+   "core_off": 9,
+   "kinds_matched": [
+    "K7",
+    "K5",
+    "K2",
+    "KM"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_add": {
+   "chip": {
+    "9": 96
+   },
+   "core": {
+    "9": 96
+   },
+   "pred": {
+    "K1": 9,
+    "K7": 9,
+    "K3": 9,
+    "K5": 9,
+    "K4": 9,
+    "K2": 9,
+    "KM": 9,
+    "KC": 9
+   },
+   "chip_unique": true,
+   "chip_off": 9,
+   "core_off": 9,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_movm": {
+   "chip": {
+    "8": 96
+   },
+   "core": {
+    "8": 96
+   },
+   "pred": {
+    "K1": 8,
+    "K7": 8,
+    "K3": 8,
+    "K5": 8,
+    "K4": 8,
+    "K2": 8,
+    "KM": 8,
+    "KC": 8
+   },
+   "chip_unique": true,
+   "chip_off": 8,
+   "core_off": 8,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_push": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_off": 6,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  },
+  "v_xchg": {
+   "chip": {
+    "6": 96
+   },
+   "core": {
+    "6": 96
+   },
+   "pred": {
+    "K1": 6,
+    "K7": 6,
+    "K3": 6,
+    "K5": 6,
+    "K4": 6,
+    "K2": 6,
+    "KM": 6,
+    "KC": 6
+   },
+   "chip_unique": true,
+   "chip_off": 6,
+   "core_off": 6,
+   "kinds_matched": [
+    "K1",
+    "K7",
+    "K3",
+    "K5",
+    "K4",
+    "K2",
+    "KM",
+    "KC"
+   ],
+   "n_cells": 16,
+   "n_traps": 96,
+   "stage": "val"
+  }
+ },
+ "kinds": {
+  "K1": {
+   "DERIVATION": {
+    "agree": 5,
+    "of": 16,
+    "misses": [
+     "pfx1",
+     "pfx2",
+     "pfx3",
+     "pfx4",
+     "x13",
+     "x1b",
+     "x18",
+     "x28",
+     "x33",
+     "y1e",
+     "z1b"
+    ],
+    "says": "ONE unit per architectural instruction: a prefix stack and its opcode are one unit, `0F xx` is one unit"
+   },
+   "VALIDATION": {
+    "agree": 4,
+    "of": 14,
+    "misses": [
+     "v_p2x",
+     "v_p4x",
+     "v_pfxi",
+     "v_rep",
+     "v_lock",
+     "v_x39",
+     "v_x1f",
+     "v_x10",
+     "v_x2a",
+     "v_y13"
+    ],
+    "says": "ONE unit per architectural instruction: a prefix stack and its opcode are one unit, `0F xx` is one unit"
+   }
+  },
+  "K7": {
+   "DERIVATION": {
+    "agree": 12,
+    "of": 16,
+    "misses": [
+     "pfx1",
+     "pfx2",
+     "pfx3",
+     "pfx4"
+    ],
+    "says": "the prefix stack is not a unit, but the `0F` escape byte is"
+   },
+   "VALIDATION": {
+    "agree": 11,
+    "of": 14,
+    "misses": [
+     "v_pfxi",
+     "v_rep",
+     "v_lock"
+    ],
+    "says": "the prefix stack is not a unit, but the `0F` escape byte is"
+   }
+  },
+  "K3": {
+   "DERIVATION": {
+    "agree": 10,
+    "of": 16,
+    "misses": [
+     "x13",
+     "x1b",
+     "x18",
+     "x28",
+     "x33",
+     "y1e"
+    ],
+    "says": "the prefix STACK is one extra unit whatever its depth; the `0F` escape byte is NOT a unit"
+   },
+   "VALIDATION": {
+    "agree": 9,
+    "of": 14,
+    "misses": [
+     "v_x39",
+     "v_x1f",
+     "v_x10",
+     "v_x2a",
+     "v_y13"
+    ],
+    "says": "the prefix STACK is one extra unit whatever its depth; the `0F` escape byte is NOT a unit"
+   }
+  },
+  "K5": {
+   "DERIVATION": {
+    "agree": 15,
+    "of": 16,
+    "misses": [
+     "z1b"
+    ],
+    "says": "the prefix STACK is one extra unit whatever its depth; the `0F` escape byte IS a unit -- the shape the A3/D1/D2 diagnosis predicts for silicon"
+   },
+   "VALIDATION": {
+    "agree": 12,
+    "of": 14,
+    "misses": [
+     "v_p2x",
+     "v_p4x"
+    ],
+    "says": "the prefix STACK is one extra unit whatever its depth; the `0F` escape byte IS a unit -- the shape the A3/D1/D2 diagnosis predicts for silicon"
+   }
+  },
+  "K4": {
+   "DERIVATION": {
+    "agree": 7,
+    "of": 16,
+    "misses": [
+     "pfx2",
+     "pfx3",
+     "pfx4",
+     "x13",
+     "x1b",
+     "x18",
+     "x28",
+     "x33",
+     "y1e"
+    ],
+    "says": "every prefix BYTE is its own unit; the `0F` escape byte is NOT"
+   },
+   "VALIDATION": {
+    "agree": 7,
+    "of": 14,
+    "misses": [
+     "v_p2x",
+     "v_p4x",
+     "v_x39",
+     "v_x1f",
+     "v_x10",
+     "v_x2a",
+     "v_y13"
+    ],
+    "says": "every prefix BYTE is its own unit; the `0F` escape byte is NOT"
+   }
+  },
+  "K2": {
+   "DERIVATION": {
+    "agree": 12,
+    "of": 16,
+    "misses": [
+     "pfx2",
+     "pfx3",
+     "pfx4",
+     "z1b"
+    ],
+    "says": "\u00a786's PROSE READ LITERALLY: every prefix byte is its own unit AND the `0F` escape byte is its own"
+   },
+   "VALIDATION": {
+    "agree": 12,
+    "of": 14,
+    "misses": [
+     "v_p2x",
+     "v_p4x"
+    ],
+    "says": "\u00a786's PROSE READ LITERALLY: every prefix byte is its own unit AND the `0F` escape byte is its own"
+   }
+  },
+  "KM": {
+   "DERIVATION": {
+    "agree": 16,
+    "of": 16,
+    "misses": [],
+    "says": "THE MEASURED SILICON LAW (derived, not pre-registered): one unit, plus ONE MORE iff the opcode byte is not the first byte -- once, however deep and however many kinds of decoration"
+   },
+   "DERIVATION_core": {
+    "agree": 16,
+    "of": 16,
+    "misses": []
+   },
+   "VALIDATION": {
+    "agree": 14,
+    "of": 14,
+    "misses": [],
+    "says": "THE MEASURED SILICON LAW (derived, not pre-registered): one unit, plus ONE MORE iff the opcode byte is not the first byte -- once, however deep and however many kinds of decoration"
+   },
+   "VALIDATION_core": {
+    "agree": 14,
+    "of": 14,
+    "misses": []
+   }
+  },
+  "KC": {
+   "DERIVATION": {
+    "agree": 10,
+    "of": 16,
+    "misses": [
+     "x13",
+     "x1b",
+     "x18",
+     "x28",
+     "x33",
+     "y1e"
+    ],
+    "says": "the ucore's own measured behaviour: KM with the `0F` escape not counting as decoration"
+   },
+   "DERIVATION_core": {
+    "agree": 10,
+    "of": 16,
+    "misses": [
+     "x13",
+     "x1b",
+     "x18",
+     "x28",
+     "x33",
+     "y1e"
+    ]
+   },
+   "VALIDATION": {
+    "agree": 9,
+    "of": 14,
+    "misses": [
+     "v_x39",
+     "v_x1f",
+     "v_x10",
+     "v_x2a",
+     "v_y13"
+    ],
+    "says": "the ucore's own measured behaviour: KM with the `0F` escape not counting as decoration"
+   },
+   "VALIDATION_core": {
+    "agree": 9,
+    "of": 14,
+    "misses": [
+     "v_x39",
+     "v_x1f",
+     "v_x10",
+     "v_x2a",
+     "v_y13"
+    ]
+   }
+  }
+ },
+ "diff": [],
+ "columns": {
+  "n_entries": {
+   "diff": 0,
+   "compared": 512
+  },
+  "pushed_off": {
+   "diff": 0,
+   "compared": 512
+  },
+  "pushed_off_set": {
+   "diff": 0,
+   "compared": 512
+  },
+  "lastcode_off_set": {
+   "diff": 0,
+   "compared": 512
+  },
+  "uniform": {
+   "diff": 0,
+   "compared": 512
+  },
+  "term_done": {
+   "diff": 0,
+   "compared": 512
+  }
+ },
+ "confirm": {
+  "repeated": 64,
+  "of": 512,
+  "take_unstable": [],
+  "stream_distinct": []
+ }
+}
