@@ -93,6 +93,83 @@ them).
 
 ## Gate quick reference
 
+### ⚠⚠⚠ READ FIRST — **THE BUS HAS TWO SHAPES SINCE 2026-08-14, AND `V30_MUXED_AD` PICKS ONE.  THE RIG DEFINES IT.**
+
+`docs/notes/demux_bus_prereg_2026-08-14.md` (committed **before the first
+edit**) and `..._results_2026-08-14.md`; landing `b7083b45a5`.
+
+**THE MULTIPLEXING LAW IS ONE SENTENCE**: *A19-16 carries the address's top
+nibble during the address ONE-SHOT and the status nibble otherwise; A15-0
+carries the address low during an address phase and the write data otherwise.*
+Three operands, **all of them already registers**, so the de-mux is a
+RE-SLICING OF A MUX and **adds no flop** — `ss_lint` is unmoved at **232 / 221**.
+
+* **THREE NEW PORTS, ALWAYS PRESENT**: `ADDR_O[19:0]` (the owning cycle's
+  linear address, valid from the announcement clock through T4; **zero on an
+  INTA**, which announces none), `DATA_O[15:0]` (its write word in bus byte
+  order; **meaningless on a read, and declared so**), `STATUS_O[3:0]`
+  (`{md8080, psw_ie, seg}`, the nibble A19-16 carries when it is not carrying an
+  address).  Contracts verbatim in `v30_core.sv`'s **THE BUS SHAPE** header.
+  **No "address valid" strobe** — `BS`/`RD_N`/`UBE_N` are the part's own max-mode
+  announcement and are unchanged.
+* **`ifdef V30_MUXED_AD`**: `AD`, `AD_OE`, `CE_HALF` exist as ports and
+  behaviour is **byte-identical** to before.  **`ifndef`**: those ports DO NOT
+  EXIST and read data arrives on a fourth port, **`DATA_I[15:0]`** — a SURFACED
+  design decision, since `AD` is an `inout` and removing it removes the core's
+  ability to receive.
+* **`ad_o` IS NOW COMPOSED FROM THE THREE PORTS** through two phase bits, so
+  the muxed view owns no operand and cannot drift.  The historical nine-way mux
+  is kept VERBATIM as a **sim-only reference compared every fabric clock**;
+  perturbing ONE term fires it (demonstrated).
+* ⚠ **TWO FINDINGS.**  (a) **THE AD OUTPUT LATCH IS NOT PRESENTATION** — F58
+  makes a HALT pseudo-cycle PUBLISH `last_ad_*`, so the shared-pad drive is
+  MACHINE STATE with a functional consumer.  **The define removes the PINS, not
+  the drive**: a de-muxed build still computes what the core would put on shared
+  pads.  Found by the define-OFF build refusing to elaborate.  (b) **`t1_half2`
+  EQUALS `(bus_t1 || vector_follow_preview)` AT EVERY `ce`** — the only instant
+  the latch loads — derived from S-1 and **ASSERTED by its own falsifier**, which
+  is how a de-muxed build knows the phase with no `CE_HALF` and no flop.
+* ⚠ **`SYNTHESIS` WITHOUT `V30_MUXED_AD` IS REFUSED AT ELABORATION**
+  (`system_large.sv`, by naming a module that does not exist).  The rig's whole
+  observation path is multiplexed pins, so a dropped macro would have built
+  cleanly and observed an undriven bus — **the accepted-and-ignored class E-6
+  records**.  Non-vacuous both ways.  The macro is proved to have reached
+  Quartus **positively**, from the map report's port table (`AD_OE` present;
+  `ADDR_O`/`DATA_O`/`STATUS_O` *"Explicitly unconnected"*, i.e. pruned as
+  registered).
+* **NEW STANDING GATE: `python3 sw/demux_off_gate.py`** (~2 min, offline,
+  3 legs) — the define-OFF configuration BUILDS AND RUNS (`FPOPS` 2,742,
+  7 of 7 `BS` kinds, 1,390 stores), the three ports are GONE (splicing one back
+  in fails **naming the pin**), and the define is what removes them.
+  `hdl/tb/tb_demux_min.sv`.
+* **THE LADDER IS ZERO-DELTA** — 169,000/169,000 at div 4 **and** div 2 ·
+  8F.0 500 · the four sweeps **279/283** · every `evt` cell · `ulockstep`
+  **17,350** · S16 `busstat_other` 24 · `ARCH` 27 · `check_ab_sim` 187 ·
+  `ghost_launch_law` 200/200 · `chain_lfsr_gate` PASS with its **four
+  signatures BYTE-IDENTICAL** · `r7_lint` PASS · `ss_lint` 232/221 ·
+  `test_artifact` 45/45 · `test_quartus_gate` 254 (255 with a build tree) ·
+  `ucrom_mif_check` PASS · **2,728 directed `tb_sys` cells byte-identical by
+  content** · `fz2_replay` **307/307 = 100.0 %**, `first_bad` identical 107/107.
+* **G6, ONE DRAW PER CONFIGURATION, NOT AN Fmax CLAIM**: **CONTROL 39.64 MHz /
+  +7.825 ns / 10,190 ALMs (24 %)** (`0ba1454e2baf30ec…`) and **RETENTION
+  40.49 MHz / +7.311 ns / 10,143 ALMs** (`fbf0c7e7b0835423…`), both PASS, TNS
+  0.000 setup AND hold every domain, 0 errors / 0 latches / 0 `lpm_divide`,
+  **IDENTICAL 88-file manifest `5c64c1e38182b2e2…` with DIFFERENT `.rbf`s**
+  (E-9) and the retention receipt self-labelling RETENTION (E-6).  ⚠ CONTROL
+  drew **+1.63 MHz / +35 ALMs** and RETENTION **+0.87 MHz / −19 ALMs** against
+  the ce-contract pair — **recorded, not explained**; A&S combinational counts
+  are not reproducible run to run (§74.4a) and `standing_gates.md` §A governs.
+* ⚠ **A DEFINE-OFF BUILD IS A DIFFERENT SAVE-STATE STREAM** by construction
+  (`SSA_B_T1_HALF2` has no flop behind it and reads 0).  `SS_VERSION` is
+  deliberately NOT bumped: the rig configuration still has the flop.
+  `v30u_ss_pkg.sv` is untouched.
+* ⚠ **NOTHING NEW IS OWED TO FABRIC AND NOTHING WAS FLASHED** — the rig
+  configuration is byte-identical in behaviour.  The FLASH #21 (v)/(vi) debt is
+  unchanged.
+* ⚠ **THE ARCHIVED FSM CORE WAS NOT TOUCHED**: its `AD`/`AD_OE`/`CE_HALF` are
+  unconditional, so it is buildable **only** with the define ON — which every
+  FSM build site has, because the define went into the shared commands.
+
 ### ⚠⚠⚠ READ FIRST — **THE ce/ce_half CONTRACT IS ONE PREMISE: NEVER COINCIDENT.  ADJACENT IS LEGAL.  THE ASSERT IS IN THE CORE MODULE.**
 
 **USER RULING 2026-08-13 (verbatim), which SUPERSEDES the gap clause below:**

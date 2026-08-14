@@ -77,6 +77,7 @@ pattern one level down).
 | fuzz_campaign lint | `python3 sw/fuzz_campaign.py lint --report-every 5000` | the soup/raw generators never emit a chip-wedging image.  **GREEN, SM3 s12: `LINT PASS: soup hits=0 compose_err=0; raw hits=0 compose_err=0` over 10,000 soup + 100,000 raw seeds.**  §72.7a's NOT-RUN debt is DISCHARGED and the "hang" is EXPLAINED, not fixed: `--report-every` defaults to **0**, so the tool prints NOTHING until each phase ends, and the raw phase is 100,000 seeds at ~69/s ≈ **25 minutes**.  The `do_wait` / 0 % CPU process s11 observed was the WRAPPER SHELL; the worker sits at 99.8 % CPU throughout.  **Pass `--report-every` or it will look hung again** (`ucore_provenance.md` §73.10) |
 | test_fuzz_classify / test_fuzz_accept | `python3 sw/test_fuzz_{classify,accept}.py` | the verdict tree + acceptance rules (offline) |
 | gen_ucore_qsf | `python3 sw/gen_ucore_qsf.py --check` | `hdl/nec_test_ucore.qsf` is a faithful derivative of `hdl/nec_test.qsf` — the two A/B bitstreams differ by the CORE and nothing else |
+| **THE DE-MUXED CONFIGURATION** **NEW, 2026-08-14** | `python3 sw/demux_off_gate.py` | that `V30_MUXED_AD` OFF is a configuration that BUILDS AND RUNS, not a claim about text.  Three legs, ~2 min, offline: **RUN** — `hdl/tb/tb_demux_min.sv` (the core with no `AD`/`AD_OE`/`CE_HALF`, fed from a memory addressed by `ADDR_O` into `DATA_I`, stores committed from `DATA_O`) over 200,000 fabric clocks, bars `FPOPS` **2,742** ≥ 1 · `BS_KINDS` **7** ≥ 4 · `WRITES` **1,390** ≥ 1 · `ADDR_MOVES` **7,729** ≥ 1; **GONE** — splicing `.AD`, `.AD_OE` or `.CE_HALF` back in must FAIL **naming the pin**, 3/3; **ON** — the same TB WITH the define must ALSO fail (no `DATA_I` there), which is the control that the first leg is the define's doing.  ⚠ It is NOT a scorer: there are no goldens for a bus this shape and inventing some would be fitting.  `docs/notes/demux_bus_results_2026-08-14.md` §5 |
 | **R7′ structural lint** **NEW** | `python3 sw/r7_lint.py` | the shape §73 closed R7′ with is still the shape in the tree: **no undeclared live-`READY` carrier crosses BIU → EU, and no `stop` in the twelve-position chain is gated by one.**  0.2 s.  See below |
 | **BRK/TF floor cell** ⧉ **NEW, SM3 s24** | `python3 sw/sm3_tf_floor_cell.py score --floors 3` | the single-step trap's floor, against SILICON per clock: **121,890 rows, 0 row-diffs, all 30 retained captures**, at floor **3** and at no other value in [1, 7] (nearest is 11,032).  Scores the RETAINED captures in `sw/testdata/sm3-s24tfcell/` — **no board contact, and none is needed**: the trap is internal, so the cell drives no pin and the captures are deterministic from RESET.  It also re-runs the cell's other registered bars (the TF-clear null, determinism, the `iret`/`popfnone` asymmetry, no-take-at-a-prefix-boundary, storm grace).  **`--core {sim,ucore}` SINCE SM3 s25**: the `ucore` leg is LANDED (§86) and scores **121,860 rows, 0 row-diffs, EXACT on all 30 captures** at its own depth **4** — which IS the model's measured floor of 3, one coordinate over (§86.B) — and **0** at no other depth in [1,7] (nearest 14,630).  W-2 on its own prediction table: surviving depths **{4}**, **22/22 cells**, the two SATURATED controls included.  This is the sharpest gate the trap has and both engines are held to it |
 | **t8_v30ctl (fuzz-v2 rig registers)** **NEW, fuzz-v2 T11** | `python3 sw/t8_v30ctl_gate.py` | the host's view of the v2 rig is the rig's: `v30ctl`'s packers, the three schedulers, TVEC/VECCTL and the **serve v3** protocol.  **ALL PASS, 76 checks** (66 preserved + 10 S4 checks for serve v3).  Offline — it drives the real `serve()` over an intercepted transport, no board |
@@ -204,7 +205,42 @@ derived ceilings and inter-draw claims are affected.)*
 
 ---
 
-### ⚠⚠⚠⚠ **THE LIVE G6 LEG — 2026-08-13, THE ce/ce_half CONTRACT CORRECTION.  A PAIR OF SINGLE DRAWS, NOT A BAND.**
+### ⚠⚠⚠⚠ **THE LIVE G6 LEG — 2026-08-14, THE DE-MUXED BUS.  A PAIR OF SINGLE DRAWS, NOT A BAND.**
+
+**`demux_bus_results_2026-08-14.md` §7.**  One draw per configuration,
+**NOT an Fmax claim and not a band.**
+
+| | draw | worst setup | ALMs | receipt |
+|---|---:|---:|---:|---|
+| **CONTROL** | **39.64 MHz** | **+7.825 ns** | 10,190 (24 %) | `0ba1454e2baf30ec…` |
+| **RETENTION** | **40.49 MHz** | **+7.311 ns** | 10,143 (24 %) | `fbf0c7e7b0835423…` |
+
+Both **PASS**; **TNS 0.000 setup AND hold on every domain of both**; 0 errors /
+0 latches / 0 `lpm_divide`; input manifest **`5c64c1e38182b2e2…`** (88 files,
+**IDENTICAL across the pair**) with `.rbf`s **`5cecb4ccf4e05b97…`** vs
+**`bde7607b56a7a6d3…`**, **DIFFERENT** (E-9), and the retention receipt
+**self-labels `RETENTION (X1_AD_RETENTION=1)`, DERIVED from the reports** (E-6).
+The manifest recomputed after the landing commit still matches both, so these
+are this tree's figures.
+
+**THE REGISTERED PRUNING EXPECTATION IS MET**: `ADDR_O` / `DATA_O` / `STATUS_O`
+are unconnected in `system_large` and the map report's port-connectivity table
+for `v30_core:u_core` reads *"Explicitly unconnected"* for all three — the added
+ports cost the rig integration nothing.  **That same table is also the POSITIVE
+proof `V30_MUXED_AD` reached the compiler**, because it lists `AD_OE`, which
+does not exist without it.
+
+⚠ **RECORDED, NOT EXPLAINED**: CONTROL **+1.63 MHz / +35 ALMs** and RETENTION
+**+0.87 MHz / −19 ALMs** against the ce-contract pair below, and the
+retention-vs-control sign is **positive again (+0.85)**.  A&S combinational
+counts are not reproducible run to run (§74.4a); the composed `ad_o` is a
+different netlist SHAPE for the same FUNCTION.  **One green build is not
+closure.**
+
+*The ce/ce_half correction's pair follows, superseded as the live leg and kept
+because a ratchet is only readable against its own history.*
+
+### ⚠⚠⚠⚠ **SUPERSEDED AS THE LIVE LEG — 2026-08-13, THE ce/ce_half CONTRACT CORRECTION.  A PAIR OF SINGLE DRAWS, NOT A BAND.**
 
 **`ce_contract_correction_results_2026-08-13.md` §9.**  One draw per
 configuration, quoted `draw@seed1`, **NOT an Fmax claim**.  (`--seeds 1` was
