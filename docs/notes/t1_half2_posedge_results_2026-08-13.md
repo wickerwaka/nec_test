@@ -91,8 +91,12 @@ HLT.RES:   200/200                      <- the one HLT form with no write
 ```
 
 **ONE MECHANISM, NO SECOND CLASS.**  `HLT.RES` — the HALT form that performs no
-write — is 200/200, and the four HLT sweeps score **49/97 · 49/95** where the
-49 that survive are `HLT.RES` and nothing else.
+write — is 200/200.  The **two** HLT sweeps that were run score **49/97** (w0)
+and **49/95** (w1), and `standing_gates.md` records `HLT.RES` as **49 · 49** on
+those two suites: the survivor count matches the no-write form's cell count
+exactly on both.  ⚠ That is an inference from two matching counts, **not a
+cell-by-cell verification** — the surviving cells were not enumerated, and the
+other two sweeps (`s13-w2`, `s13-w3`) were not run at all.
 
 ### 1.1 THE ONE ARCHITECTURAL FAILURE IS DOWNSTREAM OF THE SAME MECHANISM
 
