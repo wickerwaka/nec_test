@@ -120,6 +120,17 @@ was written, and nothing saw it.
   `-setup 3 -hold 2` → `-setup 2 -hold 1`, and the `truefmax` class labels are
   structural names (`DEFAULT` / `CE4` / `INTO` / `OUTOF` / `ENABLE`) so that
   **every negedge-era `truefmax` artifact stops parsing — which is correct.**
+* **G6, ONE DRAW PER CONFIGURATION** — **USER RULING 2026-08-13**: *"only run
+  more than one seed if the compile is explicitly being done to measure fmax."*
+  Multi-seed sweeps are now reserved for characterisation and pre-registered
+  Fmax claims; an ordinary landing leg is a single **`draw@seed<S>`** against
+  the PASS bars, **never quoted as a band**.  This wave:
+  **CONTROL 42.06 MHz / +7.473 ns / 10,053 ALMs** (`96f9e6481642494e…`) and
+  **RETENTION 43.30 MHz / +8.156 ns / 10,079 ALMs** (`d51eb456617a18dd…`), both
+  PASS, TNS 0.000 setup AND hold on every domain, `.rbf`s differ.  **Not an
+  Fmax claim.**  ⚠ The reverted wave's `worst-of-5` on this identical RTL read
+  RETENTION **41.49** at seed 4 and fired its own 41.50 floor; a single draw at
+  43.30 does not retire that.
 * ⚠ **A SILICON BAR IS OWED AND UNPAID**: the pin moves in time, so FLASH #21
   clauses **(v)** and **(vi)** gate this landing's confirmation.  Nothing here
   has been on a board.

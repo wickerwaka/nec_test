@@ -1,5 +1,20 @@
 # Clock-Enable (CE) for v30_core — implementation plan
 
+> ⚠ **STATUS 2026-08-13 — TWO SENTENCES OF THIS PLAN ARE HISTORY.**
+> **(a)** *"explicit `CE_HALF` port for the one negedge process"*: there is no
+> negedge process any more.  `v30u_biu|t1_half2` is a POSEDGE flop enabled by
+> the same `CE_HALF`, so the port's reason changed and the port did not — it
+> now marks the CPU clock's HALF CYCLE, which is where the T1 AD
+> address→data turnaround lands.
+> **(b)** *"CE locked to the NEC_CLK cadence (`tick_rise`)"* describes the RIG.
+> Under the **USER RULING of 2026-08-12** no constraint and no instrument may
+> assume the enable train's shape: the only assumables are C-a (never
+> coincident), C-b (≥ 1 idle clock between assertions) and C-c (`ce → ce` ≥ 4).
+> **USER RULING 2026-08-13: that contract IS the ucore's operating envelope,
+> and 1:1 is an unsupported mode** — `hdl/tb/ce_contract_check.sv` `$fatal`s on
+> all three clauses, and `check_core --ce-div` refuses anything below 4.
+> `docs/notes/ce_contract_reland_prereg_2026-08-13.md`.
+
 Goal: add a clock-enable so the core runs on the fast fabric `clk` but only
 advances state when CE is asserted, decoupling the core's execution rate
 from the fabric clock (standard `clk_sys` + `clock_enable` idiom). Coordinator

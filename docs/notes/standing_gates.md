@@ -179,6 +179,46 @@ derived ceilings and inter-draw claims are affected.)*
 
 ---
 
+### ⚠⚠⚠⚠ **THE LAST G6 LEG ON THIS TREE IS A PAIR OF SINGLE DRAWS, NOT A BAND — 2026-08-13, THE ce/ce_half RE-LAND**
+
+**`ce_contract_reland_results_2026-08-13.md` §9.**  Taken under the ruling above:
+a landing wave's compile verifies the landing, so **one draw per configuration**,
+quoted `draw@seed1`, **and it is NOT an Fmax claim**.
+
+| | `draw@seed1` | worst setup | ALMs | receipt |
+|---|---:|---:|---:|---|
+| **CONTROL** | **42.06 MHz** | **+7.473 ns** | 10,053 (24 %) | `96f9e6481642494e…` |
+| **RETENTION** | **43.30 MHz** | **+8.156 ns** | 10,079 (24 %) | `d51eb456617a18dd…` |
+
+Both **PASS**; **TNS 0.000 setup AND hold on every domain of both**; 0 errors /
+0 latches / 0 `lpm_divide`; input manifest **`002f2fa4728ecac9…`** (88 files,
+**differs** from L1's `d47c1d003d64c4c5…` — the check that the edit reached the
+compiler); `.rbf` **`3d4700c0b0453ee3…`** vs **`a9667cf1aa6d3715…`**, DIFFERENT
+(E-9), and the retention receipt **self-labels `RETENTION (X1_AD_RETENTION=1)`,
+DERIVED from the reports** (E-6).
+
+**THE SDC RE-DERIVATION IS CONFIRMED ON THE NETLIST TO FOUR DECIMAL PLACES**
+(CONTROL draw): `DEFAULT` **1.0000** · `CE4` **4.0000** · `INTO` **2.0000**
+(was 1.5) · `OUTOF` **2.0000** (was 2.5) · **`ENABLE` 1.0000** (was 0.5, and its
+ceiling left the ladder, 90.91 → 141.20 MHz).  `off_class` **EMPTY** on that
+draw; ⚠ the `upper_bound` caveat **does not lift** — it is a property of a
+slack-ordered query, not of the duplicate.
+⚠ **The RETENTION leg carries NO `truefmax` artifact**: the class probe is
+**sweep-only**, so a single draw records `truefmax: null`.  The per-class `k`s
+above are the CONTROL draw's.
+⚠ **THE SIGN IS INVERTED AGAIN (+1.24 MHz retention over control).**  Reported,
+not explained, and **no delta may be computed from a draw pair.**
+⚠ **BOTH DRAWS REPRODUCE THE REVERTED WAVE'S SEED-1 DRAWS TO THE DIGIT AND TO
+THE BITSTREAM BYTE** (42.06/+7.473/10,053 and 43.30/+8.156/10,079; the same two
+`.rbf` hashes).  The re-land restored that tree exactly — measured, not
+asserted.
+⚠ **AND ITS `worst-of-5` RETENTION FIGURE ON THIS IDENTICAL RTL WAS 41.49 AT
+SEED 4**, which fired that wave's own 41.50 revert floor by 0.01 MHz.  That
+draw exists and is this RTL's.  **A single draw at 43.30 does not retire it.**
+
+*The paired BAND below is L1's and is the last multi-seed characterisation
+taken; it predates the ce/ce_half re-land and is kept as such.*
+
 ### ⚠⚠⚠⚠ **CURRENT BAND — RE-MEASURED 2026-08-13 AS A PAIR, AND IT IS THE FIRST PAIRED REGISTRATION**
 
 `docs/notes/intcone_results_2026-08-13.md` §3.  **No RTL changed** since L1, so
@@ -303,10 +343,33 @@ nobody built one; it exists now.
 
 > **THE QUOTING RULE.**  A distribution figure is **`worst-of-N@seeds{...}`**
 > with N and the seed set named, and **the WORST draw is the quotable one**.  A
-> single fit is **`draw@seed<S>`** and is **NOT promotion evidence**.
-> **G6 PASS for a PROMOTION requires N ≥ 5.**  N = 2 stays acceptable for an
-> intermediate-wave measurement **with the caveat printed**, which the tool
-> prints itself.
+> single fit is **`draw@seed<S>`** and is **NOT an Fmax claim**.
+
+#### ⚠⚠⚠ **AMENDED BY USER RULING, 2026-08-13 — WHEN A MULTI-SEED SWEEP MAY BE RUN AT ALL**
+
+> *"Five seeds is too slow for this work.  In the future only run more than one
+> seed if the compile is explicitly being done to measure fmax."*
+
+**MULTI-SEED SWEEPS (`--seeds N`, N ≥ 5) ARE RESERVED FOR COMPILES WHOSE
+EXPLICIT PURPOSE IS MEASURING Fmax** — characterisation sittings, and waves
+making a pre-registered Fmax claim.
+
+**AN ORDINARY WAVE / LANDING / PROMOTION G6 LEG RUNS A SINGLE DRAW** against the
+PASS bars — **Fmax ≥ 32 MHz, worst setup > 0, TNS 0.000 setup AND hold on every
+domain**, plus E1/E2/E6/E7/E8 — and is quoted as **`draw@seed<S>`**, **never as
+a band and never as an Fmax measurement**.  The compile verifies the landing;
+it does not characterise the distribution.
+
+**The worst-of-N machinery STAYS**, unchanged and unretired, for when it is
+asked for.  What changed is *when it may be asked for*, not what it does.
+
+⚠ **THE PRIOR SENTENCE IS SUPERSEDED AND IS KEPT SO THE CHANGE IS READABLE:**
+*"G6 PASS for a PROMOTION requires N ≥ 5.  N = 2 stays acceptable for an
+intermediate-wave measurement with the caveat printed."*  A promotion no longer
+requires N ≥ 5; it requires the bars on one draw.  **§74.4's warning is NOT
+retired by this** — one green build is still not closure, the same tree has
+still drawn 19.42 and 45.91 MHz, and a single draw therefore still may not be
+quoted as this tree's Fmax.
 
     python3 sw/quartus_gate.py --seeds 8 [--retention]
 
