@@ -112,7 +112,11 @@ def recipe(core):
     rtl, d = core_rtl(core), _CORE_DIR[core]
     inputs = (list(rtl) + sorted(d.glob("*.svh"))
               + [p for p in sorted(d.glob("*.hex")) if p.is_file()])
+    # `-DV30_MUXED_AD` is the RIG's bus shape (hdl/rtl/ucore/v30_core.sv, THE
+    # BUS SHAPE): `system_large` wires AD/AD_OE/CE_HALF and `nec_bus` is a
+    # multiplexed-pin instrument by construction.
     cmd = ["verilator", "--binary", "--timing", "-Wno-fatal",
+           "-DV30_MUXED_AD",
            "--top-module", "tb_ab", "-Mdir", art.TOK_OUT, "-o", "tb_ab",
            "-I" + art.TOK_ROOT + "/" + str(d.relative_to(ROOT)),
            *[art.TOK_ROOT + "/" + str(f.relative_to(ROOT)) for f in rtl]]

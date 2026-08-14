@@ -246,8 +246,12 @@ def recipe(core="ucore"):
     # scored number.  Declaring them here costs one 18 s rebuild on a table
     # change and buys the receipt the right to be believed.
     inputs += [p for p in sorted(d.glob("*.hex")) if p.is_file()]
+    # `-DV30_MUXED_AD`: this harness's whole comparator is the MULTIPLEXED AD
+    # view, which is what the goldens hold, so it builds the rig's bus shape.
+    # See hdl/rtl/ucore/v30_core.sv's THE BUS SHAPE and
+    # docs/notes/demux_bus_prereg_2026-08-14.md.
     cmd = ["verilator", "--binary", "--timing", "-DV30_BACKDOOR",
-           "-DV30_PFX_ASSERT", "--assert",
+           "-DV30_MUXED_AD", "-DV30_PFX_ASSERT", "--assert",
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
            "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
            "-Wno-DECLFILENAME", "-Wno-UNUSEDPARAM",

@@ -145,7 +145,10 @@ def recipe(leg):
 
     must report an IDENTICAL input manifest and a one-token command delta.
     That is the build-side half of the claim §56.3a's whole reading rests on."""
-    cmd = ["verilator", "--binary", "--timing",
+    # `-DV30_MUXED_AD` is the RIG's bus shape and is in BOTH legs, so the
+    # `base`/`ret` pair still differs by ONE token, which is what the
+    # `receipt_diff --expect-command` claim below rests on.
+    cmd = ["verilator", "--binary", "--timing", "-DV30_MUXED_AD",
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
            "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
            "-Wno-DECLFILENAME", "-Wno-UNUSEDPARAM",

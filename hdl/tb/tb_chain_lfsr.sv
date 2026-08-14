@@ -264,6 +264,14 @@ v30_core dut (
     .POLL_N    (pin_poll_n),
     .AD        (AD),
     .AD_OE     (AD_OE),
+    // the de-muxed bus (2026-08-14) is not in this harness's signature: the
+    // signature is the MULTIPLEXED pin set, and re-registering it would make
+    // every archived signature unreadable for no gain.
+    /* verilator lint_off PINCONNECTEMPTY */
+    .ADDR_O    (),
+    .DATA_O    (),
+    .STATUS_O  (),
+    /* verilator lint_on PINCONNECTEMPTY */
     .QS        (QS),
     .BS        (BS),
     .RD_N      (RD_N),

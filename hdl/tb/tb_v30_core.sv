@@ -247,6 +247,15 @@ v30_core dut (
                               // `eff_lo`/`eff_hi` below.  It used to infer the
                               // drive from the protocol, and that inference is
                               // what hid F55 for eleven sittings.
+    // THE DE-MUXED BUS (2026-08-14) is not scored here: this harness's whole
+    // comparator is the MULTIPLEXED view, which is what the goldens hold.  The
+    // de-mux is proved against that view by `v30u_biu`'s own reconstruction
+    // assert, which runs inside every case this TB drives.
+    /* verilator lint_off PINCONNECTEMPTY */
+    .ADDR_O    (),
+    .DATA_O    (),
+    .STATUS_O  (),
+    /* verilator lint_on PINCONNECTEMPTY */
     .QS        (QS),
     .BS        (BS),
     .RD_N      (RD_N),

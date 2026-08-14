@@ -70,6 +70,19 @@ set_global_assignment -name SEED 1
 set_global_assignment -name VERILOG_MACRO "MISTER_DEBUG_NOHDMI=1"
 set_global_assignment -name VERILOG_MACRO "SYNTHESIS=1"
 
+# THE BUS SHAPE (2026-08-14).  The rig integration (`system_large` + `nec_bus`)
+# is a MULTIPLEXED-pin instrument by construction, so the fabric build carries
+# the multiplexed AD view: AD / AD_OE / CE_HALF exist as ports and `v30u_biu`
+# carries `t1_half2` and the `ad_oe_*` enables.  Without this macro those ports
+# do not exist on `v30_core` at all and `system_large` wires DATA_I instead.
+# Orthogonal to SYNTHESIS above: that one is fabric-vs-sim, this one is the bus.
+# `hdl/rtl/ucore/v30_core.sv` (THE BUS SHAPE), `docs/notes/demux_bus_prereg_2026-08-14.md`.
+# ⚠ It is a .qsf macro and NOT a `--verilog_macro` command-line flag: the flag
+# form is per-invocation (that is `quartus_gate.py --retention`'s idiom, for an
+# EXPERIMENT), and a define that is part of the configuration must be visible
+# to every build path, `gen_ucore_qsf.py`'s derived revision included.
+set_global_assignment -name VERILOG_MACRO "V30_MUXED_AD=1"
+
 # disable bilinear filtering when downscaling
 #set_global_assignment -name VERILOG_MACRO "MISTER_DOWNSCALE_NN=1"
 

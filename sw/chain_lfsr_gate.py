@@ -76,7 +76,9 @@ def declared_chain_max(src=None):
 
 
 def verilator_cmd(ucore_dir, objdir, rtl_paths):
-    return ["verilator", "--binary", "--timing",
+    # `-DV30_MUXED_AD`: the harness's signature IS the multiplexed pin set
+    # (`ad_obs = AD & AD_OE`), so it builds the rig's bus shape.
+    return ["verilator", "--binary", "--timing", "-DV30_MUXED_AD",
             "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
             "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
             "-Wno-DECLFILENAME", "-Wno-UNUSEDPARAM", "-Wno-MULTIDRIVEN",
@@ -99,7 +101,7 @@ def recipe():
               + rtl
               + sorted(UCORE.glob("*.svh"))
               + [p for p in sorted(UCORE.glob("*.hex")) if p.is_file()])
-    cmd = ["verilator", "--binary", "--timing",
+    cmd = ["verilator", "--binary", "--timing", "-DV30_MUXED_AD",
            "-Wall", "-Wno-UNUSEDSIGNAL", "-Wno-VARHIDDEN",
            "-Wno-TIMESCALEMOD", "-Wno-WIDTHEXPAND", "-Wno-BLKSEQ",
            "-Wno-DECLFILENAME", "-Wno-UNUSEDPARAM", "-Wno-MULTIDRIVEN",

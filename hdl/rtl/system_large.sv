@@ -490,23 +490,59 @@ end
 // harness read data driven onto the core's AD[15:0] during its read cycles
 assign core_ad[15:0] = c_addrv_q ? c_rdata_q : 16'hzzzz;
 
+// ⚠ THE MACRO GUARD -- `V30_MUXED_AD` MUST REACH THE COMPILER, AND "it
+// compiled" IS NOT EVIDENCE THAT IT DID.
+//
+// This harness's ENTIRE observation path is multiplexed pins: `nec_bus` samples
+// `core_ad` twice per CPU clock and the X1 retention model keys on
+// `core_ad_oe`.  If the macro were dropped from `hdl/nec_test.qsf`, this file's
+// `ifdef`s and the core's would agree with each other, the build would succeed,
+// and the rig would observe an undriven bus -- an ACCEPTED-AND-IGNORED define,
+// which is the exact class of defect the FLASH #18 `X1_AD_RETENTION` finding
+// (E-6) records.  So the combination is refused at ELABORATION, by naming a
+// module that does not exist: the error message IS the diagnosis.
+`ifdef SYNTHESIS
+`ifndef V30_MUXED_AD
+V30_MUXED_AD_IS_REQUIRED_TO_SYNTHESISE_system_large __bus_shape_guard ();
+`endif
+`endif
+
 v30_core u_core
 (
     .CLK       (clk),
 `ifdef SYNTHESIS
     .CE        (bus_tick_rise),
+`ifdef V30_MUXED_AD
     .CE_HALF   (bus_tick_fall),
+`endif
 `else
     .CE        (bus_tick_rise & ~m10_park),
+`ifdef V30_MUXED_AD
     .CE_HALF   (bus_tick_fall & ~m10_park),
+`endif
 `endif
     .RESET     (core_reset),
     .READY     (c_ready_q),
     .INT       (c_int_q),
     .NMI       (c_nmi_q),
     .POLL_N    (c_polln_q),
+`ifdef V30_MUXED_AD
     .AD        (core_ad),
     .AD_OE     (core_ad_oe),
+`else
+    // Without the multiplexed bus the core has no AD to receive on; the
+    // harness's read word goes straight in.  This integration does not
+    // otherwise consume the de-muxed bus -- adopting it is M72's work, and
+    // `nec_bus` is a MULTIPLEXED-pin instrument by construction.
+    .DATA_I    (c_rdata_q),
+`endif
+    // The de-muxed bus is published and DELIBERATELY UNCONNECTED here, so
+    // Quartus prunes it and this integration costs nothing for it.
+    /* verilator lint_off PINCONNECTEMPTY */
+    .ADDR_O    (),
+    .DATA_O    (),
+    .STATUS_O  (),
+    /* verilator lint_on PINCONNECTEMPTY */
     .QS        (core_qs),
     .BS        (core_bs),
     .RD_N      (core_rd_n),

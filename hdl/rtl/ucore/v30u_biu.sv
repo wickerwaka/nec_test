@@ -100,24 +100,77 @@
 //  ⚠ THE ARCHIVED FSM CORE (`hdl/rtl/core/v30_biu.sv`) KEEPS ITS NEGEDGE
 //  `t1_half2` and is deliberately NOT touched -- `fsm_core_archive_2026-08-04.md`.
 //
+//  --- THE DE-MUXED BUS, AND `V30_MUXED_AD` (2026-08-14) -------------------
+//
+//  The V30 multiplexes one twenty-pin bus three ways because a 40-pin DIP has
+//  no room for sixty pins.  Inside an FPGA that constraint does not exist.
+//  THE WHOLE OF THE MULTIPLEXING LAW IS ONE SENTENCE:
+//
+//      A19-16 carries the ADDRESS's top nibble during the address ONE-SHOT
+//      and the STATUS nibble otherwise; A15-0 carries the address low during
+//      an address phase and the WRITE DATA otherwise.
+//
+//  It has exactly three operands -- an address, a write word, a status nibble
+//  -- and every one of them was already a register in this module.  So the
+//  de-mux is a RE-SLICING OF A MUX, not a new mechanism, and it adds NO FLOP.
+//  The three are published as `addr_o` / `data_o` / `status_o`, which exist in
+//  every configuration; their contracts are written at THE DE-MUXED BUS below.
+//
+//  `V30_MUXED_AD` selects whether the multiplexed VIEW exists at all.  It is
+//  orthogonal to `SYNTHESIS` (fabric-vs-sim): this one is the BUS SHAPE.
+//    defined   -- `ad_o` / `ad_oe_*` / `ce_half` / `t1_half2` are present, and
+//                 `ad_o` is COMPOSED from the three ports above, so there is
+//                 no second derivation to drift.  The rig builds this way and
+//                 it is byte-identical to the pre-2026-08-14 behaviour.
+//    undefined -- those PORTS are gone, `ce_half` and `t1_half2` with them
+//                 (`t1_half2` has ZERO consumers in the next-state logic --
+//                 `t1_half2_anatomy_2026-08-13.md` §1.3), and the read data
+//                 arrives on the core's `DATA_I` instead of on `AD`.
+//                 A define-OFF build is a DIFFERENT SAVE-STATE STREAM: the
+//                 flop's address has no flop behind it and reads 0.  (Naming
+//                 that address here would be a THIRD textual reference and
+//                 `ss_lint` counts them -- it caught exactly that on this
+//                 comment's first draft, as it did on the 08-13 one below.)
+//
+//  ⚠ WHAT THE DEFINE DOES NOT REMOVE, and this is a FINDING of the wave: the
+//  multiplexed view's VALUE (`ad_o` / `ad_oe_*`) is still computed, because
+//  THE AD OUTPUT LATCH HAS A FUNCTIONAL CONSUMER -- F58 makes a HALT
+//  pseudo-cycle publish it (see THE AD OUTPUT LATCH below).  The shared-pad
+//  drive is machine state, so a de-muxed core keeps it and drops only the
+//  pins.  The phase it needs comes from `bus_half`, which is what `t1_half2`
+//  equals at every `ce` -- derived from S-1 and ASSERTED, not assumed.
+//  `docs/notes/demux_bus_prereg_2026-08-14.md`.
+//
 //============================================================================
 
 module v30u_biu (
     input             clk,
     input             ce,
-    input             ce_half,
+`ifdef V30_MUXED_AD
+    input             ce_half,     // MUXED-BUS ONLY: `t1_half2`'s only enable
+`endif
     input             srst,
 
     // --- chip pins (composed in the top) ---
     output      [2:0] bs,
+`ifdef V30_MUXED_AD
+    // THE MULTIPLEXED VIEW, as PORTS.  Present only when `V30_MUXED_AD` is
+    // defined; it is COMPOSED from the de-muxed bus below and owns no operand
+    // of its own.  ⚠ The view itself is computed in EVERY configuration -- see
+    // THE AD OUTPUT LATCH below; only its exposure is conditional.
     output     [19:0] ad_o,
     output            ad_oe_addr,
     output            ad_oe_ps,
     output            ad_oe_data,
+`endif
+    // --- THE DE-MUXED BUS (always present) --- see THE DE-MUXED BUS below
+    output     [19:0] addr_o,      // the owning cycle's linear address
+    output     [15:0] data_o,      // the owning cycle's write word
+    output      [3:0] status_o,    // {md8080, psw_ie, seg} -- the PS nibble
     output            ube_n,
     output            rd_n,
     output      [1:0] qs,          // F1: the BIU owns the QS port
-    input      [15:0] ad_i,
+    input      [15:0] ad_i,        // read data (from AD[15:0] or from DATA_I)
     input             ready,
 
     // --- machine state the pins carry (M9) ---
@@ -395,8 +448,11 @@ reg [15:0] rd_land;
 reg        ready_prev;
 
 // --- the T1 AD half: a POSEDGE flop enabled by `ce_half` (was the design's
-//     one negedge process until 2026-08-13) ---------------------------------
+//     one negedge process until 2026-08-13).  MUXED-BUS ONLY since 2026-08-14:
+//     it exists to move a SHARED pin and has no next-state consumer. ---------
+`ifdef V30_MUXED_AD
 reg        t1_half2;
+`endif
 
 // --- THE REGISTERS (F7).  Written ONLY by the one `always_ff` at
 //     the end of this module; every name above is the NEXT-STATE
@@ -965,8 +1021,11 @@ assign ube_n = (display && (r_cdage != 3'd0)) ? r_cmt_ube_n
 // M23: the address one-shot is fired by the DISPLAY and is ONE CLOCK LONG;
 // where the bus made the T1 wait it has already expired and A19-16 is back on
 // the segment status while A15-0 holds the address by pad retention.
-wire [19:0] t1_addr = r_cur_late_t1 ? {data_ps(r_cur_seg), r_cur_addr[15:0]}
-                                  : r_cur_addr;
+//
+// 2026-08-14: M23 is now a PHASE, not a value.  It used to be spelled as a
+// `t1_addr` wire that substituted `data_ps(r_cur_seg)` into the address's top
+// nibble; it is `bus_ph_hi`'s `!r_cur_late_t1` term below, which selects the
+// SAME status nibble from `status_o`.  Nothing about the law moved.
 
 // A segment-register write and the display of an already-committed prefetch
 // share one physical address path.  The pending fetch is retargeted from the
@@ -1037,11 +1096,14 @@ wire [19:0] display_addr = cmt_cs_retarget ? cmt_addr_live : r_cmt_addr;
 // No flop is added and nothing outside the pin mux is touched.
 // Falsifier: any capture whose A19-16 carries an address on two consecutive
 // clocks of one announcement, or a segment status on the display clock itself.
-wire [3:0] disp_hi  = (r_cdage == 3'd0) ? display_addr[19:16]
-                                        : data_ps(r_cmt_seg);
-wire [3:0] dinta_hi = (r_cdage == 3'd0) ? 4'h0
-                                        : data_ps(r_cmt_seg);
-wire [3:0] cinta_hi = r_cur_late_t1 ? data_ps(r_cur_seg) : 4'h0;
+//
+// 2026-08-14: F53 too is now a PHASE.  Its three nibble wires (`disp_hi`,
+// `dinta_hi`, `cinta_hi`) were three copies of ONE decision -- "is A19-16
+// still in the address one-shot?" -- each carrying its own copy of the status
+// value.  They are `bus_ph_hi`'s `(r_cdage == 3'd0)` and `!r_cur_late_t1`
+// terms below, over ONE status operand.  The three copies survive VERBATIM in
+// the sim-only reference at THE RECONSTRUCTION FALSIFIER, which is what proves
+// the collapse changed nothing.
 
 // THE PAIRING IS A MID-CLOCK FACT.  `sim/biu_timed.cpp` fills `cur_.data` from
 // inside `mem_write`, which the EU calls DURING the clock, and the row that
@@ -1061,22 +1123,111 @@ wire [15:0] cur_data_o = pair_now
                                         : eu_wdata)
                        : r_cur_data;
 
-assign ad_o = (vector_follow_preview && t1_half2) ? eu_addr
-            : flush_fast               ? flush_fast_addr
-            : disp_inta                ? {dinta_hi, 16'h0}
-            : cur_inta                 ? {cinta_hi, 16'h0}
-            : display                 ? {disp_hi, display_addr[15:0]}
-            : halt_addr               ? r_cur_addr
-            : (r_run && (r_ts == TS_T1))  ? (r_cur_wr && t1_half2
-                                         ? {r_cur_addr[19:16], cur_data_o}
-                                         : t1_addr)
-                                      : {data_ps(r_cur_seg), cur_data_o};
+//----------------------------------------------------------------------------
+// THE DE-MUXED BUS.  Three operands, all of them already registers here.
+//
+// `bus_t1` is the running cycle's own T1; `bus_vfp_pub` is the instant the
+// split-read follow-on's preview takes the bus.  In a MUXED build that instant
+// is the T1 half (`t1_half2`), because the preview exists ONLY to get the
+// follow-on address onto shared pins early; in a DE-MUXED build there are no
+// shared pins and no half, so the preview is simply the whole clock.  THAT IS
+// THE ONE PLACE THE TWO CONFIGURATIONS DIFFER, and it differs for the reason
+// the mechanism exists.
+//----------------------------------------------------------------------------
+wire bus_t1 = r_run && (r_ts == TS_T1);
 
-// F55: `halt_addr` is now wholly subsumed by the `r_ts == TS_T1` term here and
-// is left named for what it selects in `ad_o` above -- the HALT's T1 publishes
-// `r_cur_addr` and not `t1_addr`, which is unchanged.
-assign ad_oe_addr = (flush_fast || display ||
-                     (r_run && (r_ts == TS_T1)) || halt_addr) &&
+// `bus_half` -- THE T1 HALF, AT THE ONLY INSTANT ANYTHING READS IT.
+//
+// `t1_half2` is loaded at the cycle's `ce_half` with
+// `(r_run && (r_ts == TS_T1)) || vector_follow_preview` -- registers (and one
+// EU wire off registers) that do not move within a CPU clock -- and S-1 says
+// at least one `ce_half` falls between consecutive `ce`s.  SO AT EVERY `ce`,
+// `t1_half2` IS THAT EXPRESSION.  `ce` is the only instant the AD output latch
+// below loads, so a de-muxed build needs no flop to know the phase: it
+// evaluates the same expression.  ASSERTED, NOT ASSUMED -- see the `bus_half`
+// equivalence check beside the `t1_half2` flop.
+`ifdef V30_MUXED_AD
+wire bus_half = t1_half2;
+`else
+wire bus_half = bus_t1 || vector_follow_preview;
+`endif
+
+wire bus_vfp_pub = vector_follow_preview && bus_half;
+
+// `addr_o` -- THE LINEAR ADDRESS OF THE CYCLE THAT OWNS THE BUS.
+// VALID FROM the announcement clock (where it carries the ANNOUNCED cycle's
+// address) THROUGH the whole of that cycle's T1/T2/Tw/T3/T4 (where it carries
+// the RUNNING cycle's).  It is never meaningless: with nothing running it
+// holds the last running cycle's address, which is what the pads show by
+// retention on the real part.  An INTA announces no address (the model's
+// `Access::no_addr`) and it reads ZERO there -- that zero is the part's, not a
+// placeholder.
+assign addr_o = bus_vfp_pub ? eu_addr
+              : flush_fast  ? flush_fast_addr
+              : disp_inta   ? 20'h0
+              : cur_inta    ? 20'h0
+              : display     ? display_addr
+                            : r_cur_addr;      // halt / T1 / the data phase
+
+// `data_o` -- THE WRITE WORD OF THE CYCLE THAT OWNS THE BUS, in bus byte order
+// (swapped on an odd address, above).  MEANINGFUL whenever the owning cycle is
+// a write, from its T1 through T4.  On a read cycle it holds the previous
+// write's word and is DECLARED MEANINGLESS -- the muxed view never publishes
+// it there either, so nothing has ever depended on it.  No flop: `r_cur_data`
+// is a register and the pairing term is the register-only lookahead above.
+assign data_o = cur_data_o;
+
+// `status_o` -- {md8080, psw_ie, seg}, the nibble A19-16 carries whenever it is
+// not carrying an address.  MEANINGFUL for the whole of the owning cycle, and
+// it follows the SAME owner the address does: the ANNOUNCED cycle's segment
+// while a display holds the bus, the RUNNING cycle's otherwise.  (`disp_inta`
+// outranks `cur_inta` outranks `display`, which is the mux's own order.)
+assign status_o = data_ps((disp_inta || (display && !cur_inta)) ? r_cmt_seg
+                                                               : r_cur_seg);
+
+//----------------------------------------------------------------------------
+// THE MULTIPLEXED VIEW, COMPOSED FROM THE THREE PORTS ABOVE.
+//
+// A19-16 carries the ADDRESS's top nibble during the address ONE-SHOT and the
+// STATUS nibble otherwise; A15-0 carries the address low during an address
+// phase and the WRITE DATA otherwise.  That sentence is the whole law and the
+// two wires below are its two clauses -- M23 and F53 on the high lane, the T1
+// turnaround on the low one.  The view owns NO OPERAND OF ITS OWN, so there is
+// no second derivation that can drift from the ports.
+//
+// ⚠ IT IS COMPUTED IN EVERY CONFIGURATION, AND THAT IS A FINDING, NOT AN
+// OVERSIGHT.  See THE AD OUTPUT LATCH below: F58 makes a HALT pseudo-cycle
+// PUBLISH the latch, so the shared-pad drive is machine state with a
+// functional consumer, not presentation.  A de-muxed core is the SAME MACHINE
+// presented differently and must keep it.  What `V30_MUXED_AD` removes is the
+// EXPOSURE -- the `ad_o`/`ad_oe_*` ports and the `AD`/`AD_OE` pins above them.
+//----------------------------------------------------------------------------
+`ifndef V30_MUXED_AD
+wire [19:0] ad_o;                              // internal: the latch's input
+wire        ad_oe_addr, ad_oe_ps, ad_oe_data;  // internal: which lane it loads
+`endif
+
+wire bus_ph_hi = bus_vfp_pub ? 1'b1
+               : flush_fast  ? 1'b1
+               : disp_inta   ? (r_cdage == 3'd0)          // F53, the INTA half
+               : cur_inta    ? !r_cur_late_t1             // F53, a late INTA T1
+               : display     ? (r_cdage == 3'd0)          // F53, the display
+               : halt_addr   ? 1'b1                       // F51/F55
+               : bus_t1      ? ((r_cur_wr && bus_half) || !r_cur_late_t1) // M23
+                             : 1'b0;                      // the data phase
+
+wire bus_ph_lo = (bus_vfp_pub || flush_fast || disp_inta || cur_inta ||
+                  display || halt_addr) ? 1'b1
+               : bus_t1 ? !(r_cur_wr && bus_half)         // the T1 turnaround
+                        : 1'b0;                           // the data phase
+
+assign ad_o = {bus_ph_hi ? addr_o[19:16] : status_o,
+               bus_ph_lo ? addr_o[15:0]  : data_o};
+
+// F55: `halt_addr` is now wholly subsumed by `bus_t1` in the enable below and
+// is left named for what it selects in the composition above -- the HALT's T1
+// publishes the whole address, where an ordinary late T1 shows the status.
+assign ad_oe_addr = (flush_fast || display || bus_t1 || halt_addr) &&
                     !disp_inta && !cur_inta;
 // F55 / F51: a HALT pseudo-cycle has no data phase, so the PS/data drive does
 // not take the pads over when the address one-shot expires.  All three enables
@@ -1085,7 +1236,7 @@ assign ad_oe_addr = (flush_fast || display ||
 assign ad_oe_ps   = (!ad_oe_addr && r_run && !r_cur_halt &&
                      (r_ts != TS_T1) && (r_ts != TS_TI)) ||
                     disp_inta || cur_inta;
-assign ad_oe_data = (vector_follow_preview && t1_half2) ||
+assign ad_oe_data = bus_vfp_pub ||
                     (r_run && r_cur_wr && !r_cur_halt && !r_cur_noaddr &&
                      (r_ts != TS_TI) && !display);
 
@@ -1109,10 +1260,81 @@ assign rd_n = !(r_run && ((r_ts == TS_T2) || (r_ts == TS_T3) || (r_ts == TS_TW))
 // (`hdl/tb/ce_contract_check.sv`); this is the re-land.
 // `docs/notes/t1_half2_posedge_prereg_2026-08-13.md` §2/§3 (hold windows,
 // D-cone stability), `docs/notes/ce_contract_reland_prereg_2026-08-13.md`.
+//
+// 2026-08-14: THE FLOP IS MUXED-BUS MACHINERY AND LIVES UNDER `V30_MUXED_AD`
+// WITH THE REST OF IT.  It has zero consumers in the next-state logic, so a
+// de-muxed build simply does not have a turnaround to place -- nor a `ce_half`
+// to place it with, that pin being this flop's only enable.
+`ifdef V30_MUXED_AD
 always @(posedge clk)
     if (ss_we && ss_addr == SSA_B_T1_HALF2) t1_half2 <= ss_wdata[0];
     else if (ce_half) t1_half2 <= (r_run && (r_ts == TS_T1)) ||
                                   vector_follow_preview;
+
+`ifndef SYNTHESIS
+//----------------------------------------------------------------------------
+// THE `bus_half` EQUIVALENCE.  The de-muxed configuration has no `ce_half` and
+// no `t1_half2`; it reads the phase off the registers the flop is loaded from.
+// That is only legitimate AT `ce`, and `ce` is the only instant the AD output
+// latch loads -- so this is the exact clause that has to hold, and it is
+// checked on every CE clock of every simulation leg the tree runs rather than
+// argued from S-1.
+//----------------------------------------------------------------------------
+always @(posedge clk)
+    if (ce && !srst &&
+        (t1_half2 !== ((r_run && (r_ts == TS_T1)) || vector_follow_preview)))
+        $fatal(1, "v30u_biu: bus_half EQUIVALENCE FAILED at %0t -- t1_half2 %b but (bus_t1 || vfp) %b at a CE instant.  The de-muxed configuration derives the T1 half from these registers and would disagree with the multiplexed one; see docs/notes/demux_bus_prereg_2026-08-14.md.",
+               $time, t1_half2,
+               ((r_run && (r_ts == TS_T1)) || vector_follow_preview));
+
+//----------------------------------------------------------------------------
+// THE RECONSTRUCTION FALSIFIER.
+//
+// The composition above replaced a nine-way value mux with two phase bits over
+// three operands.  That is provably the same function -- and "provably" is not
+// a gate.  So the NINE-WAY MUX IS KEPT VERBATIM as a simulation-only reference
+// and compared against the composed pins on EVERY FABRIC CLOCK of every sim
+// leg the tree runs.  A future edit that moves one and not the other stops the
+// run where it happens rather than showing up as a score.
+//
+// WHY THIS FORM AND NOT "reconstruct from the ports and compare to `ad_o`":
+// `ad_o` IS that reconstruction now, so such a check is a tautology.  This one
+// compares the composition against the pin law that 169,000 golden cases,
+// 17,350 lockstep forms and every bitstream to date were scored on.
+//
+// ⚠ ONE STATED HOLE: the compare is skipped while the reference carries an X.
+// Two X-pessimistic expressions over the same registers may differ in X-ness
+// without differing in value, and that is a pre-reset artefact, not a defect.
+//
+// NON-VACUITY: perturb ONE term of the composition and this fires.
+// `docs/notes/demux_bus_prereg_2026-08-14.md` §4.
+//----------------------------------------------------------------------------
+wire [19:0] t1_addr_ref = r_cur_late_t1 ? {data_ps(r_cur_seg), r_cur_addr[15:0]}
+                                        : r_cur_addr;
+wire  [3:0] disp_hi_ref  = (r_cdage == 3'd0) ? display_addr[19:16]
+                                             : data_ps(r_cmt_seg);
+wire  [3:0] dinta_hi_ref = (r_cdage == 3'd0) ? 4'h0
+                                             : data_ps(r_cmt_seg);
+wire  [3:0] cinta_hi_ref = r_cur_late_t1 ? data_ps(r_cur_seg) : 4'h0;
+
+wire [19:0] ad_o_ref = (vector_follow_preview && t1_half2) ? eu_addr
+                     : flush_fast               ? flush_fast_addr
+                     : disp_inta                ? {dinta_hi_ref, 16'h0}
+                     : cur_inta                 ? {cinta_hi_ref, 16'h0}
+                     : display                  ? {disp_hi_ref, display_addr[15:0]}
+                     : halt_addr                ? r_cur_addr
+                     : (r_run && (r_ts == TS_T1))  ? (r_cur_wr && t1_half2
+                                                  ? {r_cur_addr[19:16], cur_data_o}
+                                                  : t1_addr_ref)
+                                               : {data_ps(r_cur_seg), cur_data_o};
+
+always @(posedge clk)
+    if ((^ad_o_ref !== 1'bx) && (ad_o !== ad_o_ref))
+        $fatal(1, "v30u_biu: DE-MUX RECONSTRUCTION FAILED at %0t -- composed AD %05x, muxed law %05x (addr_o %05x data_o %04x status_o %01x hi %b lo %b).  The de-muxed ports and the multiplexed view have DRIFTED; see docs/notes/demux_bus_prereg_2026-08-14.md §4.",
+               $time, ad_o, ad_o_ref, addr_o, data_o, status_o,
+               bus_ph_hi, bus_ph_lo);
+`endif
+`endif
 
 //============================================================================
 // THE CLOCK
@@ -2604,7 +2826,15 @@ always @(posedge clk) begin
         SSA_B_OPR_FREE_P:   ss_rdata <= {15'b0, r_opr_free_p};
         SSA_B_RD_VAL:       ss_rdata <= r_rd_val;
         SSA_B_READY_PREV:   ss_rdata <= {15'b0, r_ready_prev};
+`ifdef V30_MUXED_AD
         SSA_B_T1_HALF2:     ss_rdata <= {15'b0, t1_half2};
+`endif
+        // ⚠ WITHOUT `V30_MUXED_AD` THE FLOP DOES NOT EXIST, this address falls
+        // to `default` and reads 0, and a de-muxed build is therefore a
+        // DIFFERENT SAVE-STATE STREAM by construction.  It is not
+        // stream-compatible with the rig's and must not be loaded into one.
+        // `SS_VERSION` is deliberately NOT bumped: the map is unchanged in the
+        // configuration that has the flop, which is the one every gate scores.
         SSA_B_LAST_AD_HI:   ss_rdata <= {12'b0, last_ad_hi};
         SSA_B_LAST_AD_LO:   ss_rdata <= last_ad_lo;
         SSA_B_GHOST_SP_LO:  ss_rdata <= r_g_sp[15:0];
@@ -2628,6 +2858,18 @@ always @(posedge clk) begin
     else if (ce)   last_ube <= ube_n;
 end
 
+// THE AD OUTPUT LATCH.
+//
+// ⚠ 2026-08-14, AND IT IS WHY THE MULTIPLEXED VIEW IS COMPUTED IN EVERY
+// CONFIGURATION: this latch has a FUNCTIONAL CONSUMER.  Its two registers feed
+// `cmt_addr`/`cmt_data` of the HALT pseudo-cycle's announcement in step (e),
+// so the shared-pad drive is MACHINE STATE and not presentation, and a core
+// that presented a de-muxed bus while dropping it would be a different machine
+// from the one silicon measured.  `V30_MUXED_AD` therefore removes the PORTS
+// (`ad_o`/`ad_oe_*` here, `AD`/`AD_OE` on the top) and NOT this.  The de-muxed
+// build still computes what the core would drive on the shared pads; it simply
+// does not have any.
+//
 // F58 -- THE HALT PSEUDO-CYCLE ANNOUNCES NOTHING OF ITS OWN.
 //
 // `last_ad_*` is the AD OUTPUT LATCH, split into exactly the two lanes the two
