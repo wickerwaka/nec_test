@@ -40,7 +40,7 @@ comes back**.  So:
       PAIR -- whole-design worst-of-N (the promotion gate, unchanged) beside
       core-domain worst-of-N (what an integration inherits) -- so the falsifier
       has to hold BOTH halves: that core-domain is the min over exactly the
-      three core-INTERNAL SDC classes and not over `k=0.5` (whose launch side
+      three core-INTERNAL SDC classes and not over `ENABLE` (whose launch side
       is outside the core) or `DEFAULT` (which is the whole design); that a
       missing class yields NO figure rather than a min over the survivors; and
       **that no BAR reads the core-domain number** -- a pairing whose second
@@ -557,27 +557,88 @@ def q13_sweep_refusals():
         check(f"--seeds {bad} says REFUSING", "REFUS" in out.upper())
 
 
+# --------------------------------------------------------------------------- #
+# THE TWO ERAS OF `truefmax` ARTIFACT (re-registered 2026-08-13)
+#
+# `v30u_biu|t1_half2` was the design's last NEGEDGE flop and is now a POSEDGE
+# flop enabled by the same `ce_half`.  Three of the five class `k`s moved with
+# it (`INTO` 1.5 -> 2.0, `OUTOF` 2.5 -> 2.0, `ENABLE` 0.5 -> 1.0, and the
+# `k = 0.5` class ceased to exist), so the labels stopped asserting a `k` in a
+# string and became STRUCTURAL names.
+#
+# ⚠ THE CONSEQUENCE IS THE POINT: every artifact taken on the negedge tree now
+# REFUSES TO PARSE into the new class names.  That is not damage, it is the
+# `truefmax_complete()` / `core_domain_fmax()` contract doing exactly what it
+# was built to do -- *absence must not read as data*.  Those artifacts are KEPT
+# and are asserted below to be REFUSED BY ERA, and the live checks run against
+# a fixture produced by this wave's own G6 draw.
+# `docs/notes/ce_contract_reland_results_2026-08-13.md` §7.2.
+# --------------------------------------------------------------------------- #
+NEGEDGE_ERA_ARTIFACTS = (
+    ROOT / "docs" / "notes" / "t1half2" / "ctl_baseline.truefmax.txt",
+    ROOT / "docs" / "notes" / "t1half2" / "ret_baseline.truefmax.txt",
+    ROOT / "sw" / "testdata" / "intcone" / "fixtures" /
+    "ctl_seed1_offclass.truefmax.txt",
+)
+# THIS WAVE'S OWN DRAW, frozen as the parser's fixture.  It is a REAL artifact
+# of the posedge tree, not a hand-edited copy of a negedge one.
+POSEDGE_FIXTURE = (ROOT / "sw" / "testdata" / "cecontract" / "fixtures" /
+                   "ctl_seed1.truefmax.txt")
+
+K_DEFAULT = "DEFAULT (whole-design worst, expect k=1)"
+K_ENABLE = "ENABLE (not $v30u_ce) -> t1_half2   -- the ENABLE arc"
+K_CE4 = "CE4    $v30u_ce -> $v30u_ce   (the CE multicycle)"
+K_INTO = "INTO   $v30u_ce -> t1_half2"
+K_OUTOF = "OUTOF  t1_half2 -> $v30u_ce"
+
+
 def q14_truefmax_parse():
-    print("\nQ14 the per-k-class ceilings are parsed off the probe's own artifact")
-    art_txt = ROOT / "docs" / "notes" / "t1half2" / "ctl_baseline.truefmax.txt"
-    if not art_txt.exists():
-        check("the committed truefmax artifact exists", False, str(art_txt))
+    print("\nQ14 the per-class ceilings are parsed off the probe's own artifact")
+
+    # --- THE ERA WALL, FIRST, because it is the new behaviour -------------- #
+    for old in NEGEDGE_ERA_ARTIFACTS:
+        if not old.exists():
+            check(f"the negedge-era artifact {old.name} is KEPT", False, str(old))
+            continue
+        otf = qg.parse_truefmax(old)
+        check(f"{old.name} still parses to SOMETHING (it is a real artifact)",
+              len(otf) > 0)
+        check(f"...but it is REFUSED BY ERA: not COMPLETE under the new classes",
+              qg.truefmax_complete(otf) is False, str(sorted(otf)))
+        ocd = qg.core_domain_fmax(otf)
+        check("...and it yields NO core-domain figure, with the missing "
+              "classes NAMED",
+              ocd["fmax_mhz"] is None
+              and sorted(ocd["missing"]) == ["CE4", "INTO", "OUTOF"], str(ocd))
+
+    if not POSEDGE_FIXTURE.exists():
+        check("this wave's posedge-era truefmax fixture exists", False,
+              str(POSEDGE_FIXTURE))
         return
-    tf = qg.parse_truefmax(art_txt)
+    tf = qg.parse_truefmax(POSEDGE_FIXTURE)
     check("the five exception classes are all present",
-          sum(1 for k in tf if k.startswith(("DEFAULT", "k="))) == 5,
+          sum(1 for k in tf if k.startswith(("DEFAULT", "CE4", "INTO",
+                                             "OUTOF", "ENABLE"))) == 5,
           str(sorted(tf)))
-    d = tf["DEFAULT (whole-design worst, expect k=1)"]
-    check("DEFAULT is 42.09 MHz at k=1", d["fmax_mhz"] == 42.09 and d["k"] == 1.0,
+    d = tf[K_DEFAULT]
+    check("DEFAULT measures k=1", d["k"] == 1.0, str(d))
+    check("...and it carries a ceiling and both endpoints",
+          d["fmax_mhz"] is not None and bool(d["from"]) and bool(d["to"]),
           str(d))
-    check("...and its endpoints are recovered",
-          "upc_opc[6]" in (d["from"] or "") and "ad_in_q[16]" in (d["to"] or ""),
-          str(d))
-    e = tf["k=0.5  (not $v30u_ce) -> t1_half2   -- the ENABLE arc"]
-    check("the k=0.5 ENABLE arc is 90.91 MHz at k=0.5",
-          e["fmax_mhz"] == 90.91 and e["k"] == 0.5, str(e))
-    check("...which is the wave's whole finding: it does NOT bind",
-          e["fmax_mhz"] > d["fmax_mhz"])
+    # ⚠ THE WAVE'S OWN FINDING, AS AN ASSERTION: the `k = 0.5` class is GONE.
+    # With `t1_half2` a POSEDGE flop the enable must be valid at the posedge
+    # ENDING the cycle it is asserted in, so the ENABLE arc is a FULL period.
+    e = tf[K_ENABLE]
+    check("THE k=0.5 CLASS IS GONE: the ENABLE arc measures k=1.0",
+          e["k"] == 1.0, str(e))
+    check("...and it still does NOT bind", e["fmax_mhz"] > d["fmax_mhz"],
+          f'{e["fmax_mhz"]} vs {d["fmax_mhz"]}')
+    check("INTO measures k=2.0 (it was 1.5 on a negedge destination)",
+          tf[K_INTO]["k"] == 2.0, str(tf[K_INTO]))
+    check("OUTOF measures k=2.0 (it was 2.5 from a negedge source)",
+          tf[K_OUTOF]["k"] == 2.0, str(tf[K_OUTOF]))
+    check("CE4 measures k=4.0, unchanged", tf[K_CE4]["k"] == 4.0,
+          str(tf[K_CE4]))
     check("a missing artifact parses to {}, not a crash",
           qg.parse_truefmax(ROOT / "no" / "such" / "file.txt") == {})
 
@@ -587,13 +648,13 @@ def q14_truefmax_parse():
     # judges the ARTIFACT.
     check("a whole artifact is COMPLETE", qg.truefmax_complete(tf))
     check("{} is not complete", qg.truefmax_complete({}) is False)
-    for drop in ("k=0.5", "DEFAULT", "k=2.5"):
+    for drop in ("ENABLE", "DEFAULT", "OUTOF"):
         part = {k: v for k, v in tf.items() if not k.startswith(drop)}
         check(f"an artifact missing the {drop} class is INCOMPLETE",
               qg.truefmax_complete(part) is False)
     # A class that is PRESENT but carries no ceiling is incomplete too --
     # a header with no number is absence wearing a label.
-    hollow = {k: (dict(v, fmax_mhz=None) if k.startswith("k=0.5") else v)
+    hollow = {k: (dict(v, fmax_mhz=None) if k.startswith("ENABLE") else v)
               for k, v in tf.items()}
     check("a class present but with NO ceiling is INCOMPLETE",
           qg.truefmax_complete(hollow) is False)
@@ -631,39 +692,41 @@ def q15_summary_stats():
 
 def q16_paired_reporting():
     print("\nQ16 THE PAIRED FIGURE: whole-design AND core-domain, from ONE run")
-    art_txt = ROOT / "docs" / "notes" / "t1half2" / "ctl_baseline.truefmax.txt"
-    if not art_txt.exists():
-        check("the committed truefmax artifact exists", False, str(art_txt))
+    if not POSEDGE_FIXTURE.exists():
+        check("this wave's posedge-era truefmax fixture exists", False,
+              str(POSEDGE_FIXTURE))
         return
-    tf = qg.parse_truefmax(art_txt)
+    tf = qg.parse_truefmax(POSEDGE_FIXTURE)
 
     # --- the definition itself, because it is the load-bearing choice ------- #
     check("the core-domain class list is exactly the three core-INTERNAL SDC "
-          "classes", qg.CORE_DOMAIN_CLASSES == ("k=4.0", "k=1.5", "k=2.5"),
+          "classes", qg.CORE_DOMAIN_CLASSES == ("CE4", "INTO", "OUTOF"),
           str(qg.CORE_DOMAIN_CLASSES))
     check("...and it EXCLUDES DEFAULT (which is the whole design)",
           "DEFAULT" not in qg.CORE_DOMAIN_CLASSES)
-    # ⚠ THE ONE THAT WOULD MAKE THE FIGURE A LIE.  `k=0.5` is
+    # ⚠ THE ONE THAT WOULD MAKE THE FIGURE A LIE.  `ENABLE` is
     # `(not $v30u_ce) -> t1_half2`: its LAUNCH side is outside the core by
     # construction, so counting it would put a rig register inside a figure
-    # whose whole claim is that both endpoints are the core's.
-    check("...and it EXCLUDES k=0.5, whose launch side is outside the core",
-          "k=0.5" not in qg.CORE_DOMAIN_CLASSES)
+    # whose whole claim is that both endpoints are the core's.  (It was
+    # `k=0.5` before 2026-08-13; it is `k=1.0` now and STILL not core-domain,
+    # because the reason was never the k.)
+    check("...and it EXCLUDES ENABLE, whose launch side is outside the core",
+          "ENABLE" not in qg.CORE_DOMAIN_CLASSES)
 
     cd = qg.core_domain_fmax(tf)
     check("the core-domain figure is the MINIMUM over the three",
-          cd["fmax_mhz"] == 59.51, str(cd))
-    check("...which on this artifact is the k=4.0 CE multicycle",
-          cd["class"] == "k=4.0" and cd["k"] == 4.0, str(cd))
-    check("...quoted WITH its binding cone, both endpoints named",
-          bool(cd["from"]) and bool(cd["to"]), str(cd))
+          cd["fmax_mhz"] == min(tf[c]["fmax_mhz"]
+                                for c in (K_CE4, K_INTO, K_OUTOF)), str(cd))
+    check("...quoted WITH its binding class, its k and both endpoints",
+          cd["class"] in ("CE4", "INTO", "OUTOF") and cd["k"] is not None
+          and bool(cd["from"]) and bool(cd["to"]), str(cd))
     check("...and it carries all three classes, not just the winner",
-          sorted(cd["classes"]) == ["k=1.5", "k=2.5", "k=4.0"],
+          sorted(cd["classes"]) == ["CE4", "INTO", "OUTOF"],
           str(cd["classes"]))
-    d = tf["DEFAULT (whole-design worst, expect k=1)"]
-    check("the two halves are DIFFERENT numbers on this tree "
-          "(42.09 whole-design vs 59.51 core-domain)",
-          d["fmax_mhz"] == 42.09 and cd["fmax_mhz"] != d["fmax_mhz"])
+    d = tf[K_DEFAULT]
+    check("the two halves are DIFFERENT numbers on this tree",
+          cd["fmax_mhz"] != d["fmax_mhz"],
+          f'{d["fmax_mhz"]} whole-design vs {cd["fmax_mhz"]} core-domain')
 
     # --- ABSENCE IS NOT DATA ------------------------------------------------ #
     for drop in qg.CORE_DOMAIN_CLASSES:
@@ -671,18 +734,18 @@ def q16_paired_reporting():
         got = qg.core_domain_fmax(part)
         check(f"a missing {drop} class gives NO figure, not a min over the rest",
               got["fmax_mhz"] is None and got["missing"] == [drop], str(got))
-    hollow = {k: (dict(v, fmax_mhz=None) if k.startswith("k=4.0") else v)
+    hollow = {k: (dict(v, fmax_mhz=None) if k.startswith("CE4") else v)
               for k, v in tf.items()}
     check("a class present but with NO ceiling gives no figure either",
           qg.core_domain_fmax(hollow)["fmax_mhz"] is None)
     check("an empty artifact gives no figure and does not crash",
           qg.core_domain_fmax({})["fmax_mhz"] is None)
     # NON-VACUITY: the minimum must actually track the data.
-    moved = {k: (dict(v, fmax_mhz=12.0) if k.startswith("k=1.5") else v)
+    moved = {k: (dict(v, fmax_mhz=12.0) if k.startswith("INTO") else v)
              for k, v in tf.items()}
     got = qg.core_domain_fmax(moved)
-    check("the binding class FOLLOWS the numbers (k=1.5 at 12.0 MHz binds)",
-          got["fmax_mhz"] == 12.0 and got["class"] == "k=1.5", str(got))
+    check("the binding class FOLLOWS the numbers (INTO at 12.0 MHz binds)",
+          got["fmax_mhz"] == 12.0 and got["class"] == "INTO", str(got))
 
     # --- the contract, in the source ---------------------------------------- #
     src = (SW / "quartus_gate.py").read_text()
@@ -704,38 +767,46 @@ def q16_paired_reporting():
     check("the core-domain worst-of-N is a MIN, not a mean or a max",
           "core_worst = min(core_ok)" in src)
 
-    # --- THE OFF-CLASS FLAG, ON A REAL DRAW THAT EXHIBITS IT ---------------- #
+    # --- THE OFF-CLASS FLAG ------------------------------------------------- #
     # ⚠ THE QUERY IS NOT THE EXCEPTION.  The probe returns each class
     # collection's worst path BY SLACK, and that path carries whatever
     # exception the SDC gives it -- which since the Phase-1 enable-phase split
-    # need not be the one the class LABEL names.  This fixture is the CONTROL
-    # seed 1 draw of 2026-08-13, where the `k=4.0` row measured `k = 1.5`.
-    fx = ROOT / "sw" / "testdata" / "intcone" / "fixtures" / \
-        "ctl_seed1_offclass.truefmax.txt"
-    if fx.exists():
-        o = qg.core_domain_fmax(qg.parse_truefmax(fx))
-        check("the off-class row is DETECTED, not silently used as a k=4 figure",
-              o["off_class"] == ["k=4.0"], str(o.get("off_class")))
-        check("...and the measured k is carried per class, beside the label",
-              o["k_measured"]["k=4.0"] == 1.5, str(o.get("k_measured")))
-        check("the figure declares itself an UPPER BOUND",
-              o["upper_bound"] is True and "UPPER BOUND" in o["caveat"])
-        check("a draw with NO off-class row reports an empty list, not None",
-              qg.core_domain_fmax(tf)["off_class"] == [],
-              str(qg.core_domain_fmax(tf)["off_class"]))
-    else:
-        check("the off-class fixture exists", False, str(fx))
+    # need not be the one the class LABEL names.
+    #
+    # ⚠ AND THE DEMONSTRATION IS WEAKER THAN IT WAS, WHICH IS SAID RATHER THAN
+    # HIDDEN.  The one REAL draw in the tree that exhibits an off-class row is
+    # `intcone/fixtures/ctl_seed1_offclass.truefmax.txt`, and it is a
+    # NEGEDGE-ERA artifact: it no longer parses into these class names (Q14
+    # asserts exactly that, and keeps it for that purpose).  Until a posedge-era
+    # draw exhibits the condition, the detector is exercised on a SYNTHETIC
+    # perturbation of this wave's own fixture -- a unit test of the comparison,
+    # NOT a measurement that the condition occurs.  If any future draw reports
+    # a non-empty `off_class`, freeze it here and delete this paragraph.
+    off = {k: (dict(v, k=1.5) if k.startswith("CE4") else v)
+           for k, v in tf.items()}
+    o = qg.core_domain_fmax(off)
+    check("[SYNTHETIC] an off-class row is DETECTED, not silently used as a "
+          "k=4 figure", o["off_class"] == ["CE4"], str(o.get("off_class")))
+    check("...and the measured k is carried per class, beside the label",
+          o["k_measured"]["CE4"] == 1.5, str(o.get("k_measured")))
+    check("...and the NOMINAL k it was compared against is carried too",
+          o["k_nominal"] in (4.0, 2.0), str(o.get("k_nominal")))
+    check("the figure declares itself an UPPER BOUND",
+          o["upper_bound"] is True and "UPPER BOUND" in o["caveat"])
+    check("a draw with NO off-class row reports an empty list, not None",
+          qg.core_domain_fmax(tf)["off_class"] == [],
+          str(qg.core_domain_fmax(tf)["off_class"]))
 
     # --- THE SUMMARY ITSELF, ON SYNTHETIC DRAWS ----------------------------- #
     # ⚠ A SUMMARY THAT CAN ONLY BE EXERCISED BY A THIRTY-MINUTE COMPILE IS A
     # SUMMARY WHOSE FIRST RUN IS ON THE DATA IT WAS WRITTEN TO REPORT.  That is
     # why `paired_figures()` is a function; this is the run that is not.
-    def draw(seed, fmax, core, cls="k=4.0"):
+    def draw(seed, fmax, core, cls="CE4"):
         return {"seed": seed, "fmax_mhz": fmax, "core_fmax_mhz": core,
                 "core_domain": {"fmax_mhz": core, "class": cls, "k": 4.0,
                                 "from": "u_eu|a", "to": "u_biu|b",
-                                "classes": {"k=4.0": core, "k=1.5": 86.1,
-                                            "k=2.5": 210.9}}}
+                                "classes": {"CE4": core, "INTO": 86.1,
+                                            "OUTOF": 210.9}}}
     ps = [draw(1, 41.71, 59.5), draw(2, 42.48, 58.0), draw(3, 42.57, 61.0),
           draw(4, 42.50, 57.2), draw(5, 44.36, 60.1)]
     bd = [{"seed": p["seed"], "from": "u_eu|upc", "to": "bus|ad_in_q[14]",
@@ -755,7 +826,7 @@ def q16_paired_reporting():
     check("...and the two halves bind on DIFFERENT seeds here, by construction",
           wd["seed"] != cdw["seed"])
     check("the core-domain half names its class and k",
-          cdw["class"] == "k=4.0" and cdw["k"] == 4.0)
+          cdw["class"] == "CE4" and cdw["k"] == 4.0)
     check("both quotable strings name N and the seed set",
           "worst-of-5@seeds{1,2,3,4,5}" in wd["quotable_as"]
           and "worst-of-5@seeds{1,2,3,4,5}" in cdw["quotable_as"],
@@ -765,8 +836,8 @@ def q16_paired_reporting():
     check("the core-domain half declares itself NOT one",
           cdw["is_promotion_gate"] is False)
     check("every core class carries its own worst-of-N",
-          cdw["per_class_worst_of_n"]["k=1.5"]["min"] == 86.1
-          and cdw["per_class_worst_of_n"]["k=4.0"]["min"] == 57.2)
+          cdw["per_class_worst_of_n"]["INTO"]["min"] == 86.1
+          and cdw["per_class_worst_of_n"]["CE4"]["min"] == 57.2)
     check("derivable on all 5 draws", cdw["n_draws_derivable"] == 5)
     # ...and a sweep in which the probe failed on one draw.
     ps2 = list(ps)

@@ -968,6 +968,41 @@ a random byte stream can wedge, and at 4,000,000 clocks an unregistered seed
 reached `fpops = 6`.  The registered gate form (4 × 400,000) is unaffected;
 above it the floor over-reports.  Booked, not fixed.
 
+### THE ce/ce_half CONTRACT CHECKER — **NEW, 2026-08-13.  ALWAYS-ON, ZERO COST, IT `$fatal`s.**
+
+`hdl/tb/ce_contract_check.sv`, `ifndef SYNTHESIS`, instantiated in
+**`tb_v30_core`** (its own train), **`tb_sys`** (`nec_bus`'s train — the
+control that the contract is satisfiable by the integration that gets flashed)
+and **`tb_chain_lfsr`**.  It is not a separate command: it rides **every**
+simulation the tree runs.
+
+| clause | it `$fatal`s on |
+|---|---|
+| **C-a** | `ce && ce_half` on one fabric clock |
+| **C-b** | two enable assertions with **zero** idle clocks between them |
+| **C-c** | two `ce`s with **no `ce_half`** between them |
+
+**WHY `$fatal` AND NOT `$error`.**  A train that leaves the envelope has
+invalidated every row downstream of it; continuing would produce a SCORED
+NUMBER taken outside the contract, **which is exactly what happened** — the
+golden scorer ran at `--ce-div 1` from the day the contract was written and
+nothing saw it, because a comment is not a gate.
+
+**NON-VACUITY, MEASURED ON ALL THREE CLAUSES**, on scratch trees with the
+divisor floor removed and the checker untouched: new train `+ce_div=1` → **C-c**,
+`+ce_div=2` → **C-b**, `+ce_div=4` → clean; **HISTORICAL train (`ce_half <= ce`)
+`+ce_div=1` → C-a**, i.e. *the gate would have caught the instrument the tree
+actually used*.  Every firing run exits **134**.  ⚠ Reported precisely: on the
+NEW train div 1 fires **C-c**, not C-a, because that train never asserts
+`ce_half` at div 1; C-a is the OLD train's div-1 signature.
+
+Beside it, `check_core.py` **REFUSES** `--ce-div` 1, 2, 3 and any odd value —
+**exit 2, with the three clauses, the ruling and the file to read printed.**
+Refuse-with-reason, the accepted-and-ignored family's fix pattern.
+
+`docs/notes/ce_contract_reland_prereg_2026-08-13.md` (committed before the first
+edit) · `..._results_2026-08-13.md`.
+
 ## B. THE STANDING SET — the `ucore`
 
 Standing ratchets. Monotone: never re-scored downward without a loud, itemised
