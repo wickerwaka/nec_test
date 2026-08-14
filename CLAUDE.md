@@ -93,7 +93,67 @@ them).
 
 ## Gate quick reference
 
-### ⚠⚠⚠ READ FIRST — **THE ce/ce_half CONTRACT IS THE OPERATING ENVELOPE (USER RULING 2026-08-13), AND THE GOLDEN SCORER'S BASIS MOVED**
+### ⚠⚠⚠ READ FIRST — **THE ce/ce_half CONTRACT IS ONE PREMISE: NEVER COINCIDENT.  ADJACENT IS LEGAL.  THE ASSERT IS IN THE CORE MODULE.**
+
+**USER RULING 2026-08-13 (verbatim), which SUPERSEDES the gap clause below:**
+*"Correct the guidance on ce and ce_half. They do not need to be separated by a
+clock, they just cannot be enabled at the same time, we should have an assert in
+the module that prevents that."*
+
+* **THE CONTRACT IS `C-a` AND NOTHING ELSE**: `ce` and `ce_half` are never
+  asserted on the same fabric clock.  **C-b (the one-clock gap) is DELETED, and
+  C-c's `ce → ce >= 4` arithmetic with it** — that number was `2 + 2`.
+* **`hdl/tb/ce_contract_check.sv` IS RETIRED AND DELETED.**  The gate is
+  **`hdl/rtl/ucore/v30_core.sv`**, `ifndef SYNTHESIS`, `$fatal` on **C-a** and
+  on **S-1** (*at least one `ce_half` falls between consecutive `ce`s* — the
+  core's own functional requirement, not a contract clause: `ce_half` is
+  `t1_half2`'s only enable and `t1_half2` is the T1 address→data turnaround).
+  **Every instantiation of the core inherits it, downstream integrators
+  included.**  Non-vacuity demonstrated on both clauses.
+  ⚠ **`check_core --core fsm` therefore runs with NO enable enforcement** — the
+  ARCHIVED core was not touched.
+* **`ce → ce >= 2` HOLDS CONTRACT-FREE** (C-a + S-1), and that is the whole of
+  the new arithmetic.
+* **`check_core` REFUSES `--ce-div 1` AND NOTHING ELSE.**  **2, 3 and odd
+  divisors are LEGAL**; **the default stays 4, and a default is not a floor.**
+  div 2 is not hypothetical — it is M72's catch-up burst rate
+  (`m72_downstream_timing_2026-08-12.md` §1).
+* **THE POSEDGE `t1_half2` COVERS THE WHOLE CORRECTED ENVELOPE — MEASURED, not
+  argued**: `check_core --opcodes all --cases 0` is **169,000 / 169,000 at div
+  2, 3, 4 AND 8**, `CE_HOLD_VIOL 0` at 2/3/8.  **No RTL flop changed; the
+  negedge form is NOT re-justified.**
+* **THE SDC FELL WITH THE CONTRACT**: `ce → ce` **`-setup 4 -hold 3` →
+  `-setup 2 -hold 1`**, and **BOTH cross-phase exceptions are DELETED** (1.0
+  period is the default check).  `CE4` → **`SAME`**; the checked `nominal` table
+  is **`SAME` 2.0 · `INTO` 1.0 · `OUTOF` 1.0**, all confirmed on the netlist to
+  four decimals on **both** configurations with `off_class` EMPTY.
+* **G6, ONE DRAW PER CONFIG: CONTROL 38.01 MHz / +6.618 ns / 10,155 ALMs**
+  (`a417e4c4e08faced…`) and **RETENTION 39.62 MHz / +7.277 ns / 10,162 ALMs**
+  (`465cc54b9554f3a3…`), both PASS, TNS 0.000 setup AND hold every domain,
+  `.rbf`s differ.  ⚠ **Fmax FELL (42.06 → 38.01, 43.30 → 39.62) AND IT WAS
+  PRE-REGISTERED THAT IT WOULD**: the old budget was computed against an
+  envelope the core does not have.  **A correctness change, not a regression.**
+  ⚠ **The binding cone moved INTO the core** — whole-design Fmax now EQUALS the
+  core-domain figure, bound by `SAME` at `k = 2.0`.
+* **THE LADDER IS ZERO-DELTA** — the whole `check_core` family, `check_boot`,
+  `ulockstep` 17,350, S16 (`busstat_other` 24 · `ARCH` 27), `check_ab_sim` 187,
+  `ghost_launch_law` 200/200, `qdepth_probe`, `r7_lint`, `ss_lint` (232 / 221
+  flops), `test_artifact` 45/45, **plus 2,728 directed `tb_sys` cells
+  byte-identical by decompressed content** and `fz2_replay` **307/307**.
+  `test_quartus_gate` **254/254** (**255/255** when a build tree is on disk — Q12's live-`fit.rpt` check is skipped without one).
+* **NOTHING NEW IS OWED TO FABRIC**: the RTL edit is `ifndef SYNTHESIS` and the
+  SDC changes the compiler's budget, not a pin.  **The re-land's FLASH #21
+  (v)/(vi) debt is unchanged and still outstanding.**
+
+`docs/notes/ce_contract_correction_prereg_2026-08-13.md` (committed before the
+first edit) and `..._results_2026-08-13.md`; `standing_gates.md` §A and §B carry
+the authoritative rows.
+
+*The re-land's banner follows, SUPERSEDED in its premises (C-b/C-c), its floor
+(4), its checker and its G6 pair — and kept because a ratchet is only readable
+against its own history.*
+
+### ⚠ SUPERSEDED — **THE ce/ce_half CONTRACT IS THE OPERATING ENVELOPE (USER RULING 2026-08-13), AND THE GOLDEN SCORER'S BASIS MOVED**
 
 `sw/check_core.py` defaulted to `--ce-div 1`, where `tb_v30_core` asserted `CE`
 and `CE_HALF` **on the same clock** — exactly what premise **C-a** forbids.

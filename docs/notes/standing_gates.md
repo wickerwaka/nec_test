@@ -107,18 +107,43 @@ parsing, `truefmax_complete()` returns False and `core_domain_fmax()` returns
 NO figure with the missing classes listed — which is correct: absence must not
 read as data.**  `docs/notes/ce_contract_reland_prereg_2026-08-13.md` §6/§6.2.
 
-| class | label | exception | `k` NOW | `k` was |
-|---|---|---|---:|---:|
-| default | `DEFAULT` | — | **1.0** | 1.0 |
-| `$v30u_ce → $v30u_ce` | `CE4` | `-setup 4` | **4.0** | 4.0 |
-| `$v30u_ce → t1_half2` | `INTO` | `-setup 2` | **2.0** | 1.5 (negedge dest) |
-| `t1_half2 → $v30u_ce` | `OUTOF` | `-setup 2` (was `-setup 3`) | **2.0** | 2.5 (negedge source) |
-| anything else `→ t1_half2` | `ENABLE` | none, deliberately | **1.0** | 0.5 |
+⚠⚠ **AND THEN THE ce/ce_half CONTRACT CORRECTION MOVED THEM AGAIN, THE SAME
+DAY — THIS IS THE LIVE TABLE.**  USER RULING 2026-08-13: *"They do not need to
+be separated by a clock, they just cannot be enabled at the same time."*  The
+gap clause (C-b) and the `ce -> ce >= 4` arithmetic derived from it are DELETED,
+so **`ce -> ce` falls to `-setup 2` and BOTH cross-phase exceptions are DELETED
+OUTRIGHT** (1.0 period IS the default check).  `CE4` asserted a `k` in its own
+name and is **RENAMED `SAME`**, so **`CE4`-era artifacts stop parsing too** —
+there are now TWO dead eras.
+`docs/notes/ce_contract_correction_results_2026-08-13.md` §6.
 
-*The `INTO` row's `-setup 2` SPELLING did not change and its MEANING did: it
-was 1.5 periods because the destination edge came half a period early.  STA
-computes the destination edge; it is not told.  `OUTOF` tightened, `-setup 3
--hold 2` → `-setup 2 -hold 1`.*
+| class | label | exception | `k` NOW | `k` was (CE4 era) | `k` was (negedge era) |
+|---|---|---|---:|---:|---:|
+| default | `DEFAULT` | — | **1.0** | 1.0 | 1.0 |
+| `$v30u_ce → $v30u_ce` | **`SAME`** (was `CE4`) | **`-setup 2`** (was `-setup 4`) | **2.0** | 4.0 | 4.0 |
+| `$v30u_ce → t1_half2` | `INTO` | **NONE — DELETED** | **1.0** | 2.0 | 1.5 (negedge dest) |
+| `t1_half2 → $v30u_ce` | `OUTOF` | **NONE — DELETED** | **1.0** | 2.0 | 2.5 (negedge source) |
+| anything else `→ t1_half2` | `ENABLE` | none, deliberately | **1.0** | 1.0 | 0.5 |
+
+**ALL FIVE MEASURED ON THE NETLIST, BOTH CONFIGURATIONS, `off_class` EMPTY**
+(G6 CONTROL `a417e4c4e08faced…` and RETENTION `465cc54b9554f3a3…`, 2026-08-13).
+
+⚠ **THE `CE4`-ERA WALL IS THINNER THAN THE NEGEDGE ONE.**  A negedge-era
+artifact goes missing on all three core classes; a `CE4`-era one goes missing on
+**exactly one** (`SAME`), because the correction RENAMED that class but only
+DELETED the exceptions behind `INTO`/`OUTOF`, leaving those labels intact.  **A
+future correction that changes every `k` and renames nothing would leave a stale
+artifact parsing CLEAN** — only `quartus_gate.py`'s `nominal` k check would
+catch it.  The two mechanisms are independent on purpose and
+`sw/test_quartus_gate.py` asserts the per-era behaviour separately.
+
+*The CE4-era reading, superseded within the day and kept because a ratchet is
+only readable against its own history: `DEFAULT` 1.0 · `CE4` `-setup 4` 4.0 ·
+`INTO` `-setup 2` 2.0 · `OUTOF` `-setup 2` 2.0 · `ENABLE` 1.0.  The `INTO` row's
+`-setup 2` SPELLING had not changed and its MEANING had: it was 1.5 periods
+because the destination edge came half a period early.  STA computes the
+destination edge; it is not told.  `OUTOF` had tightened, `-setup 3 -hold 2` →
+`-setup 2 -hold 1`.*
 
 *The table as it stood before that date, because a ratchet is only readable
 against its own history:* default 1.0 · `$v30u_ce → $v30u_ce` `-setup 4` 4.0 ·
@@ -179,7 +204,55 @@ derived ceilings and inter-draw claims are affected.)*
 
 ---
 
-### ⚠⚠⚠⚠ **THE LAST G6 LEG ON THIS TREE IS A PAIR OF SINGLE DRAWS, NOT A BAND — 2026-08-13, THE ce/ce_half RE-LAND**
+### ⚠⚠⚠⚠ **THE LIVE G6 LEG — 2026-08-13, THE ce/ce_half CONTRACT CORRECTION.  A PAIR OF SINGLE DRAWS, NOT A BAND.**
+
+**`ce_contract_correction_results_2026-08-13.md` §9.**  One draw per
+configuration, quoted `draw@seed1`, **NOT an Fmax claim**.  (`--seeds 1` was
+used rather than a bare invocation only because the per-class `truefmax` probe
+is on the sweep code path; it is still exactly one fit — and it means **this
+leg, unlike the re-land's, carries a `truefmax` artifact on BOTH
+configurations**.)
+
+| | `draw@seed1` | worst setup | ALMs | receipt |
+|---|---:|---:|---:|---|
+| **CONTROL** | **38.01 MHz** | **+6.618 ns** | 10,155 (24 %) | `a417e4c4e08faced…` |
+| **RETENTION** | **39.62 MHz** | **+7.277 ns** | 10,162 (24 %) | `465cc54b9554f3a3…` |
+
+Both **PASS**; **TNS 0.000 setup AND hold on every domain of both**; 0 errors /
+0 latches / 0 `lpm_divide`; input manifest **`00ddcf38e5d0668d…`** (88 files,
+**differs** from the re-land's `002f2fa4728ecac9…` — the check that the edit
+reached the compiler); `.rbf` **`19d3d876c6276f87…`** vs
+**`3ed5b643193d4fb5…`**, DIFFERENT (E-9), and the retention receipt
+**self-labels `RETENTION (X1_AD_RETENTION=1)`, DERIVED from the reports** (E-6).
+
+⚠ **Fmax FELL ON BOTH CONFIGURATIONS AND IT WAS REGISTERED THAT IT WOULD**
+(prereg P-4a): CONTROL 42.06 → **38.01**, RETENTION 43.30 → **39.62**.  The
+`ce → ce` exception fell `-setup 4` → `-setup 2` because the corrected contract
+does not warrant four periods.  **This is a CORRECTNESS change: the higher
+numbers were measured against an envelope the core does not have.**  No floor
+was registered and none is claimed; both clear the 32.0 bar by ≥ 6 MHz.
+
+**THE SDC RE-DERIVATION IS CONFIRMED ON THE NETLIST TO FOUR DECIMALS, ON BOTH
+CONFIGURATIONS**: `DEFAULT` **1.0000** · **`SAME` 2.0000** · **`INTO` 1.0000** ·
+**`OUTOF` 1.0000** · `ENABLE` **1.0000**, `off_class` **EMPTY** on both.  The
+`INTO`/`OUTOF` 1.0000 is the netlist confirming their exceptions are **GONE**,
+not mis-spelled.
+
+⚠ **THE BINDING CONE MOVED INTO THE CORE.**  On both draws the whole-design
+Fmax **equals** the core-domain figure, bound by class **`SAME`** at `k = 2.0`
+(38.01 and 39.62), where the re-land's core-domain figure was 62.39 MHz on
+`CE4` at `k = 4.0` and the design was bound elsewhere.  **The CE multicycle was
+carrying this design; the honest contract hands the ceiling back to the core's
+own `ce → ce` cone.**  Recorded as a structural finding; **no RTL was written on
+the strength of it**, and it is one draw.
+
+⚠ **THE RETENTION-VS-CONTROL SIGN IS POSITIVE (+1.61 MHz).**  Reported, not
+explained, and **no delta may be computed from a draw pair.**
+
+*The re-land's pair, superseded within the day and kept because a ratchet is
+only readable against its own history:*
+
+### ⚠ **SUPERSEDED — THE ce/ce_half RE-LAND'S G6 PAIR, 2026-08-13**
 
 **`ce_contract_reland_results_2026-08-13.md` §9.**  Taken under the ruling above:
 a landing wave's compile verifies the landing, so **one draw per configuration**,
@@ -965,9 +1038,9 @@ golden suite, on its own, is not.
 **What it runs.** `hdl/tb/tb_chain_lfsr.sv`: the ucore in an environment that
 is entirely LFSR — LFSR memory (writes land), LFSR `READY`, LFSR
 `INT`/`NMI`/`POLL_N` — executing **arbitrary bytes**.  The CE train is built to
-the **ce/ce_half contract (Reading B)** and to nothing narrower: `ce` one
-fabric clock, `ce_half` the **next**, then an LFSR-drawn gap `g ∈ [0,7]`.
-**There is no `div` in the file.**
+the **ce/ce_half contract** and to nothing narrower: `ce` one fabric clock, an
+LFSR-drawn head gap `h ∈ {0,1}`, `ce_half`, then an LFSR-drawn tail gap
+`g ∈ [0,7]`.  **There is no `div` in the file.**
 
 **The bars.** depth ≤ `CHAIN_MAX − 1` (a run that reaches the declared bound
 has eaten the spare position); 0 overflows; `ce & ce_half` coincident **0**
@@ -975,6 +1048,29 @@ times; the contract's MINIMUM gap (`g = 0`) reached ≥ 1,000×/seed; a liveness
 floor on bus cycles and instruction starts; and — with `--sig-ref` — the
 64-bit output signature byte-identical to a named reference.
 
+⚠⚠ **RE-REGISTERED TWICE ON 2026-08-13.  THE SECOND ONE IS THE LIVE STATE, AND
+IT PUT BACK WHAT THE FIRST TOOK OUT.**  The ce/ce_half CONTRACT CORRECTION
+deleted clause (b) — *"They do not need to be separated by a clock"* (USER
+RULING) — so the widening described just below was **over-constraint, not
+conservatism**, and this harness had been spending its gap draws on a clause the
+contract never had.  The train is now `ce@k`, head gap `h ∈ {0,1}`, `ce_half`,
+tail gap `g ∈ [0,7]`; `h = g = 0` is `ce@k`, `ce_half@k+1`, `ce@k+2` — **the
+contract's TRUE minimum and M72's catch-up burst rate**.  Drawing BOTH gaps is
+what makes that minimum reachable at all.
+**REGISTERED NOW** (`ce_contract_correction_results_2026-08-13.md` §5.1), 4
+seeds × 400,000 clocks: `CHAIN_DEPTH_MAX` **6**, `entry_st` **25**, 0 overflows,
+coincide **0**, `ce_clocks` **66,648 / 66,664 / 66,521 / 66,559** (they RISE
+~25 %: a shorter period fits more CPU cycles), signatures
+**`0a3882a30ec09b82` · `a4a24f1bff8dbf4b` · `1eaefc62aaa6f126` ·
+`c762272d5aa08f6e`**, and the **liveness census IDENTICAL SEED FOR SEED** to the
+previous train's, measured train-vs-train with the engine fixed.  H-3
+non-vacuity still MET (overflow fires 4/4 at `CHAIN_MAX = 4`).
+⚠ **AND `sw/testdata/chain_lfsr_sig.json` WAS ALREADY STALE BY A WAVE** — it
+still held the PRE-re-land signatures, because **the gate does not read that
+file unless `--sig-ref` is passed**.  Refreshed with `--sig-out`.  *A reference
+nobody checks is the shape of a vacuous gate.*
+
+*Superseded, kept because a ratchet is only readable against its own history:*
 ⚠ **RE-REGISTERED 2026-08-13 — THE HARNESS'S OWN TRAIN VIOLATED ITS OWN CLAUSE
 (b).**  `tb_chain_lfsr.sv`'s header states the assumables as *"(b) >= 1 idle
 cycle between assertions"* and its train asserted `ce_half` on the fabric clock
@@ -1031,15 +1127,50 @@ a random byte stream can wedge, and at 4,000,000 clocks an unregistered seed
 reached `fpops = 6`.  The registered gate form (4 × 400,000) is unaffected;
 above it the floor over-reports.  Booked, not fixed.
 
-### THE ce/ce_half CONTRACT CHECKER — **NEW, 2026-08-13.  ALWAYS-ON, ZERO COST, IT `$fatal`s.**
+### THE ce/ce_half CONTRACT IS ASSERTED **IN THE CORE MODULE** — 2026-08-13 (CORRECTED).  ALWAYS-ON, ZERO COST, IT `$fatal`s.
 
-`hdl/tb/ce_contract_check.sv`, `ifndef SYNTHESIS`, instantiated in
-**`tb_v30_core`** (its own train), **`tb_sys`** (`nec_bus`'s train — the
-control that the contract is satisfiable by the integration that gets flashed)
-and **`tb_chain_lfsr`**.  It is not a separate command: it rides **every**
-simulation the tree runs.
+⚠ **THE CONTRACT IS ONE PREMISE AND THE ENFORCEMENT MOVED INTO `v30_core`.**
+USER RULING 2026-08-13, verbatim: *"Correct the guidance on ce and ce_half.
+They do not need to be separated by a clock, they just cannot be enabled at the
+same time, we should have an assert in the module that prevents that."*
 
-| clause | it `$fatal`s on |
+`hdl/rtl/ucore/v30_core.sv`, `ifndef SYNTHESIS`, inside the file's existing
+assertion block.  **Every instantiation of the core inherits it** —
+`tb_v30_core`, `tb_chain_lfsr`, `tb_sys`/`system_large`, `tb_ab`, `tb_harness`,
+**and any downstream integrator's simulation**, which is where the trains this
+contract exists for actually come from.  It is not a separate command: it rides
+**every** simulation the tree runs.
+
+| clause | kind | it `$fatal`s on |
+|---|---|---|
+| **C-a** | **THE CONTRACT** | `CE && CE_HALF` on one fabric clock |
+| **S-1** | a STRUCTURAL fact about the core, *not* a contract clause | a `CE` with **no `CE_HALF`** since the previous `CE` |
+
+**ADJACENT ENABLES ARE LEGAL.**  The old **C-b** (a mandatory idle clock) is
+**DELETED**, and **C-c**'s `ce -> ce >= 4` arithmetic with it — that number was
+`2 + 2`.  What survives of C-c is **S-1**, restated as what it always was: the
+core's own functional requirement, because `ce_half` is the only enable on
+`t1_half2` and a `ce -> ce` without one leaves the ADDRESS on AD for a whole
+write cycle.  S-1 is what makes **`ce -> ce >= 2` true CONTRACT-FREE**, which is
+the whole of `nec_test.sdc`'s one remaining CE exception.
+
+⚠ **`hdl/tb/ce_contract_check.sv` IS RETIRED AND DELETED** (with its three
+instantiations and its three build-list entries).  Its gap clauses enforced a
+premise that no longer exists and its C-a clause is superseded by a strictly
+wider check.  **THE ONE COST, STATED AS A LOSS: `check_core --core fsm` now runs
+with NO enable enforcement** — the assert is the ucore's and the ARCHIVED FSM
+core was not touched.
+
+**MEASURED, `ce_contract_correction_results_2026-08-13.md` §4.2: the golden
+corpus is 169,000 / 169,000 at `--ce-div` 2, 3, 4 AND 8**, and
+`CE_HOLD_VIOL 0` at 2, 3 and 8.  The POSEDGE `t1_half2` covers the whole
+corrected envelope; **no RTL flop was changed and the negedge form is NOT
+re-justified.**
+
+*The superseded checker's clause table, kept because a ratchet is only readable
+against its own history:*
+
+| clause | it `$fatal`ed on |
 |---|---|
 | **C-a** | `ce && ce_half` on one fabric clock |
 | **C-b** | two enable assertions with **zero** idle clocks between them |
@@ -1051,20 +1182,23 @@ NUMBER taken outside the contract, **which is exactly what happened** — the
 golden scorer ran at `--ce-div 1` from the day the contract was written and
 nothing saw it, because a comment is not a gate.
 
-**NON-VACUITY, MEASURED ON ALL THREE CLAUSES**, on scratch trees with the
-divisor floor removed and the checker untouched: new train `+ce_div=1` → **C-c**,
-`+ce_div=2` → **C-b**, `+ce_div=4` → clean; **HISTORICAL train (`ce_half <= ce`)
-`+ce_div=1` → C-a**, i.e. *the gate would have caught the instrument the tree
-actually used*.  Every firing run exits **134**.  ⚠ Reported precisely: on the
-NEW train div 1 fires **C-c**, not C-a, because that train never asserts
-`ce_half` at div 1; C-a is the OLD train's div-1 signature.
+**NON-VACUITY, MEASURED ON BOTH CLAUSES**, on scratch trees under
+`~/.cache/ucsimt-tmp/` with the divisor floor removed and the assert untouched:
+this tree's train `+ce_div=1` → **S-1** (`v30_core.sv:195`); **HISTORICAL train
+(`ce_half <= ce`) `+ce_div=1` → C-a** (`v30_core.sv:191`); and the control —
+**HISTORICAL train at `+ce_div=4` runs CLEAN**, because adjacent is legal now.
+⚠ Reported precisely: on THIS tree's train div 1 fires **S-1**, not C-a, because
+`ce_cnt == (ce_div/2) - 1` is `ce_cnt == -1` at div 1 and never true, so that
+train emits no `ce_half` at all; C-a is the HISTORICAL train's div-1 signature.
 
-Beside it, `check_core.py` **REFUSES** `--ce-div` 1, 2, 3 and any odd value —
-**exit 2, with the three clauses, the ruling and the file to read printed.**
-Refuse-with-reason, the accepted-and-ignored family's fix pattern.
+Beside it, `check_core.py` **REFUSES `--ce-div 1` and nothing else** — exit 2,
+with the premise, the ruling and the file to read printed.  Refuse-with-reason,
+the accepted-and-ignored family's fix pattern.  **2, 3 and odd divisors are
+LEGAL; the default stays 4, and a default is not a floor.**
 
-`docs/notes/ce_contract_reland_prereg_2026-08-13.md` (committed before the first
-edit) · `..._results_2026-08-13.md`.
+`docs/notes/ce_contract_correction_prereg_2026-08-13.md` (committed before the
+first edit) · `..._results_2026-08-13.md`; superseding
+`ce_contract_reland_{prereg,results}_2026-08-13.md`.
 
 ## B. THE STANDING SET — the `ucore`
 
@@ -1082,17 +1216,26 @@ written, and nothing saw it (`t1_half2_posedge_results_2026-08-13.md` §5.1).
 **USER RULING 2026-08-13: the contract IS the envelope; 1:1 is an unsupported
 mode.**
 
-* **The default is `--ce-div 4`**, and **1, 2 and 3 are REFUSED** (exit 2, with
-  the clause cited).  ⚠ **4 AND NOT 2**, which is a deviation from the brief
-  registered in advance with its derivation: `ce_half <= ce` put the two
-  enables on ADJACENT clocks at *every* divisor, so div 2 fixes C-a and leaves
-  **C-b** broken.  `tb_v30_core`'s train now puts `ce_half` at the CPU-cycle
-  MIDPOINT — where `nec_bus` has always put it — and the minimum legal divisor
-  is then 4, **for `nec_bus` too**.
-* **The contract is now a GATE**, not a comment: `hdl/tb/ce_contract_check.sv`
-  `$fatal`s on C-a, C-b and C-c, instantiated in `tb_v30_core`, `tb_sys` and
-  `tb_chain_lfsr`.  **Non-vacuity demonstrated on all three clauses** against a
-  scratch tree with the divisor floor removed.
+* ⚠⚠ **CORRECTED THE SAME DAY — THE FLOOR IS 2, NOT 4, AND ODD IS LEGAL.**
+  USER RULING 2026-08-13: *"They do not need to be separated by a clock, they
+  just cannot be enabled at the same time."*  **`check_core` REFUSES `--ce-div
+  1` and nothing else**; **the default STAYS 4, and a default is not a floor**
+  (4 is `nec_bus`'s phase at the divider of record and the divisor this whole
+  table is registered at, so keeping it means the correction does not silently
+  re-base the ladder).  **MEASURED: 169,000 / 169,000 at div 2, 3, 4 AND 8**,
+  `CE_HOLD_VIOL 0` at 2, 3 and 8 —
+  `ce_contract_correction_results_2026-08-13.md` §4.2.
+* **The contract is a GATE IN THE CORE MODULE**, not a comment and no longer a
+  testbench: `hdl/rtl/ucore/v30_core.sv` `$fatal`s on **C-a** and **S-1**, and
+  every instantiation of the core inherits it.  **Non-vacuity demonstrated on
+  both clauses.**  `hdl/tb/ce_contract_check.sv` is **RETIRED AND DELETED**.
+* *The re-land's reading, superseded within the day and kept because a ratchet
+  is only readable against its own history:* the default was `--ce-div 4` with
+  **1, 2 and 3 REFUSED** — *"4 AND NOT 2 … `ce_half <= ce` put the two enables
+  on ADJACENT clocks at every divisor, so div 2 fixes C-a and leaves C-b
+  broken"* — and the gate was `hdl/tb/ce_contract_check.sv` `$fatal`ing on C-a,
+  C-b and C-c in three testbenches.  **Adjacent is legal now, so the premise
+  that argument rested on is gone.**
 * **THE RE-REGISTRATION IS ZERO-DELTA.**  Every row of the `check_core` family
   in this table was measured at HEAD on the old `--ce-div 1` basis and again on
   the new default, in two steps (instruments first, RTL second), and **not one
@@ -1101,6 +1244,12 @@ mode.**
   cross-divisor control at `--ce-div 8` also reads 169,000/169,000.
   **The numbers in this table are therefore quotable on either basis; quote the
   new one.**  `docs/notes/ce_contract_reland_results_2026-08-13.md`.
+  ⚠ **AND THEY WERE RE-REGISTERED A SECOND TIME AT THE CONTRACT CORRECTION,
+  AGAIN ZERO-DELTA** — the whole `check_core` family plus `check_boot`,
+  `ulockstep`, the S16 walk, `check_ab_sim`, `ghost_launch_law`, `qdepth_probe`,
+  `r7_lint`, `ss_lint` and `test_artifact`, **and 2,728 directed `tb_sys` cells
+  byte-identical by decompressed content**
+  (`ce_contract_correction_results_2026-08-13.md` §7).
 * ⚠ **`--ce-div 1` FIGURES IN OLDER DOCUMENTS ARE NOT INVALIDATED BY THIS** —
   they measured what they measured.  They are simply no longer re-derivable:
   the invocation now refuses.

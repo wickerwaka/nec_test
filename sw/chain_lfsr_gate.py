@@ -84,7 +84,6 @@ def verilator_cmd(ucore_dir, objdir, rtl_paths):
             "--top-module", "tb_chain_lfsr",
             "-I" + str(ucore_dir),
             "-Mdir", str(objdir),
-            str(TB_DIR / "ce_contract_check.sv"),
             str(TB_DIR / "tb_chain_lfsr.sv")] + [str(p) for p in rtl_paths]
 
 
@@ -96,7 +95,7 @@ def recipe():
     $readmemh's them AT RUN TIME, so they are files the ARTIFACT reads, and a
     number produced against the wrong tables is not this tree's number."""
     rtl = [UCORE / f for f in RTL]
-    inputs = ([TB_DIR / "ce_contract_check.sv", TB_DIR / "tb_chain_lfsr.sv"]
+    inputs = ([TB_DIR / "tb_chain_lfsr.sv"]
               + rtl
               + sorted(UCORE.glob("*.svh"))
               + [p for p in sorted(UCORE.glob("*.hex")) if p.is_file()])
@@ -108,7 +107,6 @@ def recipe():
            "--top-module", "tb_chain_lfsr",
            "-I" + art.TOK_ROOT + "/" + str(UCORE.relative_to(ROOT)),
            "-Mdir", art.TOK_OUT,
-           art.TOK_ROOT + "/hdl/tb/ce_contract_check.sv",
            art.TOK_ROOT + "/hdl/tb/tb_chain_lfsr.sv"] + [
            art.TOK_ROOT + "/" + str(p.relative_to(ROOT)) for p in rtl]
     return art.Recipe(kind="verilator_binary", artifact=BIN,

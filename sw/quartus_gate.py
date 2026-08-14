@@ -763,11 +763,17 @@ INPUT_FLIP_EXEMPT = ("hdl/nec_test_ucore.qsf",)
 # SHOULD measure now lives in the `nominal` table below, where it is CHECKED
 # rather than asserted in a string.
 #
-# ⚠ CONSEQUENCE, AND IT IS THE CORRECT BEHAVIOUR: every NEGEDGE-ERA `truefmax`
-# artifact stops parsing into these names, `truefmax_complete()` returns False
-# and `core_domain_fmax()` returns NO FIGURE with the missing classes listed.
-# *Absence must not read as data.*
-TRUEFMAX_CLASSES = ("DEFAULT", "CE4", "INTO", "OUTOF", "ENABLE")
+# ⚠ `CE4` WAS THE ONE LABEL THAT NEVER COMPLIED, AND IT IS NOW `SAME`.
+# The 2026-08-13 ce/ce_half CONTRACT CORRECTION (adjacent enables are legal, so
+# `ce -> ce` >= 2 rather than >= 4) took that class's exception from `-setup 4`
+# to `-setup 2` and DELETED the `INTO`/`OUTOF` exceptions outright.  `SAME` is
+# structural -- it names `$v30u_ce -> $v30u_ce` -- and asserts no `k`.
+#
+# ⚠ CONSEQUENCE, AND IT IS THE CORRECT BEHAVIOUR: every NEGEDGE-ERA *and* every
+# `CE4`-ERA `truefmax` artifact stops parsing into these names,
+# `truefmax_complete()` returns False and `core_domain_fmax()` returns NO FIGURE
+# with the missing classes listed.  *Absence must not read as data.*
+TRUEFMAX_CLASSES = ("DEFAULT", "SAME", "INTO", "OUTOF", "ENABLE")
 
 # --------------------------------------------------------------------------- #
 # THE PAIRED FIGURE -- `standing_gates.md` §A, adopted 2026-08-13.
@@ -792,7 +798,7 @@ TRUEFMAX_CLASSES = ("DEFAULT", "CE4", "INTO", "OUTOF", "ENABLE")
 # ONE.  `nec_test.sdc` collects `$v30u_ce` as (every `v30u_eu` + `v30u_biu`
 # register) MINUS `t1_half2`, and `t1_half2` is itself a `v30u_biu` register.
 # So THREE of the probe's five classes are core-internal on both ends --
-#     CE4    $v30u_ce -> $v30u_ce      (the CE multicycle; the one that binds)
+#     SAME   $v30u_ce -> $v30u_ce      (the CE multicycle; the one that binds)
 #     INTO   $v30u_ce -> t1_half2
 #     OUTOF  t1_half2 -> $v30u_ce
 # -- and the other two are not: `DEFAULT` is the whole design, and `ENABLE` is
@@ -807,7 +813,13 @@ TRUEFMAX_CLASSES = ("DEFAULT", "CE4", "INTO", "OUTOF", "ENABLE")
 # posedge flop the enable must be valid at the posedge ENDING the cycle it is
 # asserted in, so its nominal k is 1.0 and the `k = 0.5` class no longer exists
 # anywhere in this design.
-CORE_DOMAIN_CLASSES = ("CE4", "INTO", "OUTOF")
+#
+# ⚠ SINCE THE 2026-08-13 CONTRACT CORRECTION, `INTO` AND `OUTOF` CARRY NO
+# EXCEPTION AND MEASURE k = 1.0.  They are STILL core-domain classes and are
+# still queried separately: "this arc needs no exception" is a DERIVATION, and
+# a class whose measured k equals its nominal 1.0 is the check that the
+# derivation reached the compiler.
+CORE_DOMAIN_CLASSES = ("SAME", "INTO", "OUTOF")
 
 
 def core_domain_fmax(tf):
@@ -862,12 +874,14 @@ def core_domain_fmax(tf):
     # CONSEQUENCE, stated rather than papered over: **the core-domain figure is
     # an UPPER BOUND on the core-domain ceiling.**  Flagged per row, never
     # silently averaged away.
-    # THE k EACH CLASS SHOULD MEASURE, derived from `nec_test.sdc`'s three
-    # arcs: 4.0 / 2.0 / 2.0 since 2026-08-13.  `INTO` and `OUTOF` were 1.5 and
-    # 2.5 while `t1_half2` was a negedge destination/source; the `-setup`
-    # SPELLING of `INTO` did not change and its MEANING did, which is why the k
-    # is checked here and not read off the constraint.
-    nominal = {"CE4": 4.0, "INTO": 2.0, "OUTOF": 2.0}
+    # THE k EACH CLASS SHOULD MEASURE, derived from `nec_test.sdc`'s arcs:
+    # **2.0 / 1.0 / 1.0 since the 2026-08-13 CONTRACT CORRECTION.**
+    # History, because the k is CHECKED here and never read off the constraint:
+    # `INTO`/`OUTOF` were 1.5/2.5 while `t1_half2` was a negedge
+    # destination/source, then 2.0/2.0 for one day under the deleted C-b, and
+    # are 1.0/1.0 now that adjacent enables are legal and both cross-phase
+    # exceptions are DELETED.  `SAME` (was `CE4`) fell 4.0 -> 2.0 the same way.
+    nominal = {"SAME": 2.0, "INTO": 1.0, "OUTOF": 1.0}
     off = [c for c, r in rows.items()
            if r.get("k") is not None and abs(r["k"] - nominal[c]) > 1e-6]
     binding = min(rows.items(), key=lambda kv: kv[1]["fmax_mhz"])

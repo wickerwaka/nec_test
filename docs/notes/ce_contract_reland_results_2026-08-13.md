@@ -1,5 +1,34 @@
 # THE ce/ce_half CONTRACT IS THE OPERATING ENVELOPE — **LANDED**
 
+> ## ⚠ SUPERSEDED IN ITS PREMISES, 2026-08-13 (SAME DAY) — READ THIS FIRST
+>
+> **USER RULING, verbatim:** *"Correct the guidance on ce and ce_half. They do
+> not need to be separated by a clock, they just cannot be enabled at the same
+> time, we should have an assert in the module that prevents that."*
+>
+> **`docs/notes/ce_contract_correction_results_2026-08-13.md` is the live
+> document.**  What this one says that is no longer true:
+>
+> * **C-b and C-c are DELETED.**  The contract is ONE premise (C-a, never
+>   coincident) plus S-1, a structural fact about the core.  **§2's whole
+>   "WHY 4 AND NOT 2" derivation rests on C-b and falls with it: adjacent
+>   enables are legal and the minimum legal divisor is 2.**
+> * **`hdl/tb/ce_contract_check.sv` is RETIRED AND DELETED**; the assert lives
+>   in `hdl/rtl/ucore/v30_core.sv`, where every instantiation inherits it.  §4
+>   is history.
+> * **The SDC of §7 is re-derived again**: `ce → ce` `-setup 4 -hold 3` →
+>   **`-setup 2 -hold 1`**, and **both cross-phase exceptions are DELETED**.
+>   `CE4` → **`SAME`**, and §9.2's per-class table is a dead era.
+> * **§9's G6 pair (42.06 / 43.30) is superseded by 38.01 / 39.62** — Fmax fell
+>   because this document's `-setup 4` was not warranted.
+> * **§10's FLASH #21 (v)/(vi) debt STANDS.**  The correction adds nothing to it
+>   and does not discharge it.
+>
+> **What SURVIVES unchanged:** the one-word `negedge → posedge` re-land itself
+> (§1), which the correction re-measured across the whole widened envelope and
+> **confirmed** — 169,000/169,000 at div 2, 3, 4 and 8; §5's zero-delta table;
+> §6's contract-legal legs; §6.1's chain-signature attribution.
+
 Pre-registration **`bb5433fe3e`** (`docs/notes/ce_contract_reland_prereg_2026-08-13.md`),
 **committed BEFORE the first edit** — the prior wave's discipline erratum
 (*"written before the edit but NOT COMMITTED before it, so it carries no commit

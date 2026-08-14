@@ -17,19 +17,23 @@
 //  is the port of `m72_downstream_timing_2026-08-12.md` sec.3 item 1, which
 //  that report explicitly offered and which existed in NEITHER repo.
 //
-//  THE ce/ce_half CONTRACT (USER, Reading B -- UNIVERSAL).  The only
-//  assumables are:
-//      (a) `ce` and `ce_half` never coincide;
-//      (b) >= 1 idle cycle between assertions.
+//  THE ce/ce_half CONTRACT (USER, Reading B -- UNIVERSAL; CORRECTED
+//  2026-08-13).  There is now exactly ONE assumable:
+//      (a) `ce` and `ce_half` never coincide.
+//  Clause (b) ("
+//  >= 1 idle cycle between assertions") is DELETED -- *"They do not need to be
+//  separated by a clock, they just cannot be enabled at the same time"* (USER
+//  RULING 2026-08-13).
 //  **No div-based derivation anywhere.**  There is no `div` in this file.  The
-//  train below asserts `ce` for one fabric clock, `ce_half` on the NEXT fabric
-//  clock, and then idles for an LFSR-drawn gap g in [0, 7] before the next
-//  `ce`.  g = 0 is the contract's MINIMUM-GAP pattern -- `ce` every two fabric
-//  clocks, M72's catch-up-burst rate -- and reaching it is a REGISTERED bar
-//  (H-2), because a train that never reaches the minimum is our div-8 train
-//  wearing a disguise.
+//  train below asserts `ce`, idles for h in {0, 1}, asserts `ce_half`, then
+//  idles for g in [0, 7] before the next `ce`; both gaps are LFSR-drawn.
+//  h = g = 0 is the contract's MINIMUM pattern -- `ce` every TWO fabric clocks,
+//  M72's catch-up-burst rate -- and reaching it is a REGISTERED bar (H-2),
+//  because a train that never reaches the minimum is our div-8 train wearing a
+//  disguise.
 //
-//  Clause (a) is ASSERTED here (`ce_coincide`), not assumed.
+//  Clause (a) is ASSERTED here (`ce_coincide`) AND, since 2026-08-13, inside
+//  `v30_core` itself, where it `$fatal`s -- neither is assumed.
 //
 //  WHAT IT REPORTS, on $finish:
 //      CHAIN_DEPTH_MAX <n> entry_st <s>    (the RTL's own +chaindepth observer)
@@ -115,27 +119,40 @@ logic [31:0] l_mem, l_ce, l_rdy, l_pin, l_aux;
 //---------------------------------------------------------------------------
 // THE CE TRAIN.  Reading B and nothing narrower.
 //
-// ⚠ CORRECTED 2026-08-13.  THIS TRAIN VIOLATED THIS FILE'S OWN CLAUSE (b).
-// The header above states the assumables as "(b) >= 1 idle cycle between
-// assertions", and the train asserted `ce_half` on the fabric clock
-// IMMEDIATELY AFTER `ce` -- zero idle cycles -- at every gap draw.  It also
-// reached `ce -> ce` = 2, where C-c requires >= 4.  `nec_test.sdc`'s arc
-// arithmetic ("ce -> ce_half  launch n+1, latch n+2.5 (C-b)") is only true
-// under the >= 2 reading, so the train was tighter than every constraint the
-// design is closed against.  A stimulus harness may not be the one instrument
-// that disagrees with the contract it says it is built to.
+// ⚠ CORRECTED 2026-08-13, THEN CORRECTED AGAIN THE SAME DAY.  READ BOTH.
 //
-//   phase 0 : assert ce            (one fabric clock)
-//   phase 1 : idle                 (C-b's mandatory gap)
-//   phase 2 : assert ce_half       (never coincident, never adjacent)
-//   phase 3 : idle                 (C-b's mandatory gap)
-//   phase 4 : idle for g more clocks, g drawn from L_CE in [0, 7]
+// FIRST correction: this train had asserted `ce_half` on the fabric clock
+// IMMEDIATELY AFTER `ce` at every gap draw, which violated the then-standing
+// clause (b) ("
+// >= 1 idle cycle between assertions"), so it was widened to
+// `ce@k, ce_half@k+2, ce@k+4`.
 //
-// `g == 0` goes straight back to phase 0, i.e. ce at clock k, ce_half at k+2,
-// ce at k+4.  THAT is the contract's minimum -- C-b and C-c at equality, and
-// it is M72's catch-up-burst rate -- and reaching it is a REGISTERED bar
-// (H-2), because a train that never reaches the minimum is our div-8 train
-// wearing a disguise.
+// SECOND correction -- USER RULING 2026-08-13, verbatim: *"They do not need to
+// be separated by a clock, they just cannot be enabled at the same time."*
+// **CLAUSE (b) IS DELETED**, and with it the `ce -> ce >= 4` arithmetic that
+// was derived from it.  The train the FIRST correction removed was legal all
+// along; the widening was over-constraint, not conservatism, and this harness
+// spent it drawing gaps the contract never required.
+//
+//   phase 0 : assert ce            (one fabric clock); draw the two gaps
+//   phase 1 : idle for h clocks, h = L_CE[3] in {0, 1}
+//   phase 2 : assert ce_half       (never coincident -- the ONE premise)
+//   phase 3 : idle for g clocks,   g = L_CE[2:0] in [0, 7]
+//
+// `h == 0 && g == 0` is `ce@k, ce_half@k+1, ce@k+2` -- **THE CONTRACT'S TRUE
+// MINIMUM, and M72's catch-up burst rate** (`m72_downstream_timing_
+// 2026-08-12.md` §1: the phases strictly alternate one per fabric clock while
+// the chaser is behind).  Reaching it stays a REGISTERED bar (H-2): a train
+// that never reaches the minimum is our div-8 train wearing a disguise.
+// Drawing BOTH gaps is what makes the minimum reachable at all -- with the
+// head gap pinned the harness would merely have swapped one fixed phase
+// relationship (2) for another (0).
+//
+// ⚠ THE PER-SEED SIGNATURES MOVE, AND THAT IS REGISTERED, NOT DISCOVERED.
+// The gate accumulates over every core output on EVERY FABRIC CLOCK, so a
+// change of train period changes the accumulation.  What may NOT move is the
+// per-seed `live` bus census -- that is the actual invariant, and it is
+// checked (`ce_contract_correction_prereg_2026-08-13.md` §5, P-3).
 //---------------------------------------------------------------------------
 logic       ce      = 1'b0;
 logic       ce_half = 1'b0;
@@ -155,23 +172,21 @@ always @(posedge clk) begin
     ce_half <= 1'b0;
     case (ce_phase)
         0: begin
-            ce       <= 1'b1;
-            ce_phase <= 1;
+            ce        <= 1'b1;
+            l_ce       = lfsr_next(l_ce);
+            ce_gap    <= l_ce[2:0];    // ce_half -> ce idle clocks, [0, 7]
+            gap_hist[l_ce[2:0]] = gap_hist[l_ce[2:0]] + 1;
+            // ce -> ce_half idle clocks, {0, 1}.  0 is the contract minimum.
+            ce_phase  <= l_ce[3] ? 1 : 2;
         end
-        1: begin                       // C-b's mandatory idle clock
+        1: begin                       // the LFSR-drawn head idle clock
             ce_phase <= 2;
         end
         2: begin
             ce_half  <= 1'b1;
-            l_ce      = lfsr_next(l_ce);
-            ce_gap   <= l_ce[2:0];
-            gap_hist[l_ce[2:0]] = gap_hist[l_ce[2:0]] + 1;
-            ce_phase <= 3;
+            ce_phase <= (ce_gap == 3'd0) ? 0 : 3;
         end
-        3: begin                       // C-b's mandatory idle clock
-            ce_phase <= (ce_gap == 3'd0) ? 0 : 4;
-        end
-        default: begin                 // the LFSR-drawn extra idle
+        default: begin                 // the LFSR-drawn tail idle
             if (ce_gap <= 1) ce_phase <= 0;
             else             ce_gap   <= ce_gap - 1;
         end
@@ -184,13 +199,13 @@ always @(posedge clk) begin
     if (ce) ce_count = ce_count + 1;
 end
 
-// ...and clauses (a), (b) AND (c), asserted by the SHARED checker, which
-// $fatals rather than counting.  `ce_coincide` is kept: it is this harness's
-// own reported census and the gate reads it.
-`ifndef SYNTHESIS
-ce_contract_check #(.WHO("tb_chain_lfsr")) u_ce_contract (
-    .clk(clk), .ce(ce), .ce_half(ce_half));
-`endif
+// ...and the contract itself is asserted INSIDE `v30_core` since the
+// 2026-08-13 correction (`hdl/rtl/ucore/v30_core.sv`, `ifndef SYNTHESIS`,
+// `$fatal` on C-a and on S-1), which the `dut` instance below inherits.  The
+// shared `hdl/tb/ce_contract_check.sv` is RETIRED: its gap clauses enforced a
+// premise the correction deleted, and its C-a clause is superseded by a check
+// that every instantiation of the core carries.  `ce_coincide` is kept: it is
+// this harness's own reported census and the gate reads it.
 
 //---------------------------------------------------------------------------
 // reset

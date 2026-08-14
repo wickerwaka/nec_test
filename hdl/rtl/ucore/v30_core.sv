@@ -137,8 +137,67 @@ end
 
 assign SS_BUS_QUIET = ss_biu_bus_quiet;
 
+//----------------------------------------------------------------------------
+// THE ce/ce_half CONTRACT, ENFORCED IN THE MODULE  (USER RULING 2026-08-13)
+//----------------------------------------------------------------------------
+// "Correct the guidance on ce and ce_half. They do not need to be separated by
+//  a clock, they just cannot be enabled at the same time, we should have an
+//  assert in the module that prevents that."
+//
+// THE CONTRACT IS ONE PREMISE:
+//
+//   C-a  `CE` and `CE_HALF` are never asserted on the same fabric clock.
+//
+// ADJACENT ASSERTIONS ARE LEGAL.  That is not a hypothetical -- M72 drives the
+// ucore from a catch-up train whose phases strictly alternate one per fabric
+// clock during a burst (`docs/notes/m72_downstream_timing_2026-08-12.md` §1).
+// The 2026-08-12 "one cycle gap" clause (C-b) and the `ce -> ce >= 4`
+// arithmetic derived from it (C-c) are DELETED.
+//
+// AND ONE STRUCTURAL FACT ABOUT THIS CORE, WHICH IS NOT A CONTRACT CLAUSE:
+//
+//   S-1  at least one `CE_HALF` falls between consecutive `CE`s.
+//
+// This is the core's own functional requirement, not an assumption about a
+// train's shape: `ce_half` is the only enable on `v30u_biu|t1_half2`, and
+// `t1_half2` is the T1 address->data turnaround that gates `ad_oe_data`
+// (`v30u_biu.sv:1056/1062/1080`).  A `CE -> CE` with no `CE_HALF` between them
+// leaves the ADDRESS on AD for a whole write cycle.  A platform that does this
+// has already broken the core, so asserting it is no stronger than "the core
+// works" -- and S-1 is what makes `CE -> CE >= 2` true CONTRACT-FREE, which is
+// the whole of `nec_test.sdc`'s remaining CE exception.  Extra `CE_HALF`s in a
+// gap are harmless: `t1_half2`'s update is idempotent.
+//
+// WHY IT IS HERE AND NOT IN A TESTBENCH.  `hdl/tb/ce_contract_check.sv` was
+// instantiated in three testbenches and saw only those three.  This block is
+// in the core module, so EVERY instantiation inherits it -- including any
+// downstream integrator's simulation, which is where the trains this contract
+// exists for actually come from.  That checker is retired.
+//
+// `$fatal`, not `$error`: a train outside the envelope has invalidated every
+// row downstream of it, so continuing produces a SCORED NUMBER taken outside
+// the contract -- which is exactly what happened when the golden scorer ran at
+// `--ce-div 1` (`docs/notes/t1_half2_posedge_results_2026-08-13.md` §5.1).
+//
+// NON-VACUITY is a registered deliverable, not a hope:
+// `docs/notes/ce_contract_correction_prereg_2026-08-13.md` §3, P-1.
 `ifndef SYNTHESIS
+// has a CE_HALF been seen since the last CE?  Starts asserted so a run's FIRST
+// CE is never reported -- there is no preceding CE for it to be too close to.
+logic ce_half_since_ce = 1'b1;
+
 always @(posedge CLK) begin
+    if (CE && CE_HALF)
+        $fatal(1, "v30_core: ce/ce_half CONTRACT VIOLATED (C-a) at %0t -- CE and CE_HALF asserted on the SAME fabric clock.  They may be adjacent; they may not coincide.  USER RULING 2026-08-13; see hdl/nec_test.sdc and docs/notes/ce_contract_correction_prereg_2026-08-13.md.",
+               $time);
+
+    if (CE && !ce_half_since_ce)
+        $fatal(1, "v30_core: ce/ce_half REQUIREMENT VIOLATED (S-1) at %0t -- two CEs with NO CE_HALF between them.  CE_HALF is the only enable on t1_half2, which is the T1 address->data turnaround gating ad_oe_data: without it the BIU leaves the ADDRESS on AD for a whole write cycle.",
+               $time);
+
+    if (CE_HALF)  ce_half_since_ce <= 1'b1;
+    else if (CE)  ce_half_since_ce <= 1'b0;
+
     if (SS_WE && CE)    $error("SS_WE asserted while CE high (core not frozen)");
     if (SS_WE && RESET) $error("SS_WE asserted during RESET");
     // Resume-drain contract (A2): the platform must NOT re-enable CE until the

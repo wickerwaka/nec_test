@@ -19,6 +19,19 @@
 >   not argued: every contract-legal instrument in the tree is byte-identical
 >   across the change (`tb_sys` 306 seeds / ~1.24 M rows, 2,200 + 528 directed
 >   cells, `check_ab_sim`, and the whole `check_core` family).
+>
+>   ⚠ **THE PARENTHESIS IS SUPERSEDED — THE MINIMUM LEGAL DIVISOR IS 2, NOT 4**
+>   (ce/ce_half CONTRACT CORRECTION, USER RULING 2026-08-13: adjacent enables
+>   are legal).  **AT THE CORRECTED MINIMUM THE WINDOW IS `(0, 1)` OPEN AND THE
+>   TURNAROUND IS AT +1.0 MEASURED FROM THE CYCLE'S OPEN, NOT FROM `ce_half`.**
+>   Re-derived, and the conclusion survives: with `ce` in cycle *k*, `ce_half`
+>   in *k*+1 and `ce` in *k*+2, the CPU cycle opens at posedge *k*+1, the
+>   turnaround lands at posedge *k*+2 and the cycle closes at posedge *k*+3 —
+>   **strictly inside, and it is the ONLY interior posedge there is.**  Said
+>   plainly: at div 2 the posedge form is not merely adequate, it is the
+>   **unique** posedge placement that works, and any further delay would break
+>   it.  **MEASURED at 169,000 / 169,000 per divisor at div 2, 3, 4 and 8**
+>   (`ce_contract_correction_results_2026-08-13.md` §4).
 > * **The margin on the ADDRESS side is 1.0 fabric period of SEPARATION rather
 >   than 0.0**: the TB's and M72's `ce_half`-negedge address latches sample at
 >   `ce_half`+0.5, which used to be the *same edge* the flop flipped on — the

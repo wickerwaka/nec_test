@@ -23,24 +23,51 @@ derive_clock_uncertainty
 #    is the ce and ce_half will not be asserted at the same time and there will
 #    be a one cycle gap between each assertion."
 #
-# SO THE ONLY PREMISES BELOW ARE:
-#   C-a  `ce` and `ce_half` are never asserted on the same clock.
-#   C-b  successive enable assertions are >= 2 clocks apart.
+# ⚠ CORRECTED BY THE USER, 2026-08-13, verbatim -- READ THIS BEFORE THE
+# ARITHMETIC BELOW:
 #
-# AND ONE DERIVED EXTENSION, DERIVED FROM THE CORE AND NOT FROM ANY TRAIN:
-#   C-c  `ce -> ce` is >= 4 clocks.  `ce_half` is the CPU clock's HALF-CYCLE
-#        marker (`v30_core.sv:36`, `v30u_biu.sv:97`); the only thing it enables
-#        is `t1_half2`, which gates `ad_oe_data`, so if no `ce_half` falls
-#        between two `ce`s the BIU drives the wrong thing on AD for a whole bus
-#        cycle.  The core therefore REQUIRES >= 1 `ce_half` between consecutive
-#        `ce`s -- a correctness requirement of the core, not a preference of a
-#        platform -- and with C-b that forces `ce -> ce` >= 4.
+#   "Correct the guidance on ce and ce_half. They do not need to be separated
+#    by a clock, they just cannot be enabled at the same time, we should have
+#    an assert in the module that prevents that."
+#
+# SO THERE IS EXACTLY ONE PREMISE:
+#   C-a  `ce` and `ce_half` are never asserted on the same clock.
+#
+# **ADJACENT ASSERTIONS ARE LEGAL.**  C-b -- "successive enable assertions are
+# >= 2 clocks apart" -- IS DELETED, and so is the `ce -> ce >= 4` arithmetic
+# (C-c) that was `2 + 2` and nothing else.  The deleted gap was never
+# hypothetical slack: `m72_downstream_timing_2026-08-12.md` §1 records the
+# ucore running from a catch-up train whose phases strictly alternate ONE PER
+# FABRIC CLOCK during a burst, i.e. the adjacent train, which this file was
+# constraining as if it could not happen.
+#
+# C-a IS NOW ENFORCED IN THE MODULE, as the ruling directs:
+# `hdl/rtl/ucore/v30_core.sv`, `ifndef SYNTHESIS`, `$fatal`.  Every
+# instantiation of the core inherits it -- downstream integrators' included.
+# `hdl/tb/ce_contract_check.sv` is RETIRED.
+#
+# AND ONE STRUCTURAL FACT ABOUT THIS CORE, WHICH IS *NOT* A CONTRACT CLAUSE AND
+# IS NOT AN ASSUMPTION ABOUT ANY TRAIN'S SHAPE:
+#   S-1  at least one `ce_half` falls between consecutive `ce`s.
+#        `ce_half` is the CPU clock's HALF-CYCLE marker (`v30_core.sv:36`,
+#        `v30u_biu.sv:97`); the only thing it enables is `t1_half2`, which
+#        gates `ad_oe_data`, so if no `ce_half` falls between two `ce`s the BIU
+#        leaves the ADDRESS on AD for a whole write cycle.  A platform that
+#        does this has ALREADY BROKEN THE CORE FUNCTIONALLY, so S-1 is no
+#        stronger than "the core works".
 #        STRICT ALTERNATION IS *NOT* ASSUMED: extra `ce_half`s in a gap are
 #        harmless, because `t1_half2`'s update is idempotent.
+#        S-1 IS ALSO ASSERTED IN THE MODULE and `$fatal`s, because the only
+#        remaining exception in this file rests on it.
 #        FALSIFIER: a platform issuing two `ce`s with no `ce_half` between.
-#        Such a platform has already broken the core FUNCTIONALLY, so this
-#        premise is no weaker than the core's own operating requirement.  If it
-#        is ever wanted, EVERY exception here collapses to `-setup 2`.
+#
+# THE ONE DERIVED SPACING, AND IT IS THE WHOLE OF THE NEW ARITHMETIC:
+#   `ce -> ce` is >= 2 clocks.  S-1 puts a `ce_half` in some cycle m strictly
+#   between the `ce`s at n and p; C-a gives m != n and m != p; so p >= n+2.
+#   **THIS HOLDS CONTRACT-FREE** -- it rests on C-a and on the core's own
+#   functional requirement, and on no statement about idle clocks.
+#   `ce -> ce_half` and `ce_half -> ce` are >= 1, i.e. ADJACENT, i.e. the
+#   DEFAULT single-cycle check, i.e. NO EXCEPTION.
 #
 # THE CORE HAS TWO ENABLE PHASES AND THEY NEED DIFFERENT NUMBERS.
 #
@@ -56,15 +83,25 @@ derive_clock_uncertainty
 # destinations and sources; that sentence is deleted with the thing it
 # described.)
 #
-#   ce -> ce            launch n+1, latch n+5 (C-c)      4.0 periods  -setup 4
-#   ce -> ce_half       launch n+1, latch m+1, m >= n+2  2.0 periods  -setup 2
-#   ce_half -> ce       launch m+1, latch p+1, p >= m+2  2.0 periods  -setup 2
+#   ce -> ce            launch n+1, latch p+1, p >= n+2  2.0 periods  -setup 2
+#   ce -> ce_half       launch n+1, latch m+1, m >= n+1  1.0 periods  (NONE)
+#   ce_half -> ce       launch m+1, latch p+1, p >= m+1  1.0 periods  (NONE)
 #
-# ⚠ THE `-setup 2` ON `ce -> ce_half` IS THE SAME NUMBER IT WAS AND MEANS
-# SOMETHING DIFFERENT: it used to be 1.5 periods spelled `-setup 2` because the
-# destination edge was half a period early.  STA computes the destination edge;
-# it is not told.  `ce_half -> ce` DID move, 2.5 -> 2.0, i.e.
-# `-setup 3 -hold 2` -> `-setup 2 -hold 1`, WHICH IS A TIGHTENING.
+# ⚠ ALL THREE NUMBERS MOVED ON 2026-08-13, AND TWO EXCEPTIONS CEASED TO EXIST.
+# They read `4.0 / 2.0 / 2.0` for one day, under C-b.  With the gap deleted:
+#   * `ce -> ce` FALLS 4.0 -> 2.0.  This is the file's only surviving CE
+#     exception and it is now `-setup 2 -hold 1`.  **Fmax is expected to fall
+#     with it** -- the old budget was computed against an envelope the core does
+#     not have, so this is a CORRECTNESS change, not a regression.
+#   * `ce -> ce_half` and `ce_half -> ce` FALL TO 1.0, which is the default
+#     single-cycle check, so THEIR EXCEPTIONS ARE DELETED RATHER THAN
+#     RE-SPELLED.  A `-setup 2` on a 1.0-period arc is a false PASS -- the
+#     dangerous direction -- and writing `-setup 1` to say "one period" is
+#     writing the default down twice.
+# (Superseded reading, kept because a ratchet is only readable against its own
+# history: under C-b, `ce -> ce_half` was `-setup 2` meaning 2.0 where it had
+# earlier meant 1.5 on a negedge destination, and `ce_half -> ce` had just
+# tightened 2.5 -> 2.0.)
 #
 # ⚠ AND THE `div_cnt -> t1_half2` ENABLE ARC WENT FROM 0.5 PERIODS TO 1.0.
 # An enable had to be valid at the NEGEDGE inside the cycle it is asserted in,
@@ -129,11 +166,15 @@ set v30u_regs [add_to_collection \
 # makes the three arcs above expressible -- a single uniform number cannot be
 # honest for all three, and the one that used to be applied was not.
 #
-# ⚠ THIS COLLECTION SURVIVES THE NEGEDGE'S REMOVAL, AND SO DOES ITS HAZARD.
-# It exists because `t1_half2` is the one flop gated by the OTHER ENABLE, NOT
-# because it was negedge-clocked: `ce_half -> ce` is 2.0 periods where
-# `ce -> ce` is 4.0, so leaving it inside `$v30u_ce` would hand a 2.0-period
-# arc a 4.0-period exception -- the optimistic direction.
+# ⚠ THIS COLLECTION SURVIVES THE NEGEDGE'S REMOVAL *AND* THE 2026-08-13
+# CONTRACT CORRECTION, AND SO DOES ITS HAZARD.  It exists because `t1_half2` is
+# the one flop gated by the OTHER ENABLE, NOT because it was negedge-clocked:
+# the cross-phase arcs are 1.0 periods where `ce -> ce` is 2.0, so leaving it
+# inside `$v30u_ce` would hand a 1.0-period arc a 2.0-period exception -- the
+# optimistic direction.  The ratio is unchanged at 2x; only the magnitudes
+# fell.  **The split is MORE load-bearing now, not less: it is the only thing
+# standing between the surviving exception and two arcs that must not have
+# it.**
 # `set v30u_half` matches by EXACT NAME, so a fitter-created `t1_half2~DUPLICATE`
 # falls into `$v30u_ce` instead and would draw `-setup 4` where 2 is honest.
 # That hazard is a property of the NAME, was not created by the edge and is not
@@ -147,23 +188,28 @@ set v30u_regs [add_to_collection \
 set v30u_half [get_registers -nowarn {*|v30u_biu:*|t1_half2}]
 set v30u_ce   [remove_from_collection $v30u_regs $v30u_half]
 if {[get_collection_size $v30u_ce] > 0} {
-    set_multicycle_path -setup 4 -from $v30u_ce -to $v30u_ce
-    set_multicycle_path -hold  3 -from $v30u_ce -to $v30u_ce
+    # ce -> ce : 2.0 periods.  C-a + S-1 (see the derivation at the top of this
+    # file); it was 4/3 under the deleted C-b.
+    set_multicycle_path -setup 2 -from $v30u_ce -to $v30u_ce
+    set_multicycle_path -hold  1 -from $v30u_ce -to $v30u_ce
     post_message -type info \
-        "nec_test.sdc: CE multicycle 4/3 applied to [get_collection_size $v30u_ce] ce-gated v30u core registers"
+        "nec_test.sdc: CE multicycle 2/1 applied to [get_collection_size $v30u_ce] ce-gated v30u core registers"
 }
-if {[get_collection_size $v30u_ce] > 0 && [get_collection_size $v30u_half] > 0} {
-    # ce -> ce_half : 2.0 periods (C-b puts the ce_half >= 2 clocks after)
-    set_multicycle_path -setup 2 -from $v30u_ce   -to $v30u_half
-    set_multicycle_path -hold  1 -from $v30u_ce   -to $v30u_half
-    # ce_half -> ce : 2.0 periods (C-b again, the other way).  This was
-    # `-setup 3 -hold 2` while t1_half2 was a negedge flop; a POSEDGE source
-    # launches half a period later, so it is 2.0 now -- a TIGHTENING.
-    set_multicycle_path -setup 2 -from $v30u_half -to $v30u_ce
-    set_multicycle_path -hold  1 -from $v30u_half -to $v30u_ce
+# ⚠ THE TWO CROSS-PHASE EXCEPTIONS ARE DELETED, NOT MISSING.  `ce -> ce_half`
+# and `ce_half -> ce` are 1.0 periods under the corrected contract, because
+# ADJACENT ENABLES ARE LEGAL.  1.0 period IS the default single-cycle check, so
+# the honest constraint is NO CONSTRAINT.  They read `-setup 2 -hold 1` for one
+# day (2026-08-13, under C-b); on this contract that would be a false PASS by a
+# factor of two, in the optimistic direction, on the exact arc the collection
+# split exists to protect.
+# ⚠ DO NOT RESTORE THEM FROM `git show`.  Anything of that shape needs a
+# derivation in which the next enable assertion after a `ce` cannot be adjacent
+# -- and the contract's one premise is precisely that it CAN be.
+if {[get_collection_size $v30u_half] > 0} {
     post_message -type info \
-        "nec_test.sdc: CE cross-phase multicycles 2/1 (ce->ce_half) and 2/1\
-         (ce_half->ce) applied to [get_collection_size $v30u_half] ce_half-gated register(s)"
+        "nec_test.sdc: [get_collection_size $v30u_half] ce_half-gated register(s)\
+         kept OUT of the CE multicycle; cross-phase arcs are single-cycle by\
+         derivation (adjacent enables are legal)"
 }
 
 # ---------------------------------------------------------------------------
@@ -196,16 +242,24 @@ if {[get_collection_size $v30u_ce] > 0 && [get_collection_size $v30u_half] > 0} 
 #     `ube_n_early` (`nec_bus.sv:217-224`), `mem_addr`/`mem_be` (`:481-486`)
 #     and `mem_addr_match` (`:576-578`) -- are gated by the very signal the
 #     contract governs;
-#   * C-b puts the earliest `ce_half` TWO clocks after that `ce`, so the
-#     earliest such consumer captures at posedge L+2;
+#   * C-b put the earliest `ce_half` TWO clocks after that `ce`, so the
+#     earliest such consumer captured at posedge L+2;
 #   * a posedge flop capturing at L+2 reads its input as it stood BEFORE L+2 --
 #     which is exactly the sample written at L+1.
 #
 # THE SAMPLE THAT IS ACTUALLY READ HAD ONE PERIOD TO SETTLE.  `-setup 2` needs
 # the train to guarantee >= 3 idle clocks between a `ce` and the next
-# `ce_half`; THE CONTRACT GUARANTEES 2.  (This rig's `div = 8` supplies 3,
-# which is why the constraint has always measured true here and always will --
-# and is exactly the reasoning Reading B disallows.)
+# `ce_half`; C-b GUARANTEED 2.  (This rig's `div = 8` supplies 3, which is why
+# the constraint has always measured true here and always will -- and is
+# exactly the reasoning Reading B disallows.)
+#
+# ⚠ THE 2026-08-13 CONTRACT CORRECTION MAKES THIS DELETION MORE RIGHT, NOT
+# LESS, AND THE ARITHMETIC ABOVE IS NOW OFF BY A FURTHER CLOCK.  With C-b gone
+# the earliest `ce_half` is ADJACENT, so the earliest such consumer captures at
+# posedge L+1 and reads `ad_in_q` AS WRITTEN AT POSEDGE L -- a PRE-LAUNCH
+# sample.  The contract now guarantees ONE idle clock where `-setup 2` needed
+# three.  Nothing to re-derive: the exception is already gone, and the margin
+# it wanted got smaller.
 #
 # ESCAPES WORKED AND CLOSED (full text in the note): a second free-running
 # stage (`ad_in_q2`) re-times METASTABILITY, not a wrong value; a carve-out for
@@ -217,7 +271,9 @@ if {[get_collection_size $v30u_ce] > 0 && [get_collection_size $v30u_half] > 0} 
 # `core_ad_hold` (retention builds only) is a last-driven-value retainer whose
 # intermediate captures are UNOBSERVABLE -- only the last capture before the
 # driver turns off is ever read -- and since `core_ad_oe` changes only at
-# enable edges, C-b puts that survivor >= 2 periods after the data's launch.
+# enable edges, C-b put that survivor >= 2 periods after the data's launch
+# (⚠ the 2026-08-13 correction reduces that to >= 1: this already-BOOKED
+# fragment got WEAKER, not stronger, and stays booked).
 # It fails anyway for two independent reasons: `core_ad_drv` is
 # `core_ad_oe | c_addrv_q` and `c_addrv_q` is FREE-RUNNING
 # (`system_large.sv:381`), so the argument holds only on bits [19:16]; and the
@@ -239,6 +295,7 @@ if {[get_collection_size $v30u_ce] > 0 && [get_collection_size $v30u_half] > 0} 
 # now, not an SDC one.
 #
 # ⚠ DO NOT RESTORE THIS EXCEPTION FROM `git show`.  Anything of this shape
-# needs a derivation from C-a/C-b/C-c that does not name a divider, and sec.2.3
-# of the note is the arithmetic it has to beat.
+# needs a derivation from C-a + S-1 that does not name a divider, and sec.2.3
+# of the note is the arithmetic it has to beat -- which since 2026-08-13 it has
+# to beat by one clock MORE, not less.
 

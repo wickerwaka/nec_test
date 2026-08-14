@@ -65,40 +65,49 @@ logic reset = 1;
 // clock-enable train (Campaign 4 CE refactor).  The core runs on the fast
 // fabric clk but only advances state when CE is asserted.
 //
-// ⚠ RE-DERIVED 2026-08-13 UNDER THE ce/ce_half PORTABILITY CONTRACT
-//   (`hdl/tb/ce_contract_check.sv`, `hdl/nec_test.sdc`,
-//    `docs/notes/ce_contract_reland_prereg_2026-08-13.md` §2).
+// ⚠ RE-DERIVED 2026-08-13, THEN CORRECTED 2026-08-13 UNDER THE ce/ce_half
+//   CONTRACT CORRECTION (`hdl/rtl/ucore/v30_core.sv`'s own assert,
+//   `hdl/nec_test.sdc`,
+//   `docs/notes/ce_contract_correction_prereg_2026-08-13.md` §5).
 //
 //   WHAT WAS HERE BEFORE, AND WHY IT WAS WRONG.  `ce_div` defaulted to 1 --
-//   CE and CE_HALF high on EVERY clock, which is a C-a violation -- and
-//   `ce_half <= ce` put CE_HALF on the fabric clock IMMEDIATELY AFTER CE at
-//   EVERY divisor, which is a C-b violation at every divisor.  So moving the
-//   divisor alone would have fixed C-a and left C-b broken.  This testbench
-//   had never had the PHASE RELATIONSHIP of the integration it stands in for:
-//   `nec_bus.sv:175-176` puts CE (`tick_rise`) and CE_HALF (`tick_fall`) HALF
-//   A CPU CYCLE apart -- four fabric clocks each way at the divider of record.
+//   CE and CE_HALF high on EVERY clock, which is a C-a violation.  The train
+//   was `ce_half <= ce`, i.e. CE_HALF on the fabric clock IMMEDIATELY AFTER CE
+//   at every divisor.  It now mirrors `nec_bus`: `ce` during count 0,
+//   `ce_half` during count ce_div/2 (`nec_bus.sv:175-176` puts CE
+//   (`tick_rise`) and CE_HALF (`tick_fall`) half a CPU cycle apart).
 //
-//   THE TRAIN NOW MIRRORS `nec_bus`:  `ce` during count 0, `ce_half` during
-//   count ce_div/2.  That makes the MINIMUM legal divisor 4 (gaps 2 / 2 / 4,
-//   which is exactly C-b and C-c at equality) -- and 4 is `nec_bus`'s minimum
-//   too, for the same reason.  1, 2 and 3 are REFUSED below, loudly.
+//   ⚠ THE FLOOR WAS 4 AND IS NOW 2.  USER RULING 2026-08-13: *"They do not
+//   need to be separated by a clock, they just cannot be enabled at the same
+//   time."*  The gap clause (C-b) and the `ce -> ce >= 4` arithmetic derived
+//   from it are DELETED, so ADJACENT enables are legal and the minimum legal
+//   divisor is 2 -- which is M72's catch-up burst rate, a train this TB was
+//   refusing to model.  ONLY div 1 (coincident) is refused now.
 //
-//   +ce_div=N (N>=4): CE asserts one posedge in N; CE_HALF asserts one posedge
-//     in N, half a CPU cycle later.  The core AND the TB's own clocked
+//   ⚠ ODD DIVISORS ARE LEGAL TOO.  The old refusal argued that `ce_half` is
+//   the half-cycle marker and an odd divisor "cannot place it symmetrically".
+//   SYMMETRY WAS NEVER A PREMISE.  `ce_half` need only fall strictly between
+//   two `ce`s, which `ce_cnt == ce_div/2` does at every divisor >= 2.
+//
+//   ⚠ THE DEFAULT STAYS 4, AND A DEFAULT IS NOT A FLOOR.  4 is `nec_bus`'s
+//   phase at the divider of record and the divisor every standing figure in
+//   the tree is registered at; keeping it means the correction does not
+//   silently re-base the ladder.  2 and 3 are legal and are MEASURED
+//   (`ce_contract_correction_results_2026-08-13.md` §4).
+//
+//   +ce_div=N (N>=2): CE asserts one posedge in N; CE_HALF asserts one posedge
+//     in N, ce_div/2 counts later.  The core AND the TB's own clocked
 //     observer/latches below advance only on those enabled clocks, so
 //     per-CPU-cycle output must be independent of N, and the core's internal
 //     state must NOT change on CE-low fabric clocks (`+ce_hold_check`).
 //----------------------------------------------------------------------------
-localparam int CE_DIV_MIN     = 4;    // the contract minimum -- see above
+localparam int CE_DIV_MIN     = 2;    // C-a alone: div 1 is coincident
 localparam int CE_DIV_DEFAULT = 4;    // == sw/check_core.py CE_DIV_DEFAULT
 integer ce_div = CE_DIV_DEFAULT;
 initial begin
     if (!$value$plusargs("ce_div=%d", ce_div)) ce_div = CE_DIV_DEFAULT;
     if (ce_div < CE_DIV_MIN)
-        $fatal(1, "tb_v30_core: +ce_div=%0d is OUTSIDE THE ce/ce_half CONTRACT.  C-a forbids coincident enables (div 1); C-b requires >= 1 idle fabric clock between assertions and C-c requires ce->ce >= 4, so the minimum legal divisor is %0d.  1:1 is an unsupported mode (USER RULING 2026-08-13).  See hdl/tb/ce_contract_check.sv.",
-               ce_div, CE_DIV_MIN);
-    if (ce_div % 2 != 0)
-        $fatal(1, "tb_v30_core: +ce_div=%0d is ODD; `ce_half` is the CPU clock's HALF-CYCLE marker and an odd divisor cannot place it symmetrically.  Use an even divisor >= %0d.",
+        $fatal(1, "tb_v30_core: +ce_div=%0d is OUTSIDE THE ce/ce_half CONTRACT.  The contract is ONE premise -- C-a: CE and CE_HALF are never asserted on the same fabric clock -- and div 1 asserts both on every clock.  Adjacent enables ARE legal, so the minimum legal divisor is %0d (USER RULING 2026-08-13).  See hdl/rtl/ucore/v30_core.sv's own assert and docs/notes/ce_contract_correction_prereg_2026-08-13.md.",
                ce_div, CE_DIV_MIN);
 end
 integer ce_cnt = 0;
@@ -113,11 +122,13 @@ always @(posedge clk) begin
     ce_half <= !ss_park && (ce_cnt == (ce_div / 2) - 1);
 end
 
-// THE CONTRACT IS A GATE, NOT A COMMENT.
-`ifndef SYNTHESIS
-ce_contract_check #(.WHO("tb_v30_core")) u_ce_contract (
-    .clk(clk), .ce(ce), .ce_half(ce_half));
-`endif
+// THE CONTRACT IS A GATE, NOT A COMMENT -- AND THE GATE IS NOW IN THE CORE.
+// `hdl/tb/ce_contract_check.sv` was instantiated here and in two other
+// testbenches, and saw only those three.  Its C-b/C-c clauses enforced a
+// premise the 2026-08-13 correction deleted, and its C-a clause is superseded
+// by `v30_core.sv`'s own `ifndef SYNTHESIS` assert, which every instantiation
+// of the core inherits -- including downstream integrators'.  The checker is
+// RETIRED; nothing is instantiated here.
 
 // backdoor
 // wait-state insertion (+waits=N): mirrors hdl/rtl/nec_bus.sv - the

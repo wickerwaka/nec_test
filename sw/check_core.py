@@ -58,9 +58,9 @@ BIN = OBJ / "Vtb_v30_core"
 CORE_DIR = {"fsm": ROOT / "hdl" / "rtl" / "core",
             "ucore": ROOT / "hdl" / "rtl" / "ucore"}
 CORE_RTL = {
-    "fsm": ["v30_ss_pkg.sv", "@cec", "@tb", "v30_core.sv", "v30_biu.sv",
+    "fsm": ["v30_ss_pkg.sv", "@tb", "v30_core.sv", "v30_biu.sv",
             "v30_eu.sv"],
-    "ucore": ["v30u_ss_pkg.sv", "@cec", "@tb", "v30_core.sv", "v30u_biu.sv",
+    "ucore": ["v30u_ss_pkg.sv", "@tb", "v30_core.sv", "v30u_biu.sv",
               "v30u_ucrom.sv", "v30u_eu.sv"],
 }
 # tb_v30_core.sv's in-DUT probes (the `d`/`g`/`p` dumps and the coverage
@@ -110,17 +110,36 @@ CORE_DEFS = {"fsm": ["-DV30_FSM_PROBES"], "ucore": ["-DV30_UCORE"]}
 # USER RULING 2026-08-13: the contract IS the operating envelope, and **1:1 is
 # an unsupported mode.**
 #
-# WHY 4 AND NOT 2.  C-a is not the only premise.  C-b requires >= 1 IDLE clock
-# between any two enable assertions and C-c requires `ce -> ce` >= 4, so the
-# minimum legal train is `ce` at clock 0, `ce_half` at 2, `ce` at 4.  `nec_bus`
-# -- the integration that gets flashed -- has the same minimum for the same
-# reason (`CE = tick_rise`, `CE_HALF = tick_fall`, adjacent at cfg_clk_div=2).
-# `hdl/tb/tb_v30_core.sv` now places `ce_half` at the CPU-cycle midpoint, which
-# is where `nec_bus` has always put it; 1, 2 and 3 are REFUSED, not silently
-# accepted.  Full derivation:
-# `docs/notes/ce_contract_reland_prereg_2026-08-13.md` §2.
+# ⚠ CORRECTED 2026-08-13 -- THE FLOOR WAS 4 AND IS NOW 2, AND ODD IS LEGAL.
+# SECOND USER RULING, same day, verbatim: *"Correct the guidance on ce and
+# ce_half.  They do not need to be separated by a clock, they just cannot be
+# enabled at the same time, we should have an assert in the module that
+# prevents that."*
+#
+# So the contract is ONE premise -- C-a, never coincident -- and the gap clause
+# (C-b) is DELETED along with the `ce -> ce >= 4` arithmetic (C-c) that was
+# derived from it.  ADJACENT ENABLES ARE LEGAL, which makes the minimum legal
+# divisor 2; and 2 is not hypothetical, it is M72's catch-up burst rate
+# (`docs/notes/m72_downstream_timing_2026-08-12.md` §1), a train this scorer
+# was refusing to model.  ONLY div 1 -- both enables on every clock -- is
+# refused now.
+#
+# ODD DIVISORS ARE LEGAL TOO.  The old refusal argued `ce_half` "cannot be
+# placed symmetrically" at an odd divisor.  SYMMETRY WAS NEVER A PREMISE; it
+# need only fall strictly between two `ce`s.
+#
+# ⚠ THE DEFAULT STAYS 4, AND A DEFAULT IS NOT A FLOOR.  4 is `nec_bus`'s phase
+# at the divider of record and the divisor every standing figure in this tree
+# is registered at, so keeping it means the correction does not silently
+# re-base the ladder.  2 and 3 are legal, are MEASURED, and may be selected.
+#
+# THE ENFORCEMENT IS NO LONGER HERE OR IN A TESTBENCH: `hdl/rtl/ucore/
+# v30_core.sv` carries the `ifndef SYNTHESIS` assert, so every instantiation of
+# the core inherits it.  This refusal is a courtesy that fails early with a
+# reason; the module assert is the gate.  Full derivation:
+# `docs/notes/ce_contract_correction_prereg_2026-08-13.md` §2/§5.
 CE_DIV_DEFAULT = 4
-CE_DIV_MIN = 4
+CE_DIV_MIN = 2
 
 
 def ce_div_refuse(div):
@@ -128,28 +147,24 @@ def ce_div_refuse(div):
     if div < CE_DIV_MIN:
         return (f"--ce-div {div} is OUTSIDE THE ce/ce_half CONTRACT and is "
                 f"REFUSED.\n"
-                f"  C-a  `ce` and `ce_half` are never asserted on the same "
-                f"clock            -> forbids div 1\n"
-                f"  C-b  successive enable assertions are >= 2 clocks apart "
-                f"              -> forbids div 2 and 3\n"
-                f"  C-c  `ce -> ce` is >= 4 clocks (the core needs a "
-                f"`ce_half` between)  -> forbids div 2 and 3\n"
-                f"  USER RULING 2026-08-13: the contract IS the operating "
-                f"envelope; 1:1 is an unsupported mode.\n"
-                f"  The minimum legal divisor is {CE_DIV_MIN} (the default). "
-                f"See hdl/nec_test.sdc, hdl/tb/ce_contract_check.sv and\n"
-                f"  docs/notes/ce_contract_reland_prereg_2026-08-13.md §2.")
-    if div % 2 != 0:
-        return (f"--ce-div {div} is ODD and is REFUSED: `ce_half` is the CPU "
-                f"clock's HALF-CYCLE marker and an odd divisor cannot place "
-                f"it symmetrically.  Use an even divisor >= {CE_DIV_MIN}.")
+                f"  The contract is ONE premise:\n"
+                f"    C-a  `ce` and `ce_half` are never asserted on the same "
+                f"fabric clock.\n"
+                f"  div 1 asserts BOTH on EVERY clock.  Adjacent enables ARE "
+                f"legal (USER RULING\n"
+                f"  2026-08-13), so the minimum legal divisor is "
+                f"{CE_DIV_MIN} -- which is M72's catch-up\n"
+                f"  burst rate.  The default is {CE_DIV_DEFAULT}, and a "
+                f"default is not a floor.\n"
+                f"  See hdl/rtl/ucore/v30_core.sv's own assert, hdl/nec_test.sdc"
+                f" and\n"
+                f"  docs/notes/ce_contract_correction_prereg_2026-08-13.md §2.")
     return None
 
 
 def core_paths(core):
     d = CORE_DIR[core]
-    special = {"@tb": TB_DIR / "tb_v30_core.sv",
-               "@cec": TB_DIR / "ce_contract_check.sv"}
+    special = {"@tb": TB_DIR / "tb_v30_core.sv"}
     return [special[f] if f in special else (d / f) for f in CORE_RTL[core]]
 
 
@@ -701,11 +716,12 @@ def main():
     ap.add_argument("--suite-dir", default=str(SUITE))
     ap.add_argument("--ce-div", type=int, default=CE_DIV_DEFAULT,
                     help=f"core clock-enable divisor, fabric clocks per CPU "
-                         f"cycle (default {CE_DIV_DEFAULT}).  Values below "
-                         f"{CE_DIV_MIN}, and odd values, are REFUSED: they "
-                         f"leave the ce/ce_half portability contract "
-                         f"(C-a/C-b/C-c).  Per-CPU-cycle rows must be "
-                         f"independent of this.")
+                         f"cycle (default {CE_DIV_DEFAULT}; a default is not a "
+                         f"floor).  Only values below {CE_DIV_MIN} are REFUSED "
+                         f"-- div 1 asserts both enables on every clock, which "
+                         f"is the contract's one premise (C-a).  Odd divisors "
+                         f"are legal.  Per-CPU-cycle rows must be independent "
+                         f"of this.")
     ap.add_argument("--ce-hold-check", action="store_true",
                     help="assert core internal state freezes on CE-low clocks")
     ap.add_argument("--ss-sweep", nargs="?", const=1, type=int, metavar="STRIDE",

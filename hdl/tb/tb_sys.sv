@@ -175,16 +175,14 @@ system_large dut
     .NEC_LG_N(nec_lg_n), .dbg_led()
 );
 
-// THE ce/ce_half CONTRACT IS A GATE, NOT A COMMENT (2026-08-13).
-// This harness is the REAL integration -- `nec_bus`'s divider generates the
-// train -- so this instance is the control that says the contract is
-// satisfiable and that `tb_v30_core`'s copy is not asserting something
-// silicon's own integration cannot meet.  `CE = bus_tick_rise` and
-// `CE_HALF = bus_tick_fall` (`system_large.sv:497-501`).
-`ifndef SYNTHESIS
-ce_contract_check #(.WHO("tb_sys/nec_bus")) u_ce_contract (
-    .clk(clk), .ce(dut.bus_tick_rise), .ce_half(dut.bus_tick_fall));
-`endif
+// THE ce/ce_half CONTRACT IS A GATE, NOT A COMMENT -- AND SINCE THE
+// 2026-08-13 CORRECTION THE GATE IS INSIDE THE CORE.  `hdl/tb/
+// ce_contract_check.sv` was instantiated here on `nec_bus`'s own train; it is
+// RETIRED, and `v30_core.sv`'s `ifndef SYNTHESIS` assert covers this harness
+// through `system_large`'s core instance.  That is strictly wider: it sees the
+// train AT THE CORE'S PINS rather than at a reconstruction of them
+// (`CE = bus_tick_rise`, `CE_HALF = bus_tick_fall`,
+// `system_large.sv:497-501`).
 
 //----------------------------------------------------------------------------
 // AXI master BFM (the same handshake discipline as tb_ab / tb_harness)

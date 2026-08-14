@@ -15,10 +15,19 @@
 # exactly five and each has one `k`:
 #
 #   k = 1.0   everything with no exception (the default single-cycle class)
-#   k = 4.0   $v30u_ce   -> $v30u_ce     (-setup 4, the CE multicycle)
-#   k = 1.5   $v30u_ce   -> $v30u_half   (-setup 2 onto a negedge destination)
-#   k = 2.5   $v30u_half -> $v30u_ce     (-setup 3 from a negedge source)
-#   k = 0.5   anything else -> $v30u_half (no exception, posedge->negedge)
+#   k = 2.0   $v30u_ce   -> $v30u_ce     (-setup 2, the CE multicycle)
+#   k = 1.0   $v30u_ce   -> $v30u_half   (NO exception since 2026-08-13)
+#   k = 1.0   $v30u_half -> $v30u_ce     (NO exception since 2026-08-13)
+#   k = 1.0   anything else -> $v30u_half (no exception, posedge->posedge)
+#
+# ⚠ THE k's ABOVE ARE THE 2026-08-13 CONTRACT CORRECTION's.  They read
+# 1.0 / 4.0 / 1.5 / 2.5 / 0.5 in the negedge era and 1.0 / 4.0 / 2.0 / 2.0 / 1.0
+# for one day after the posedge re-land.  Adjacent enables being legal collapses
+# the CE multicycle to 2.0 and DELETES both cross-phase exceptions, so FOUR of
+# the five classes now measure k = 1.0.  The classes are still queried
+# separately -- they are STRUCTURALLY distinct collections and a future
+# exception could re-separate their k's -- and `quartus_gate.py` CHECKS each
+# measured k against its nominal.
 #
 # Each class's worst path is reported with its own corrected ceiling, and the
 # minimum over the five is the design's true Fmax.  That number is then
@@ -96,8 +105,9 @@ emit $fh "======================================================================
 emit $fh " THE FIVE EXCEPTION CLASSES, EACH WITH ITS OWN k"
 emit $fh " (labels are STRUCTURAL since 2026-08-13; the k each one SHOULD measure"
 emit $fh "  lives in quartus_gate.py's checked `nominal` table, not in a string:"
-emit $fh "  DEFAULT 1.0 * CE4 4.0 * INTO 2.0 * OUTOF 2.0 * ENABLE 1.0.  A label that"
-emit $fh "  ASSERTS a k it no longer measures is a flag nobody reads.)"
+emit $fh "  DEFAULT 1.0 * SAME 2.0 * INTO 1.0 * OUTOF 1.0 * ENABLE 1.0.  A label that"
+emit $fh "  ASSERTS a k it no longer measures is a flag nobody reads -- which is"
+emit $fh "  why `CE4` was RENAMED `SAME` at the contract correction.)"
 emit $fh "=========================================================================="
 
 # k=1: no exception applies.  Approximated as "the whole-design worst path",
@@ -105,7 +115,7 @@ emit $fh "======================================================================
 # slack, so the global worst IS in the default class here -- and the class
 # queries below prove it rather than assume it.
 klass $fh "DEFAULT (whole-design worst, expect k=1)" $T0
-klass $fh "CE4    \$v30u_ce -> \$v30u_ce   (the CE multicycle)" $T0 -from $v30u_ce -to $v30u_ce
+klass $fh "SAME   \$v30u_ce -> \$v30u_ce   (the CE multicycle)" $T0 -from $v30u_ce -to $v30u_ce
 klass $fh "INTO   \$v30u_ce -> t1_half2" $T0 -from $v30u_ce -to $v30u_half
 klass $fh "OUTOF  t1_half2 -> \$v30u_ce" $T0 -from $v30u_half -to $v30u_ce
 klass $fh "ENABLE (not \$v30u_ce) -> t1_half2   -- the ENABLE arc" $T0 -from $notce -to $v30u_half
@@ -144,7 +154,9 @@ klass $fh "RUNG 1: not latching in an observation register" $T0 \
 # ordering §2 says cannot find the binding path.  RUNG 1a drops t1_half2 as a
 # destination as well, so the worst SINGLE-CYCLE survivor is named -- on
 # RETENTION the raw-slack survivor was the k=0.5 ENABLE arc, which is precisely
-# the substitution the campaign's ceiling made.
+# the substitution the campaign's ceiling made.  (The k=0.5 class no longer
+# exists -- the ENABLE arc is 1.0 since the posedge re-land -- but the rung is
+# kept because naming the worst single-cycle survivor is still what it is for.)
 klass $fh "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)" $T0 \
     -from_clock $dc -to_clock $dc -to [remove_from_collection $rung1 $v30u_half]
 set cint [get_registers -nowarn {*|system_large:*|c_int_q}]
