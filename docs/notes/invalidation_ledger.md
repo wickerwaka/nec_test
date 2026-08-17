@@ -418,6 +418,114 @@ banked captures is wrong.  Either outcome is reported as registered.
 
 ---
 
+## INV-3 — THE `rep_cl0` DERIVATION CELL, AS A GATE
+
+**Opened 2026-08-17.**  Pre-registration `0dc40e51dc`, amendments
+`bb37f154f2` (A-1) and `5fd01af2c0` (A-2); results
+`docs/notes/rep_cl0_silicon_results_2026-08-17.md`.
+
+### WHAT
+
+`tests/v30/rep_cl0-INV3-archive/` — 24 socket captures (12 `F3A4` + 12 `F3A5`),
+full per-clock rows, taken 2026-08-17 to ask silicon what `REP MOVSB` does at
+`CX = 0x0100`.  **It has never gated anything and it never will.**
+
+### WHY
+
+**A-1 R-2, registered before the run, reads: *"THE SEED IS NEVER REROLLED ON A
+CAPTURE-LENGTH FAILURE … A rerolled seed in this cell invalidates the cell."*
+Eight seeds were rerolled** — one on `F3A4` (index 11), seven on `F3A5` — and
+the emit log records each.
+
+The reroll is not uniform, which is what makes it false rather than merely
+untidy: **six of the seven `F3A5` quarantines are precisely the doubly-odd
+images** (odd `SI` **and** odd `DI`), which split every word access into two
+byte cycles and so exceed the 4,096-record ceiling.  Every surviving `F3A5`
+case has at most one odd operand.  A whole alignment class was therefore
+excluded **from inside `P-3`, the cell's own gating control** — and a control
+with a systematically missing stratum is not a control.
+
+⚠ **The direction of the bias runs OPPOSITE to the observation** (rerolling
+selects for SHORT traces, and short is `H-SILICON`'s signature), and the four
+`F3A4` `CX=256` cases carrying the headline are **first-choice, un-rerolled**
+images.  **Both facts are recorded as reasoning and NEITHER is a waiver.**
+R-2 invalidates on the artifact, not on the persuasiveness of the residue;
+choosing the un-rerolled subset *after* seeing the result is the fitting this
+register exists to prevent.
+
+### WHICH RIG DEFECT
+
+**NAMED, and NOT yet fixed at the time of filing.**  Two instrument paths, both
+in `sw/emit_suite.py`:
+
+1. **The ceiling.**  `EMIT_CAP = 2048`, `EMIT_CAP_RETRY = 4096`, and
+   `EMIT_CAP = min(4096, EMIT_CAP * (1 + waits))` (`:197-198`, `:2548`).  A
+   doubly-odd `F3A5` at these counts exceeds 4,096 and **has no larger retry to
+   fall to**, so the case dies and the seed is rerolled.
+2. **A second failure mode with NO retry path at all.**  *"only N register words
+   before the done marker"* does not match the retry predicate, so it rerolls
+   straight from 2,048 without ever trying 4,096.  This is the `F3A4` index-11
+   reroll.
+
+A-1 R-2 was written assuming a capture-length failure always ends in a
+successful retry.  **That assumption is false, and the assumption is the
+defect** — the reroll is `cmd_emit` behaving as designed on an error the
+registration did not anticipate.
+
+### WHAT REPLACES IT
+
+**A RE-CAPTURE**, under its own pre-registration, after the ceiling is raised so
+that no case in the cell can reroll.  Until that capture exists:
+
+* **no figure in `rep_cl0_silicon_results_2026-08-17.md` may be quoted as a
+  gate**, and
+* the finding it points to — that silicon executes the loop where both engines
+  skip it — **stands as an OBSERVATION with its instrument named, not as a
+  certified result.**
+
+The validation cell (A-2 §A-2.2, 72 disjoint-form cases) is **not** captured
+until the re-capture certifies, and **no width rule may be quoted as validated**
+until it is.
+
+### THE ARCHIVE
+
+**Renamed, never deleted, nothing rewritten:**
+
+| from | to |
+|---|---|
+| `tests/v30/rep_cl0/` | `tests/v30/rep_cl0-INV3-archive/` |
+
+The precedent is INV-2's (archive by rename; the invalid thing IS a directory,
+so a rename can express it — unlike INV-1, where it was a selection inside a
+shared directory).  All 24 per-clock captures moved with it, with the
+`seeds.json` maps and `emit_log.txt` that **record the rerolls** and are the
+only evidence of the un-repaired instrument.  **THE ARCHIVE IS LOAD-BEARING AND
+MUST NOT BE PRUNED**: it is the before-column that makes the re-capture's repair
+attributable.
+
+### GATE STATUS
+
+**No standing figure moves.**  The cell was new, gated nothing, and entered no
+ratchet — the ladder is untouched and `P-6` was MET (`git diff --stat` over
+`v0.1`/`v0.2`/`v0.3`/`v20suite` EMPTY, verified).  Nothing in
+`docs/notes/standing_gates.md` changes.
+
+⚠ **What does NOT change either: the REP `CL == 0` defect in both engines is
+still measured, still reproducible offline, and still un-fixed.**  INV-3
+invalidates a CAPTURE, not the offline finding — `sw/testdata/rep_cl0/`'s two
+drivers reproduce the engine behaviour with no board in the loop.
+
+### THE FALSIFIER, registered with the entry
+
+The re-capture must complete the full 24-case cell with **ZERO rerolls** and
+`emit_log.txt` carrying **no `reroll:` line**.  If it rerolls even once, the
+ceiling fix is insufficient and the disposition is re-opened rather than
+re-argued.  If the re-captured cell then reads anything other than
+`H-ENGINE`, **this entry's WHY is wrong** and the bias analysis above must be
+retracted rather than defended.
+
+---
+
 # SUPERSEDED POPULATIONS — **NOT** INVALIDATIONS
 
 **Opened 2026-08-09.** This register was opened for artifacts that are FALSE.

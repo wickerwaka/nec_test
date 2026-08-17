@@ -587,7 +587,11 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   NO defect, is **per seed**, and takes the seed out of every scored rate's
   **numerator AND denominator** and out of the replayed bank, back with
   `--include-excluded` (`bank_status.excluded_of`). Live entries: INV-1
-  (CLOSED), INV-2, SUP-1, **EXC-1** (two banked runtime-8080 captures in `fz2e`),
+  (CLOSED), INV-2, **INV-3** (the `rep_cl0` derivation cell — 8 rerolled seeds
+  under a registered no-reroll clause, 6 of them a systematically-excluded
+  doubly-odd alignment class inside the cell's own gating control; archived by
+  rename at `tests/v30/rep_cl0-INV3-archive/`, gates nothing, re-capture owed),
+  SUP-1, **EXC-1** (two banked runtime-8080 captures in `fz2e`),
   **EXC-2** (the three in the FLASH #13 corpus, no manifest record — the reason
   is `fz2_corpus_prereg_2026-08-08.md` §34.6). **Every drop is PRINTED, never
   silent**, and that is itself a falsifier.
