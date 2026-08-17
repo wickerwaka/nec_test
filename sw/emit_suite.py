@@ -246,9 +246,20 @@ def _cont_target(rng):
 # wait-state emissions. A too-small value fails loudly ("no done
 # marker") and the case retries.
 EMIT_CAP = 2048        # Path A / E: adaptive capture prefix. Done marker measured at
-EMIT_CAP_RETRY = 4096  # rec <=500 for single-instr + short REP (item A / E scan) -> 2048
-# has a 4x margin. On 'no done marker' RETRY the SAME image at 4096 - NEVER reroll the seed
-# (capture-length rerolls bias the suite against long-trace cases; the 32db59a lesson).
+EMIT_CAP_RETRY = 8192  # rec <=500 for single-instr + short REP (item A / E scan) -> 2048
+# has a 4x margin. On a CAPTURE-LENGTH failure RETRY the SAME image at EMIT_CAP_RETRY -
+# NEVER reroll the seed (capture-length rerolls bias the suite against long-trace
+# cases; the 32db59a lesson).
+#
+# THE RETRY CAP IS 8192 SINCE 2026-08-17 (INV-3, F-1).  It was 4096, and 4096 is
+# not enough: a doubly-odd word operand splits EVERY access into two byte cycles,
+# and `F3 A5` at CX=257 with SI and DI both odd MEASURES 4,140 clock rows against
+# 2,085 for even/even (`v30sim timed-run --ndjson`).  Exactly those images died at
+# the ceiling and were rerolled, which excluded an entire alignment class from
+# inside a gating control -- the defect INV-3 records.  8192 is ~2x the measured
+# worst case plus the store stub.  ⚠ IT IS NOT A DERIVED BOUND: a longer case can
+# still exceed it, and when one does the run STOPS (F-2 below) instead of
+# quietly substituting a different seed.
 # Golden emission MUST run on the SOCKETED REAL CHIP (use_core=False), not the
 # internal v30_core (use_core=True). The internal EU does not implement the 0x63
 # undocumented no-op used as the prefetch preamble (PRELOAD_BYTES) -> preloaded
@@ -355,6 +366,99 @@ def _capture(image, host, tag, waits=0, evt=None, iord=None, iords=None,
     # emits the same columns in order and nothing else differs.
     recs = [dict(r, idx=i) for i, r in enumerate(recs)]
     return (recs, False) if want_fired else recs
+
+
+class CaptureLengthError(Exception):
+    """The capture ended before the program did, and no retry is left.
+
+    DELIBERATELY NOT a `RunError` and NOT a `ComposeError`.  Every reroll loop
+    in this file catches exactly those two, so a length failure raised as this
+    type is STRUCTURALLY INCAPABLE of reaching a reroll -- which is the whole
+    of F-2 (`emit_cap_repair_prereg_2026-08-17.md`) and the enforcement A-1 R-2
+    ("THE SEED IS NEVER REROLLED ON A CAPTURE-LENGTH FAILURE") never had.  A
+    registration nobody can enforce at runtime is how INV-3 happened."""
+
+
+def _is_length_failure(e):
+    """ONE predicate, both symptoms -- a capture that stopped before the
+    program's own done marker.  There is only one mechanism here (the prefix
+    was too short) and it surfaces in `v30run.parse_result` two ways:
+
+      * "no done marker in trace (runaway test?)"      -- nothing at all landed
+      * "only N register words before the done marker" -- the dump was cut
+
+    The second is the SAME failure caught one step further along, not a second
+    kind of failure, so it does not get a second branch (F-3, and the standing
+    simplicity principle).  Consulted in exactly two roles: *may I retry?* and
+    *may I reroll?*  Never string-tested inline."""
+    s = str(e)
+    return "no done marker" in s or "register words before the done marker" in s
+
+
+def _parse_or_retry(recs, meta, recapture, *, case, cap, cap_retry):
+    """`parse_result`, with THE capture-length rule applied in one place.
+
+    A length failure RETRIES ONCE on the SAME image at `cap_retry`; if the
+    retry is also short the run STOPS with `CaptureLengthError`, naming the
+    case, the cap reached and the record count (F-2, F-4).  A seed is never
+    rerolled for being slow.  Any other `RunError` passes straight through and
+    is dispositioned exactly as it always was.
+
+    `recapture(cap) -> recs` re-runs the identical image at a larger cap.
+    `recapture=None` means the caller SUPPLIED the records (offline
+    re-derivation from a banked capture): there is no capture to grow and no
+    seed to reroll, so the original `RunError` is re-raised unchanged and the
+    caller dispositions it as before.  The reroll loops' own backstop covers
+    that path too, should one ever be put behind one.
+
+    Returns `(res, recs)` -- the retry's records REPLACE the caller's."""
+    try:
+        return parse_result(recs, meta), recs
+    except RunError as first:
+        if not _is_length_failure(first) or recapture is None:
+            raise
+    recs = recapture(cap_retry)
+    try:
+        return parse_result(recs, meta), recs
+    except RunError as e:
+        if not _is_length_failure(e):
+            raise
+        raise CaptureLengthError(
+            f"CAPTURE TOO SHORT AFTER RETRY -- STOPPING: case {case} reached "
+            f"the cap {cap_retry} records (first attempt {cap}) and the "
+            f"capture STILL ends before the program does: {len(recs)} records "
+            f"captured, parse says {e!s}.  REFUSING to reroll the seed: a "
+            "capture-length failure is a SLOW case, not a BAD one, and "
+            "rerolling it excludes long traces from the suite (INV-3; A-1 R-2; "
+            "the 32db59a lesson).  Raise EMIT_CAP_RETRY, or shorten the case, "
+            "and re-run -- do not re-seed.") from e
+
+
+def _refuse_length_reroll(e, where, log=None):
+    """The BACKSTOP at every reroll site: a length failure that arrives at a
+    reroll STOPS the run, whatever raised it.
+
+    `_parse_or_retry` already converts the ordinary case into
+    `CaptureLengthError`, which no reroll loop catches; this covers the paths
+    that do not go through it (a `parse_result` call with no retry wrapper, a
+    supplied-records caller put behind a loop, anything added later).  It is
+    the SAME predicate -- the two consultations are *may I retry?* and *may I
+    reroll?*, and the answer to the second is always no.  Loud: it names the
+    case and the underlying failure, in the emit log as well as on the
+    exception (F-4).  A no-op for every other failure."""
+    if not _is_length_failure(e):
+        return
+    msg = (f"REFUSING TO REROLL A CAPTURE-LENGTH FAILURE -- STOPPING: {where}: "
+           f"{e!s}.  The seed is never rerolled for being slow (INV-3; A-1 "
+           "R-2): rerolling here excludes exactly the long-trace cases and "
+           "biases the suite, which is how a whole alignment class went "
+           "missing from inside a gating control.  This failure reached a "
+           "reroll site WITHOUT passing the retry path, so raise EMIT_CAP / "
+           "EMIT_CAP_RETRY or fix the caller -- do not re-seed.")
+    if log is not None:
+        with log.open("a") as f:
+            f.write(f"# {msg}\n")
+    raise CaptureLengthError(msg) from e
 
 
 #----------------------------------------------------------------------------
@@ -1541,15 +1645,13 @@ def emit_evt_case(spec, case, host, tag, preload_n=0, waits=0, recs_in=None):
                                pins=pins, want_fired=True, cap=EMIT_CAP)
     if evt and not fired:
         raise RunError("event did not fire")
-    try:
-        res = parse_result(recs, meta)
-    except RunError as e:
-        if "no done marker" not in str(e) or recs_in is not None:
-            raise
-        recs, fired = _capture(image, host, tag, waits=waits, evt=evt,  # E retry
-                               pins=pins, want_fired=True,
-                               cap=EMIT_CAP_RETRY)
-        res = parse_result(recs, meta)
+    res, recs = _parse_or_retry(
+        recs, meta,
+        None if recs_in is not None else
+        (lambda cap: _capture(image, host, tag, waits=waits, evt=evt,  # E retry
+                              pins=pins, want_fired=True, cap=cap)[0]),
+        case=f"{spec['key']} evt (tag {tag}, waits {waits})",
+        cap=EMIT_CAP, cap_retry=EMIT_CAP_RETRY)
 
     close_addr = cont_linear if spec["close"] == "handler" else None
     rows, events, i0, i1, q0, qf, fetched, memrd = \
@@ -1893,15 +1995,13 @@ def emit_case(spec, case, host, tag, preload_n=0, waits=0):
     recs = _capture(image, host, tag, waits=waits,
                     iord=case.get("iord"), iords=case.get("iords"),
                     cap=EMIT_CAP)
-    try:
-        res = parse_result(recs, meta)
-    except RunError as e:
-        if "no done marker" not in str(e):
-            raise
-        recs = _capture(image, host, tag, waits=waits,      # E: retry at 4096
-                        iord=case.get("iord"), iords=case.get("iords"),
-                        cap=EMIT_CAP_RETRY)
-        res = parse_result(recs, meta)
+    res, recs = _parse_or_retry(
+        recs, meta,
+        lambda cap: _capture(image, host, tag, waits=waits,   # E: retry, larger
+                             iord=case.get("iord"), iords=case.get("iords"),
+                             cap=cap),
+        case=f"{spec['key']} (tag {tag}, waits {waits})",
+        cap=EMIT_CAP, cap_retry=EMIT_CAP_RETRY)
 
     rows, events, i0, i1, q0, qf, fetched, memrd = \
         build_rows(recs, meta["anchor_linear"], n_skip_f=preload_n,
@@ -2211,7 +2311,13 @@ def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits,
                 case = gen_case(spec, rng, force_cx=fcx, force_df=fdf)
                 t = emit_case(spec, case, host, tag=f"re{op}",
                               preload_n=pn, waits=waits)
-        except (ComposeError, RunError):
+        except (ComposeError, RunError) as e:
+            # THIS LOOP IS A REROLL TOO -- within-index (seed .../{idx}/{r}),
+            # and SILENT: it writes no log line at all.  A capture-length
+            # failure here swaps a slow image for a different one with no
+            # record that it happened, which is INV-3's bias with the evidence
+            # missing.  Same predicate, same refusal (F-2).
+            _refuse_length_reroll(e, f"{op} idx {idx} attempt r={r}")
             continue
         t["idx"] = idx
         if not validate:
@@ -2406,6 +2512,7 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
                                 f"(completed forms are resumable with "
                                 f"--resume): {str(e)[:400]}\n")
                     raise
+                _refuse_length_reroll(e, f"{op} case-seed {i - 1}", log)
                 rerolls += 1
                 with log.open("a") as f:
                     f.write(f"{op} case-seed {i - 1} reroll: "
@@ -2512,6 +2619,7 @@ def cmd_emit_boundary(host, opcodes, n_cases, out_dir, seed_base, preload_n,
                         f.write(f"# TRANSPORT DROP on {op} case-seed {i - 1} "
                                 f"(resume-safe): {str(e)[:400]}\n")
                     raise
+                _refuse_length_reroll(e, f"{op} case-seed {i - 1}", log)
                 rerolls += 1
                 with log.open("a") as f:
                     f.write(f"{op} case-seed {i - 1} reroll: "
@@ -2658,7 +2766,11 @@ def main():
                      "silicon is not a golden and must not be shelved beside "
                      "ones that are. Pick an --out elsewhere.")
     if args.waits:
-        EMIT_CAP = min(4096, EMIT_CAP * (1 + args.waits))
+        # Clamped to EMIT_CAP_RETRY, not to a literal: the first attempt must
+        # never exceed the cap the retry would fall to, and F-1 requires that
+        # raising the ceiling is not silently undone here.  At waits=0 this
+        # branch does not run; at waits>0 it now clamps at 8192, not 4096.
+        EMIT_CAP = min(EMIT_CAP_RETRY, EMIT_CAP * (1 + args.waits))
     if args.cmd == "validate":
         return cmd_validate(args.host)
     if args.cmd == "spotcheck":
