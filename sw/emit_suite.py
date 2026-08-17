@@ -167,6 +167,57 @@ def _in_any(addr, regions):
     return any(addr in r for r in regions)
 
 
+# --------------------------------------------------------------------------- #
+# THE DIRECTED COUNT / DIRECTION OVERRIDE
+# (`docs/notes/rep_cl0_silicon_prereg_2026-08-17.md` §5, the one tool change
+# that pre-registration asks for.)
+#
+# WHY IT EXISTS.  Both REP generators pick their repeat count from a hard-coded
+# small range -- `rng.randrange(0, 4)` for the string ops, 0..16 for block I/O
+# -- so across v0.1/v0.2/v0.3 no REP case in this tree has ever carried
+# `CL == 0 && CX != 0`.  That is the blind spot the cell exists to probe, and
+# probing it needs CX pinned at 255/256/257.  DF comes with it because DF is
+# drawn from the random flags word, so pinning CX alone still leaves a
+# half-random cell.
+#
+# WHAT IT MAY NOT DO.  Prereg constraint 2: with neither flag passed the
+# emitter must generate BYTE-IDENTICAL cases to HEAD at a fixed --seed.  Both
+# overrides are therefore consulted ONLY when a value is present, and neither
+# adds or removes a single `rng` draw on the default path -- the forced CX
+# branch replaces the draw it would have made, and the forced DF is a bit-set
+# on an already-drawn flags word.
+#
+# THE GRID STEPS ON `idx // 2`, and that is the whole rule: the preload
+# convention already alternates non-prefetched / prefetched(N=2) on `idx % 2`
+# (`--preload -1`, the default).  CX is the fast axis and DF the slow one, so
+#     --force-cx 255,256,257 --force-df 0,1 --cases 12
+# walks the 3 CX x 2 DF x 2 preload grid exactly once each, deterministically.
+# It keys on the OUTPUT index, not the seed-attempt index, so a placement
+# reroll cannot shift a case into the wrong cell.
+def _int_list(s):
+    """Parse a comma list of ints ('' -> [], i.e. the override is OFF)."""
+    return [int(v, 0) for v in s.split(",") if v.strip()] if s else []
+
+
+def _forced_cell(idx, force_cx, force_df):
+    """(cx, df) for OUTPUT index `idx`; (None, None) when nothing is forced."""
+    if not force_cx and not force_df:
+        return None, None
+    n = idx // 2                              # idx % 2 is the preload axis
+    cx = force_cx[n % len(force_cx)] if force_cx else None
+    df = force_df[(n // max(1, len(force_cx))) % len(force_df)] \
+        if force_df else None
+    return cx, df
+
+
+def _forceable(op):
+    """A form the override actually reaches: a REP-prefixed string or block-I/O
+    form.  Anything else would ACCEPT the flag AND IGNORE IT, which is the trap
+    this repository keeps finding, so the CLI refuses it instead."""
+    spec = OPCODES.get(op)
+    return bool(spec and spec["rep"] and (spec["string1"] or spec["strio"]))
+
+
 def v2_anchor(rng):
     """fuzz-v2 D1: random SEGMENT, DERIVED offset.
 
@@ -841,7 +892,7 @@ def dispstr(mod, rm, disp):
     return f"[{s}]"
 
 
-def gen_case(spec, rng, ea_boundary=None):
+def gen_case(spec, rng, ea_boundary=None, force_cx=None, force_df=None):
     """Random initial state + instruction bytes per V20 conventions.
     Returns dict with intel regs, instr bytes, ram placements, name,
     divtrap flag. Re-rolls internally on footprint conflicts.
@@ -852,13 +903,24 @@ def gen_case(spec, rng, ea_boundary=None):
     modrm mem forms the modrm is forced to mod0/rm6 (absolute disp16 = the
     target, seg ds); for the insext bit-field forms the string base reg
     (IY for INS, IX for EXT) is set to the target. All downstream operand/
-    span/RAM placement is unchanged - it derives from mod/rm/disp/regs."""
+    span/RAM placement is unchanged - it derives from mod/rm/disp/regs.
+
+    force_cx / force_df (rep_cl0 directed cell): when not None, PIN the REP
+    repeat count and the direction flag for this case.  Both default to None
+    and the default path draws exactly the rng values it always drew."""
     for _ in range(64):
         regs = {r: rnd16(rng) for r in REG16}
         regs["cs"], regs["ip"] = v2_anchor(rng)     # fuzz-v2 D1
         for sr in ("ds", "es", "ss"):
             regs[sr] = rng.getrandbits(16)
         regs["flags"] = (rng.getrandbits(16) & 0x0ED5) | 0xF002
+        if force_df is not None:
+            # DF is bit 10 of the flags word.  Pinning it HERE, once, rather
+            # than at the two `df = (regs["flags"] >> 10) & 1` reads covers the
+            # string-op AND the block-I/O generator with one rule, keeps the
+            # emitted `initial.regs` consistent with the DF the case runs
+            # under, and draws no extra rng.
+            regs["flags"] = (regs["flags"] & ~0x0400) | ((force_df & 1) << 10)
 
         instr = bytes(spec["base"])
         name = spec["mnem"]
@@ -1097,7 +1159,10 @@ def gen_case(spec, rng, ea_boundary=None):
         if spec["string1"]:
             nb = 2 if spec["w"] else 1
             if spec["rep"]:
-                regs["cx"] = rng.randrange(0, 4)
+                if force_cx is not None:
+                    regs["cx"] = force_cx & 0xFFFF
+                else:
+                    regs["cx"] = rng.randrange(0, 4)
             cnt = (regs["cx"] & 0xFFFF) if spec["rep"] else 1
             df = (regs["flags"] >> 10) & 1
             st = spec["string1"]
@@ -1146,9 +1211,13 @@ def gen_case(spec, rng, ea_boundary=None):
             if spec["w"]:
                 regs["dx"] &= 0xFFFE
             if spec["rep"]:
-                # small counts dominate; a tail exercises the emit cap window
-                regs["cx"] = (rng.randrange(0, 5) if rng.random() < 0.8
-                              else rng.randrange(5, 17))
+                if force_cx is not None:
+                    regs["cx"] = force_cx & 0xFFFF
+                else:
+                    # small counts dominate; a tail exercises the emit cap
+                    # window
+                    regs["cx"] = (rng.randrange(0, 5) if rng.random() < 0.8
+                                  else rng.randrange(5, 17))
             cnt = (regs["cx"] & 0xFFFF) if spec["rep"] else 1
             df = (regs["flags"] >> 10) & 1
             if spec["strio"] == "outs":
@@ -2116,7 +2185,8 @@ def _flags_mask_of(op, meta):
 
 
 def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits,
-                    validate=False, flags_mask=0xFFFF, relog=None):
+                    validate=False, flags_mask=0xFFFF, relog=None,
+                    force_cx=None, force_df=None):
     """Emit a single OUTPUT index deterministically and confined to that index:
     attempt 0 uses the ORIGINAL per-case seed f"{base}/{op}/{idx}" (so a
     non-colliding index re-emits byte-identically); collisions/failures reroll
@@ -2127,6 +2197,7 @@ def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits,
     reroll to a flat-valid replacement; suspected real divergence -> KEEP+flag).
     relog: optional open file handle for per-index disposition logging."""
     pn = preload_n if preload_n >= 0 else (2 if idx % 2 == 1 else 0)
+    fcx, fdf = _forced_cell(idx, force_cx, force_df)
     for r in range(64):
         sd = f"{seed_base}/{op}/{idx}" if r == 0 \
             else f"{seed_base}/{op}/{idx}/{r}"
@@ -2137,7 +2208,7 @@ def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits,
                 t = emit_evt_case(spec, case, host, tag=f"re{op}",
                                   preload_n=pn, waits=waits)
             else:
-                case = gen_case(spec, rng)
+                case = gen_case(spec, rng, force_cx=fcx, force_df=fdf)
                 t = emit_case(spec, case, host, tag=f"re{op}",
                               preload_n=pn, waits=waits)
         except (ComposeError, RunError):
@@ -2161,7 +2232,7 @@ def _emit_one_index(spec, is_evt, op, idx, host, seed_base, preload_n, waits,
 
 
 def cmd_reemit(host, index_map, out_dir, seed_base, preload_n=-1, waits=0,
-               validate=False):
+               validate=False, force_cx=None, force_df=None):
     """Re-emit specific OUTPUT indices per form (from index_map = {op:[idx..]}),
     replacing them in-place in the existing files. Confined per index (see
     _emit_one_index) so non-targeted cases stay byte-identical. Use for the
@@ -2193,7 +2264,8 @@ def cmd_reemit(host, index_map, out_dir, seed_base, preload_n=-1, waits=0,
         for idx in idxs:
             t = _emit_one_index(spec, is_evt, op, idx, host, seed_base,
                                 preload_n, waits, validate=validate,
-                                flags_mask=fmask, relog=relog)
+                                flags_mask=fmask, relog=relog,
+                                force_cx=force_cx, force_df=force_df)
             if t.get("flatvalidity") == "neither":
                 kept.append(f"{op}:{idx}")
             by[idx] = t
@@ -2210,7 +2282,7 @@ def cmd_reemit(host, index_map, out_dir, seed_base, preload_n=-1, waits=0,
 
 
 def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
-             waits=0, resume=False):
+             waits=0, resume=False, force_cx=None, force_df=None):
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     log = out_dir / "emit_log.txt"
@@ -2228,11 +2300,20 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
     stamp = (f"# TRUTH SOURCE: {truth}  seed_base={seed_base}  "
              f"cases={n_cases}  waits={waits}  forms={len(opcodes)}  "
              f"div={EMIT_DIV}")
+    # DIRECTED-OVERRIDE PROVENANCE: a suite whose CX/DF were PINNED is not a
+    # random sample of the form, and nothing downstream can tell that from the
+    # cases alone.  The line is written UNCONDITIONALLY, so its absence from a
+    # log means "emitted before this flag existed", not "no override".
+    forced = (f"# DIRECTED: force_cx={force_cx or 'none'} "
+              f"force_df={force_df or 'none'} "
+              f"(grid steps on idx//2; idx%2 is the preload axis)")
     with log.open("a") as f:
         f.write(stamp + "\n")
         f.write(emit_div_stamp() + "\n")     # 21.1 -- the divider provenance
+        f.write(forced + "\n")
     print(stamp, flush=True)
     print(emit_div_stamp(), flush=True)
+    print(forced, flush=True)
     # DIVIDER PROVENANCE (21.1, mechanized guard): the same shape as the
     # wait-rig guard below, for the hazard the wait-rig guard did not cover.
     # Written UNCONDITIONALLY at the END of the emission (the divider corrupts
@@ -2299,13 +2380,16 @@ def cmd_emit(host, opcodes, n_cases, out_dir, seed_base, preload_n,
             # V20 convention: every other case runs from a full queue
             pn = preload_n if preload_n >= 0 else \
                 (2 if len(tests) % 2 == 1 else 0)
+            # keyed on the OUTPUT index, exactly as `pn` is, so a placement
+            # reroll cannot slide a case into the wrong directed cell
+            fcx, fdf = _forced_cell(len(tests), force_cx, force_df)
             try:
                 if is_evt:
                     case = gen_evt_case(spec, rng)
                     t = emit_evt_case(spec, case, host, tag=f"em{op}",
                                       preload_n=pn, waits=waits)
                 else:
-                    case = gen_case(spec, rng)
+                    case = gen_case(spec, rng, force_cx=fcx, force_df=fdf)
                     t = emit_case(spec, case, host, tag=f"em{op}",
                                   preload_n=pn, waits=waits)
             except (ComposeError, RunError) as e:
@@ -2523,6 +2607,15 @@ def main():
     ap.add_argument("--validate", action="store_true",
                     help="reemit: flat-validity three-way gate per index "
                          "(mirror-dependent -> reroll; neither -> KEEP+flag)")
+    ap.add_argument("--force-cx", default="",
+                    help="DIRECTED: comma list of REP repeat counts to PIN "
+                         "instead of the generators' hard-coded small random "
+                         "range (rep_cl0 prereg 2026-08-17 s5). Absent = the "
+                         "default random policy, byte-identical to before.")
+    ap.add_argument("--force-df", default="",
+                    help="DIRECTED: comma list of DF values (0 and/or 1) to "
+                         "PIN in the initial flags word. Absent = DF comes "
+                         "from the random flags word, as before.")
     ap.add_argument("--engine", choices=["chip", "tb"], default="chip",
                     help="record source. 'chip' (default) is the socketed part "
                          "and the ONLY source of a golden. 'tb' runs Verilator "
@@ -2531,6 +2624,26 @@ def main():
     args = ap.parse_args()
     global EMIT_CAP, ENGINE
     ENGINE = args.engine
+    # --- the directed override, validated BEFORE anything runs -------------
+    force_cx = _int_list(args.force_cx)
+    force_df = _int_list(args.force_df)
+    if any(not 0 <= v <= 0xFFFF for v in force_cx):
+        sys.exit("--force-cx: every value must be a 16-bit count (0..65535)")
+    if any(v not in (0, 1) for v in force_df):
+        sys.exit("--force-df: every value must be 0 or 1")
+    if force_cx or force_df:
+        # REFUSE rather than accept-and-ignore.  The override only reaches the
+        # REP string / block-I/O generators; on any other form the flag would
+        # be silently inert, which is the failure mode this tree keeps paying
+        # for.  Also refused on the commands that never consult it.
+        if args.cmd not in ("emit", "reemit"):
+            sys.exit(f"--force-cx/--force-df: not consulted by "
+                     f"'{args.cmd}'; only 'emit' and 'reemit' apply them")
+        bad = [op for op in args.opcodes.split(",") if not _forceable(op)]
+        if bad:
+            sys.exit("--force-cx/--force-df reach only REP-prefixed string "
+                     "and block-I/O forms; these do not qualify and would be "
+                     f"accepted-and-ignored: {','.join(bad)}")
     if ENGINE != "chip":
         core, explicit = _tb_core()
         print(f"# ENGINE={ENGINE}  core={core}"
@@ -2555,14 +2668,15 @@ def main():
     if args.cmd == "reemit":
         index_map = json.load(open(args.indices_file))
         return cmd_reemit(args.host, index_map, args.out, args.seed,
-                          args.preload, args.waits, validate=args.validate)
+                          args.preload, args.waits, validate=args.validate,
+                          force_cx=force_cx, force_df=force_df)
     if args.cmd == "emit-boundary":
         return cmd_emit_boundary(args.host, args.opcodes.split(","), args.cases,
                                  args.out, args.seed, args.preload, args.waits,
                                  resume=args.resume)
     return cmd_emit(args.host, args.opcodes.split(","), args.cases,
                     args.out, args.seed, args.preload, args.waits,
-                    resume=args.resume)
+                    resume=args.resume, force_cx=force_cx, force_df=force_df)
 
 
 if __name__ == "__main__":
