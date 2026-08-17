@@ -1,0 +1,4 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=rep-cl0-rc1  cases=12  waits=0  forms=2  div=8
+# CLOCK DIVIDER: div=8 (4 MHz), PINNED at the emission call sites (ucsim_t_provenance 21.1)
+# DIRECTED: force_cx=[255, 256, 257] force_df=[0, 1] (grid steps on idx//2; idx%2 is the preload axis)
+# WAIT-RIG: WRAND=0 replay=0 (commanded clean at connect, OK/OK)

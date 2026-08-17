@@ -1,0 +1,40 @@
+# TRUTH SOURCE: SOCKET (real chip, use_core=False)  seed_base=rep-cl0-rc1  cases=12  waits=0  forms=2  div=8
+# CLOCK DIVIDER: div=8 (4 MHz), PINNED at the emission call sites (ucsim_t_provenance 21.1)
+# DIRECTED: force_cx=[255, 256, 257] force_df=[0, 1] (grid steps on idx//2; idx%2 is the preload axis)
+# WAIT-RIG: WRAND=0 replay=0 (commanded clean at connect, OK/OK)
+Traceback (most recent call last):
+  File "/home/wickerwaka/src/nec_test/sw/emit_suite.py", line 422, in _parse_or_retry
+    return parse_result(recs, meta), recs
+           ~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/home/wickerwaka/src/nec_test/sw/v30run.py", line 719, in parse_result
+    raise RunError("no done marker in trace (runaway test?) — quarantine")
+v30run.RunError: no done marker in trace (runaway test?) — quarantine
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/wickerwaka/src/nec_test/sw/emit_suite.py", line 2795, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/wickerwaka/src/nec_test/sw/emit_suite.py", line 2789, in main
+    return cmd_emit(args.host, args.opcodes.split(","), args.cases,
+                    args.out, args.seed, args.preload, args.waits,
+                    resume=args.resume, force_cx=force_cx, force_df=force_df)
+  File "/home/wickerwaka/src/nec_test/sw/emit_suite.py", line 2499, in cmd_emit
+    t = emit_case(spec, case, host, tag=f"em{op}",
+                  preload_n=pn, waits=waits)
+  File "/home/wickerwaka/src/nec_test/sw/emit_suite.py", line 1998, in emit_case
+    res, recs = _parse_or_retry(
+                ~~~~~~~~~~~~~~~^
+        recs, meta,
+        ^^^^^^^^^^^
+    ...<3 lines>...
+        case=f"{spec['key']} (tag {tag}, waits {waits})",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        cap=EMIT_CAP, cap_retry=EMIT_CAP_RETRY)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/wickerwaka/src/nec_test/sw/emit_suite.py", line 426, in _parse_or_retry
+    raise CaptureLengthError(
+    ...<7 lines>...
+        "and re-run -- do not re-seed.") from e
+CaptureLengthError: CAPTURE TOO SHORT AFTER RETRY -- STOPPING: case F3A4 (tag emF3A4, waits 0) reached the cap 8192 records (first attempt 2048) and the capture STILL ends before the program does: 4096 records captured, parse says no done marker in trace (runaway test?) — quarantine.  REFUSING to reroll the seed: a capture-length failure is a SLOW case, not a BAD one, and rerolling it excludes long traces from the suite (INV-3; A-1 R-2; the 32db59a lesson).  Raise EMIT_CAP_RETRY, or shorten the case, and re-run -- do not re-seed.
