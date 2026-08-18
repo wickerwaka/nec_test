@@ -130,11 +130,20 @@ CORES = {
             # tag and the row's own currency are BIU state a frozen stream must
             # carry.  ONE appended group, ONE bump.  v13 was 0x8D / 103 / 122 /
             # 226 / 0x8DE2.
-            "SS_VERSION": 0x8E,   # ucore map v14 (0x80 family: never an FSM stream)
+            # v15 -- THE OPERAND-WIDTH TAGS (the REP CL==0 fix).  ONE address
+            # RETIRED (9'h11A, `al_byte` -- the LATCHED ALU width, which was
+            # the defect: the width is a combinational read of the operand
+            # register's tag now, and a wire has no flop and no address) and
+            # ONE APPENDED (9'h17E, `SSA_E_WIDTH_TAGS`, eight bits, past the
+            # 9'h17A-9'h17D reserved block).  THE COUNTS DO NOT MOVE -- which
+            # is exactly why the version must, because this check compares
+            # counts and structurally cannot see a same-length reshape.
+            # v14 was 0x8E / 109 / 122 / 232 / 0x8EE8.
+            "SS_VERSION": 0x8F,   # ucore map v15 (0x80 family: never an FSM stream)
             "SS_BIU_COUNT": 109,
             "SS_EU_COUNT": 122,
             "SS_COUNT": 232,
-            "SS_TAG": 0x8EE8,     # (0x8E << 8) | 232
+            "SS_TAG": 0x8FE8,     # (0x8F << 8) | 232
         },
     },
 }

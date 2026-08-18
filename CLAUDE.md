@@ -73,9 +73,18 @@ them).
   `docs/notes/artifact_receipt_layer.md`, migration `ucore_provenance.md` §75),
   and the gate REFUSES to run against a binary whose declared inputs or outputs
   no longer hash to the tree. Rebuild with
-  `python3 sw/check_core.py --build --core <core>`; the layer never rebuilds
-  behind your back, because an automatic rebuild is how the sixth incarnation
-  stayed invisible for six days. `python3 sw/test_artifact.py` (**45/45**) is
+  `python3 sw/check_core.py --build --core <core>`.
+  ⚠ **ERRATUM 2026-08-17 — THIS PARAGRAPH USED TO CLAIM "the layer never
+  rebuilds behind your back", AND THAT IS FALSE OF `check_core`.**  There are
+  TWO entry points and they differ: **`artifact.require()` asserts-or-dies**
+  (what `require_bin` uses), while **`artifact.ensure()` is BUILD-IF-NEEDED
+  then require** — and `check_core.build()` calls `ensure`, so perturbing the
+  RTL and re-running `check_core` silently re-Verilates and promotes a new
+  receipt instead of refusing.  **The danger the old sentence named is still
+  averted** — `ensure` rebuilds *and then* requires, so a STALE binary can
+  never score, which is what let the sixth incarnation hide for six days — but
+  the invariant as written did not hold.  Know which of the two you are calling.
+  `python3 sw/test_artifact.py` (**45/45**) is
   the layer's own falsifier and must stay green. **U1 IS CLOSED (SM3 sitting
   15, §76.A)**: the C++ model is `sim/build/v30sim`, declared by
   `sw/simbin.py` and rebuilt with `python3 sw/simbin.py --build`. **`sim/v30sim`
@@ -483,9 +492,15 @@ Values are monotone: never re-scored downward without a loud, itemized entry.)
   seeds** (`mc1/721`, `mc2/584`).  EVT took a further +2 from F43.
   The four HLT sweeps are **97/97, 93/95, 45/46, 44/45 = 279/283** — **RE-MEASURED
   2026-08-10 at `399ba6729d`, unmoved, and the four survivors are the four
-  family-D cells and nothing else** (`s10-w1/HLT.INT` at `(10, busstat)` and
-  `(11, pins)`; `s13-w2/HLT.INT` at `(13, pins)`; `s13-w3/HLT.INT` at
-  `(15, pins)`; **`HLT.RES` is 49 · 49 · 25 · 25, PERFECT at every wait**).
+  family-D cells and nothing else** (`s10-w1/HLT.INT` at **`(10, busstat)` and
+  `(12, busstat)`**; `s13-w2/HLT.INT` at **`(12, busstat)`**; `s13-w3/HLT.INT`
+  at **`(14, busstat)`**; **`HLT.RES` is 49 · 49 · 25 · 25, PERFECT at every
+  wait**).  ⚠ **ERRATUM 2026-08-17**: this line read `(11, pins)` /
+  `(13, pins)` / `(15, pins)` and those coordinates were WRONG — re-measured on
+  a clean worktree at `be4eb2c32f`, the BASELINE itself reads the `busstat`
+  coordinates above, so the old ones never described this tree.  The failing
+  CASES are unchanged and always were (`w1.INT` idx 8 and 9, `w2.INT` idx 12,
+  `w3.INT` idx 15); only the printed coordinates were mis-transcribed.
   ⚠ **`check_core --suite-dir` TAKES `--waits` AND IT DEFAULTS TO 0** — run the
   w1/w2/w3 suites with `--waits 1/2/3` or the sweeps read `97 · 0 · 0 · 0` and
   look like a catastrophic regression with every failure at `(1, 'seg')`. That
