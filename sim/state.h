@@ -76,8 +76,7 @@ struct OperandRef {
 // turns the ADD/SUB that replaces it into the decimal/ASCII adjust.
 struct AluLatch {
     uint8_t op = kPass;
-    uint8_t tmp = 0;  // 0=tmpa 1=tmpb 2=tmpc
-    bool byte = false;
+    uint8_t tmp = 0;  // 0=tmpa 1=tmpb 2=tmpc, 3=the hardwired ZERO port-B rail
     bool ea_const = false;
     uint16_t ea_value = 0;
     uint8_t adjust = 0;      // 0 none, 1 = ADJD (decimal), 2 = ADJA (ASCII)
@@ -118,6 +117,17 @@ struct Machine {
     uint16_t psw = kPswForced;
 
     uint16_t tmpa = 0, tmpb = 0, tmpc = 0;
+    // THE OPERAND-WIDTH TAG.  The micro-ALU's flag taps (and the iterative
+    // unit's carry chain) sit at 8 or 16 bits, and WHICH is a property of the
+    // OPERAND the ALU was handed -- not of the instruction's w-bit.  Every
+    // datapath rail either presents a 16-bit datum or presents an 8-bit one in
+    // the low lane; the registers below latch which, and the ALU reads the tag
+    // of the port it takes its operand from (alu_width_byte).
+    //
+    // false == WORD.  The classification of every source encoding, with its
+    // reason, is the table at the head of `rd_src1` in exec_impl.h.
+    bool tmp_byte[3] = {};  // tmpa, tmpb, tmpc
+    bool opr_byte = false;
     uint16_t opr = 0;    // operand data register (the "OPR" source/dest)
     uint16_t ind = 0;    // address register used by every bus CTL row
     uint16_t count = 0;  // COUNT

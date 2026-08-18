@@ -186,6 +186,8 @@ private:
         uint16_t flags = 0;
         uint16_t flag_mask = 0;
         uint8_t hw = 0;  // AluHw attribution of `flags`
+        // The width the ALU worked at, i.e. the width tag SIGMA carries.
+        bool byte = false;
     };
 
     // A bus write whose data phase has not run yet.  The data is OPR at the
@@ -203,10 +205,10 @@ private:
     };
 
     uint16_t rd_src1(uint8_t c, const RowCtx& ctx, const ucrom::MicroOp& op,
-                     bool& byte_src);
-    void wr_dst1(uint8_t c, uint16_t v, bool byte_src);
-    uint16_t rd_src2(uint8_t c, const RowCtx& ctx);
-    void wr_dst2(uint8_t c, uint16_t v);
+                     bool& byte_src, bool& wbyte);
+    void wr_dst1(uint8_t c, uint16_t v, bool byte_src, bool wbyte);
+    uint16_t rd_src2(uint8_t c, const RowCtx& ctx, bool& wbyte);
+    void wr_dst2(uint8_t c, uint16_t v, bool wbyte);
     uint16_t rd_operand(const OperandRef& r) const;
     void wr_operand(const OperandRef& r, uint16_t v);
     uint8_t sr_segment(uint8_t sr) const;
@@ -230,6 +232,9 @@ private:
     Machine m_;
     Pending pend_;
     std::vector<uint16_t> rdq_;  // completed reads awaiting OPR delivery
+    // The width tag that rides with each of them: a byte cycle fills only the
+    // low lane, so the word it delivers into OPR is a BYTE datum.
+    std::vector<char> rdq_byte_;
     bool opr_fresh_ = false;
     // THE OPR-VALID INTERLOCK (SM3 sitting 26).  `F` is the OPR interlock and
     // OPR is the read-data register: a row that SOURCES OPR under an `F` is
@@ -482,6 +487,7 @@ void CpuT<Bus>::wr_operand(const OperandRef& r, uint16_t v) {
         case OperandRef::kSregRef: m_.sreg[r.idx] = v; break;
         case OperandRef::kMem:
             m_.opr = v;  // staged; the [-06-] strobe commits it to memory
+            m_.opr_byte = r.byte;
             opr_fresh_ = true;
             opr_loaded_ = true;
             break;
@@ -683,10 +689,64 @@ bool CpuT<Bus>::cond_true(uint8_t cond) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// THE SOURCE1 WIDTH CLASSIFICATION.
+//
+// `byte_src` and `wbyte` are DIFFERENT PROPERTIES and the difference is why
+// the table below is not just a copy of the existing flag:
+//
+//   `byte_src` is LANE REPLICATION -- the rail drives its eight bits on BOTH
+//   halves of the source bus, so an H-half write (dst 22/23, which takes bits
+//   15:8) picks the same byte up.  Only Q and CONST do that.
+//
+//   `wbyte` is the DATUM WIDTH -- how many bits of what the rail presents are
+//   significant.  It is what the ALU's flag taps and the iterative unit's
+//   carry chain follow (state.h, `tmp_byte`).
+//
+// THE CRITERION IS ONE SENTENCE, and it is the sibling-lane law of
+// `state.h::rb16` generalised to every rail:
+//
+//     A RAIL IS TAGGED BYTE WHEN ITS UPPER LANE CARRIES SOMETHING THAT IS NOT
+//     PART OF THIS DATUM.
+//
+// That is what the ALU has to know.  A rail whose upper lane is driven with a
+// correct extension of the value -- a zero, a sign, a constant's leading
+// zeroes -- presents a valid 16-bit number and is WORD, however small the
+// number is.  "Small" is not "byte": `CONST 15`, ZEROS, ONES and PFXCNT are
+// all clean 16-bit values.  Only four rails carry foreign upper lanes:
+//
+//   7   Q         the prefetched byte; the queue drives it on both lanes,
+//                 which is exactly what `byte_src` records.
+//   16  AL:AH     the HIGH-byte register read through the 8-bit rotator: AH
+//                 in the low lane with AL riding along as the sibling.  Its
+//                 ROM consumers take the low lane as the datum -- 001B, 007C,
+//                 01DE, and 018C/019D where it is the byte divide's dividend
+//                 high half and 018E's `SUB tmpc` overflow test must compare
+//                 AH against the divisor at byte width.
+//   18/19 R / M   a byte operand read, sibling byte on the unused lane
+//                 (state.h::rb16).  The decoder's own width, and the only
+//                 encodings it parameterises.
+//   6   OPR       when a BYTE bus cycle filled it, the upper lane is the
+//                 other half of the bus.  This is what makes CMPSB/SCASB
+//                 compare at byte width (00A0/00A2 `OPR -> tmpb/tmpa`).
+//
+// Everything else is WORD: the segment registers (0-3), PC (4), dir*sz (8, a
+// 16-bit signed address step -- the pointer arithmetic is 16-bit for byte
+// strings too), ZEROS (9), PFXCNT (10), FLAGS (15), COUNT (17), ONES (21),
+// opc&38 (22), CONST (23) and the 16-bit register-file reads (>=24).  The
+// temps (12-14) and SIGMA (20) PROPAGATE the tag of what produced them.
+//
+// `byte_src` and this tag agree on Q and disagree on CONST, and that is not a
+// contradiction: `byte_src` is only ever read by the H-half writes (dst
+// 22/23), and NO ROM ROW EVER DRIVES AN H-HALF WRITE FROM CONST (measured:
+// zero `CONST -> tmp?H` rows).  CONST's lane behaviour is unobservable, so it
+// carries no evidence either way, and the datum criterion decides it.
+// ---------------------------------------------------------------------------
 template <class Bus>
 uint16_t CpuT<Bus>::rd_src1(uint8_t c, const RowCtx& ctx, const ucrom::MicroOp& op,
-                      bool& byte_src) {
+                      bool& byte_src, bool& wbyte) {
     byte_src = false;
+    wbyte = false;
     switch (c) {
         case 0: case 1: case 2: case 3: return m_.sreg[c];
         case 4: return m_.pc;
@@ -695,11 +755,12 @@ uint16_t CpuT<Bus>::rd_src1(uint8_t c, const RowCtx& ctx, const ucrom::MicroOp& 
         // the value the microcode has already taken out of the register.
         // (Ledger, "write-data pairing"; forced by the BCD strings 02D4/02D7
         // and by INS 032B/032F.)
-        case 6: opr_fresh_ = false; return m_.opr;
+        case 6: opr_fresh_ = false; wbyte = m_.opr_byte; return m_.opr;
         case 7: {  // Q: pop one queue byte, advance PC
             uint8_t b = biu_.next_byte(m_.sreg[kCS], op.rom_addr);
             m_.pc = uint16_t(m_.pc + 1);
             byte_src = true;
+            wbyte = true;
             return b;
         }
         case 8: {  // dir*sz
@@ -709,15 +770,17 @@ uint16_t CpuT<Bus>::rd_src1(uint8_t c, const RowCtx& ctx, const ucrom::MicroOp& 
         }
         case 9: return 0;                       // ZEROS
         case 10: return m_.pfxcnt;              // PFXCNT
-        case 12: return m_.tmpa;
-        case 13: return m_.tmpb;
-        case 14: return m_.tmpc;
+        case 12: wbyte = m_.tmp_byte[0]; return m_.tmpa;
+        case 13: wbyte = m_.tmp_byte[1]; return m_.tmpb;
+        case 14: wbyte = m_.tmp_byte[2]; return m_.tmpc;
         case 15: return m_.flags();
-        case 16: return uint16_t((m_.gpr[kAW] << 8) | (m_.gpr[kAW] >> 8));  // AL:AH
+        case 16:  // AL:AH -- the high-byte read through the 8-bit rotator
+            wbyte = true;
+            return uint16_t((m_.gpr[kAW] << 8) | (m_.gpr[kAW] >> 8));
         case 17: return m_.count;
-        case 18: return rd_operand(m_.R);
-        case 19: return rd_operand(m_.M);
-        case 20: return ctx.sigma;
+        case 18: wbyte = m_.R.byte; return rd_operand(m_.R);
+        case 19: wbyte = m_.M.byte; return rd_operand(m_.M);
+        case 20: wbyte = ctx.byte; return ctx.sigma;
         case 21: return 0xFFFF;                 // ONES
         case 22: return uint16_t(m_.opc_reg & 0x38);
         case 23: byte_src = true; return op.const_val();  // CONST
@@ -728,34 +791,52 @@ uint16_t CpuT<Bus>::rd_src1(uint8_t c, const RowCtx& ctx, const ucrom::MicroOp& 
 }
 
 template <class Bus>
-void CpuT<Bus>::wr_dst1(uint8_t c, uint16_t v, bool byte_src) {
+void CpuT<Bus>::wr_dst1(uint8_t c, uint16_t v, bool byte_src, bool wbyte) {
     switch (c) {
         case 0: case 1: case 2: case 3: m_.sreg[c] = v; break;
         case 4: m_.pc = v; break;
         case 5: m_.ind = v; break;
-        case 6: m_.opr = v; opr_fresh_ = true; opr_loaded_ = true; break;
+        case 6:
+            m_.opr = v; m_.opr_byte = wbyte;
+            opr_fresh_ = true; opr_loaded_ = true;
+            break;
         case 7: break;  // NULL
         case 8: m_.wb(0, uint8_t(v)); break;   // AL
-        case 12: m_.tmpa = v; break;
-        case 13: m_.tmpb = v; break;
-        case 14: m_.tmpc = v; break;
+        case 12: m_.tmpa = v; m_.tmp_byte[0] = wbyte; break;
+        case 13: m_.tmpb = v; m_.tmp_byte[1] = wbyte; break;
+        case 14: m_.tmpc = v; m_.tmp_byte[2] = wbyte; break;
         case 15: m_.set_flags(v); break;
         case 16: m_.wb(4, uint8_t(v)); break;  // AH
         case 17: m_.count = v; break;
         case 18: wr_operand(m_.R, v); break;
         case 19: wr_operand(m_.M, v); break;
         // tmpaL zero-extends, tmpbL SIGN-extends (ledger, "L-half writes").
-        case 20: m_.tmpa = uint16_t(v & 0x00FF); break;
-        case 21: m_.tmpb = uint16_t(int16_t(int8_t(v))); break;
+        // BOTH CLEAR THE TAG.  An extender is a WIDENER: it drives the high
+        // half itself, with zero or with the sign, and either way that half
+        // is a correct part of the 16-bit value.  Nothing foreign survives
+        // there, so what comes out is a word.  (This is why `83` and `6B` --
+        // word operations whose sign-extended byte immediate never reaches an
+        // H-half write -- come out at word width, and why the `0F 31/39`
+        // bit-field block, which carries its 4-bit offsets through `tmpaL`,
+        // stays at word width like the rest of a word instruction.)
+        case 20: m_.tmpa = uint16_t(v & 0x00FF); m_.tmp_byte[0] = false; break;
+        case 21: m_.tmpb = uint16_t(int16_t(int8_t(v))); m_.tmp_byte[1] = false; break;
         // The H-half write takes bus bits 15:8; a byte source (Q / CONST)
         // presents its byte there.
+        // AN H-HALF WRITE COMPLETES A 16-BIT DATUM, so it clears the tag.
+        // This is how the ROM builds a word immediate and it is how the ALU
+        // learns the width without being told: 003C `Q -> tmpbL` /
+        // `JMP OP8 2` / 003D `Q -> tmpbH` -- the L-only path leaves a byte,
+        // the L+H path a word.
         case 22:
             m_.tmpa = uint16_t((m_.tmpa & 0x00FF) |
                                ((byte_src ? (v & 0xFF) : (v >> 8)) << 8));
+            m_.tmp_byte[0] = false;
             break;
         case 23:
             m_.tmpb = uint16_t((m_.tmpb & 0x00FF) |
                                ((byte_src ? (v & 0xFF) : (v >> 8)) << 8));
+            m_.tmp_byte[1] = false;
             break;
         default:
             if (c >= 24) m_.gpr[c - 24] = v;
@@ -764,32 +845,34 @@ void CpuT<Bus>::wr_dst1(uint8_t c, uint16_t v, bool byte_src) {
 }
 
 template <class Bus>
-uint16_t CpuT<Bus>::rd_src2(uint8_t c, const RowCtx& ctx) {
+uint16_t CpuT<Bus>::rd_src2(uint8_t c, const RowCtx& ctx, bool& wbyte) {
+    wbyte = false;  // same classification as source1: WORD unless stated
     switch (c) {
         // Source2 [-00-] is used on exactly ONE row in the whole ROM (02DA,
         // the BCD-string loop) and it must present all-ones there -- see the
         // ledger, "the BCD string ops": the tail computes the final CY/Z as
         // `tmpb + tmpb` at byte width, and the carry-out path needs 0xFF.
-        case 0: return 0xFFFF;
-        case 4: return ctx.sigma;
-        case 5: {
+        case 0: return 0xFFFF;                  // ONES
+        case 4: wbyte = ctx.byte; return ctx.sigma;
+        case 5: {                               // Q
             uint8_t b = biu_.next_byte(m_.sreg[kCS], 0xFFFE);
             m_.pc = uint16_t(m_.pc + 1);
+            wbyte = true;
             return b;
         }
-        case 6: return 0;
-        case 7: return rd_operand(m_.R);
+        case 6: return 0;                       // ZEROS
+        case 7: wbyte = m_.R.byte; return rd_operand(m_.R);
         default:
-            if (c >= 8) return m_.gpr[c - 8];
+            if (c >= 8) return m_.gpr[c - 8];   // 16-bit register-file read
             return 0;
     }
 }
 
 template <class Bus>
-void CpuT<Bus>::wr_dst2(uint8_t c, uint16_t v) {
+void CpuT<Bus>::wr_dst2(uint8_t c, uint16_t v, bool wbyte) {
     switch (c) {
-        case 0: m_.tmpa = v; break;
-        case 1: m_.tmpb = v; break;
+        case 0: m_.tmpa = v; m_.tmp_byte[0] = wbyte; break;
+        case 1: m_.tmpb = v; m_.tmp_byte[1] = wbyte; break;
         case 2: m_.ind = v; break;
         default: break;
     }
@@ -817,7 +900,9 @@ void CpuT<Bus>::deliver_read(bool reads_opr) {
     if (reads_opr) biu_.wait_read(); else biu_.wait_opr_free();
     if (rdq_.empty()) return;
     m_.opr = rdq_.front();
+    m_.opr_byte = rdq_byte_.front() != 0;
     rdq_.erase(rdq_.begin());
+    rdq_byte_.erase(rdq_byte_.begin());
     opr_fresh_ = true;
     opr_loaded_ = true;
 }
@@ -902,6 +987,7 @@ void CpuT<Bus>::bus_read(uint8_t seg, uint16_t off, bool byte, bool io, uint16_t
         v = biu_.mem_read(seg == kSegZero ? 0 : m_.sreg[seg], off, !byte, seg,
                           upc);
     rdq_.push_back(v);
+    rdq_byte_.push_back(byte ? 1 : 0);
     if (int(rdq_.size()) > g_rdq_max) {
         g_rdq_max = int(rdq_.size());
         if (qdepth_trace())
@@ -944,7 +1030,9 @@ void CpuT<Bus>::bus_inta(uint16_t upc) {
         if (!opr_fresh_) deliver_read();
         emit_pending();
     }
+    // The acknowledge delivers ONE byte on the low lane.
     rdq_.push_back(biu_.inta_read(upc));
+    rdq_byte_.push_back(1);
     if (int(rdq_.size()) > g_rdq_max) {
         g_rdq_max = int(rdq_.size());
         if (qdepth_trace())
@@ -959,6 +1047,7 @@ template <class Bus>
 void CpuT<Bus>::begin_sequence() {
     pend_ = Pending{};
     rdq_.clear();
+    rdq_byte_.clear();
     opr_fresh_ = false;
     opr_loaded_ = false;
     rep_elems_ = 0;
@@ -1011,7 +1100,6 @@ bool CpuT<Bus>::interrupt(EventKind kind) {
     m_.alu = AluLatch{};
     m_.alu.op = kAdd;
     m_.alu.tmp = 0;
-    m_.alu.byte = false;
     m_.halted = false;
     MicroPc e{};
     e.page = 7;
@@ -1222,6 +1310,9 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
         ctx.flags = ar.flags;
         ctx.flag_mask = ar.flag_mask;
         ctx.hw = ar.hw;
+        // SIGMA carries the width the ALU worked at, so a `SIGMA -> tmp`
+        // transfer propagates it instead of losing it.
+        ctx.byte = alu_width_byte(m_, m_.alu);
 
         if (trace_) {
             std::fprintf(trace_,
@@ -1248,9 +1339,9 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
             bool have1 = !op.nop_move();
             bool have2 = !op.has_const() && (op.s2 != 15 || op.d2 != 3);
             uint16_t v1 = 0, v2 = 0;
-            bool bsrc1 = false;
-            if (have1) v1 = rd_src1(op.s1, ctx, op, bsrc1);
-            if (have2) v2 = rd_src2(op.s2, ctx);
+            bool bsrc1 = false, wb1 = false, wb2 = false;
+            if (have1) v1 = rd_src1(op.s1, ctx, op, bsrc1, wb1);
+            if (have2) v2 = rd_src2(op.s2, ctx, wb2);
             if (have1) {
                 if (op.s1 == 20) set_stat(ctx);
                 bool from_sigma = (op.s1 == 20);
@@ -1260,13 +1351,13 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
                     if (op.d1 == 19 && m_.M.kind == OperandRef::kMem)
                         suppress_commit = true;
                 } else {
-                    wr_dst1(op.d1, v1, bsrc1);
+                    wr_dst1(op.d1, v1, bsrc1, wb1);
                 }
             }
             if (have2) {
                 if (op.s2 == 4) set_stat(ctx);
                 bool from_sigma = (op.s2 == 4);
-                if (!(from_sigma && !ctx.commits)) wr_dst2(op.d2, v2);
+                if (!(from_sigma && !ctx.commits)) wr_dst2(op.d2, v2, wb2);
             }
 
             // --- flag write ----------------------------------------------
@@ -1281,7 +1372,11 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
             AluLatch nl;
             nl.op = op.alu_op;
             nl.tmp = op.alu_tmp;
-            nl.byte = m_.op8;
+            // NOTHING LATCHES THE WIDTH.  It is read combinationally from the
+            // tag of the operand register the ALU takes its port from, at the
+            // instant the row that CONSUMES sigma evaluates it -- which it has
+            // to be: the `80/81/83` group latches `ALU OPC tmpa` at 003E and
+            // only loads port A with the r/m operand at 003F, one row later.
             nl.ea_const = false;
             nl.adjust = (m_.alu.op == kAdjd) ? 1
                         : (m_.alu.op == kAdja) ? 2
@@ -1326,6 +1421,7 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
                 // destination (always tmpb in the ROM) on every iteration.
                 // Afterwards the latch is SPENT (see alu_eval).
                 m_.alu.spent = true;
+                const bool loop_byte = alu_width_byte(m_, m_.alu);
                 while (m_.count != 0) {
                     ++rloop_iters;
                     m_.count = uint16_t(m_.count - 1);
@@ -1334,8 +1430,9 @@ bool CpuT<Bus>::run_micro(const MicroPc& entry) {
                     sc.sigma = sr.value;
                     sc.flags = sr.flags;
                     sc.flag_mask = sr.flag_mask;
+                    sc.byte = loop_byte;
                     set_stat(sc);
-                    if (!op.nop_move()) wr_dst1(op.d1, sr.value, false);
+                    if (!op.nop_move()) wr_dst1(op.d1, sr.value, false, loop_byte);
                     if (op.w && sr.flag_mask)
                         commit_flags(sr.flag_mask, sr.flags, sr.hw);
                 }

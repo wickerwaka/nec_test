@@ -89,6 +89,23 @@ uint8_t alu_opc_select(const Machine& m) {
     return uint8_t(m.opc_base + sel);
 }
 
+bool alu_width_byte(const Machine& m, const AluLatch& lat) {
+    uint8_t op = lat.op;
+    if (op == kOpc) op = alu_opc_select(m);
+    // CLAUSE 2 -- ABS IS THE MULTIPLY/DIVIDE UNIT'S OPERAND CONDITIONING, and
+    // that unit's width is the INSTRUCTION's by construction (8x8->16 or
+    // 16x16->32; 16/8 or 32/16).  See alu.h for what licenses this and for
+    // its falsifier.  The `kAbs` latch row's sign capture in exec_impl.h
+    // already reads `op8` for the very same decision, so the magnitude and
+    // the sign it strips now come from one place instead of two.
+    if (op == kAbs) return m.op8;
+    // CLAUSE 1 -- port A is always tmpb; port B is the Tmp register, and
+    // Tmp == 3 selects the hardwired zero rail, a 16-bit constant, so WORD.
+    uint8_t t = uint8_t(lat.tmp & 3);
+    bool b_byte = t < 3 ? m.tmp_byte[t] : false;
+    return m.tmp_byte[1] || b_byte;
+}
+
 AluResult alu_eval(const Machine& m, const AluLatch& lat) {
     AluResult res;
     if (lat.ea_const) {
@@ -105,7 +122,7 @@ AluResult alu_eval(const Machine& m, const AluLatch& lat) {
     // see the ledger, "ALU width".)  The iterative shift/multiply ops are the
     // exception: they are width-confined (their carry chain wraps at the
     // operand width) and are stepped by alu_step().
-    bool byte = lat.byte && op != kInc2 && op != kDec2;
+    bool byte = alu_width_byte(m, lat) && op != kInc2 && op != kDec2;
     const uint16_t tmps[4] = {m.tmpa, m.tmpb, m.tmpc, 0};
     uint32_t af = m.tmpb;                     // port A
     uint32_t bf = tmps[lat.tmp & 3];          // port B
@@ -301,7 +318,7 @@ AluResult alu_step(Machine& m, const AluLatch& lat) {
     uint8_t op = lat.op;
     if (op == kOpc) op = alu_opc_select(m);
 
-    bool byte = lat.byte;
+    bool byte = alu_width_byte(m, lat);
     int w = byte ? 8 : 16;
     uint32_t mask = byte ? 0xFFu : 0xFFFFu;
     uint32_t msb = byte ? 0x80u : 0x8000u;

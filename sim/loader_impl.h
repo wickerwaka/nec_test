@@ -164,6 +164,7 @@ LoadResult loader_decode_8080(Machine& m, Bus& biu) {
     if (pre && pre->kind == OperandRef::kMem) {
         m.opr = biu.mem_read(m.sreg[pre->seg], pre->ea, false, pre->seg,
                              kPreDecodeUpc);
+        m.opr_byte = false;  // the 8080 pre-read is a word cycle
         out.preread = true;
     }
     // `[-06-]` commits the DESTINATION when it is memory (MOV M,r / MVI M /
@@ -208,7 +209,6 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
     m.alu = AluLatch{};
     m.alu.op = kAdd;
     m.alu.tmp = 0;
-    m.alu.byte = false;
 
     // 8080 emulation mode decodes off a different PLA section into different
     // micro-pages; everything downstream (operand latches, bus rows, the
@@ -496,6 +496,9 @@ LoadResult loader_decode(Machine& m, Bus& biu) {
         if (mo.kind == OperandRef::kMem) {
             m.opr = biu.mem_read(m.sreg[mo.seg], mo.ea, !mo.byte, mo.seg,
                                  loader_detail::kPreDecodeUpc);
+            // The pre-read fills OPR at the OPERAND's width, exactly as a
+            // microcoded read does; the tag rides with the datum.
+            m.opr_byte = mo.byte;
             // Micro-row 0 cannot open until this data is in OPR and the
             // decoder has handed the sequencer over: T4 + 2.  See
             // biu_timed.h::wait_opr.
