@@ -1,0 +1,721 @@
+{
+ "E1_gen_ucore_qsf": {
+  "bar": "hdl/nec_test_ucore.qsf is a faithful derivative of hdl/nec_test.qsf",
+  "out": "gen_ucore_qsf: nec_test_ucore.qsf is up to date",
+  "pass": true,
+  "rc": 0
+ },
+ "bars": {
+  "E2_zero_errors": {
+   "bar": "0 compile errors, every stage Successful",
+   "pass": true,
+   "value": {
+    "asm": true,
+    "error_lines": 0,
+    "fit": "Successful - Thu Aug 20 19:09:18 2026",
+    "map": "Successful - Thu Aug 20 18:52:06 2026",
+    "stage_errors": 0
+   }
+  },
+  "E3_fmax": {
+   "bar": "divclk Fmax >= 32.0 MHz",
+   "pass": true,
+   "value": 40.24
+  },
+  "E4_worst_setup": {
+   "bar": "worst setup slack > 0 on every domain",
+   "pass": true,
+   "value": 7.232
+  },
+  "E5_tns": {
+   "bar": "TNS == 0.000, setup AND hold, every domain",
+   "pass": true,
+   "value": []
+  },
+  "E8_seed_honoured": {
+   "bar": "quartus_fit honoured --seed=3: the `Fitter Initial Placement Seed` row of its own fit.rpt (the seed it USED) must say so, corroborated by Quartus's `Info: Command:` echo (the seed it RECEIVED)",
+   "pass": true,
+   "value": {
+    "asked": 3,
+    "command_line": 3,
+    "settings": 3,
+    "settings_row": "; Fitter Initial Placement Seed                                              ; 3                                     ;"
+   }
+  }
+ },
+ "build": {
+  "configuration_requested": "CONTROL/DEFAULT",
+  "log": "/home/wickerwaka/src/nec_test/hdl/quartus_gate_build.log",
+  "note": "one shared quartus_map; this receipt is ONE FIT of the sweep",
+  "stages": [
+   {
+    "cmd": [
+     "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit",
+     "--seed=3",
+     "--recompile=off",
+     "nec_test",
+     "-c",
+     "nec_test_ucore"
+    ],
+    "rc": 0,
+    "seconds": 316.2,
+    "tag": "seed3:quartus_fit"
+   },
+   {
+    "cmd": [
+     "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm",
+     "nec_test",
+     "-c",
+     "nec_test_ucore"
+    ],
+    "rc": 0,
+    "seconds": 12.6,
+    "tag": "seed3:quartus_asm"
+   },
+   {
+    "cmd": [
+     "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+     "nec_test",
+     "-c",
+     "nec_test_ucore"
+    ],
+    "rc": 0,
+    "seconds": 7.8,
+    "tag": "seed3:quartus_sta"
+   },
+   {
+    "cmd": [
+     "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+     "-t",
+     "/home/wickerwaka/src/nec_test/sw/sta_truefmax_probe.tcl",
+     "nec_test",
+     "nec_test_ucore",
+     "/home/wickerwaka/src/nec_test/hdl/output_files_ucore/g6dist_seed3"
+    ],
+    "rc": 0,
+    "seconds": 19.1,
+    "tag": "seed3:truefmax"
+   }
+  ]
+ },
+ "build_id": {
+  "note": "a build input NOT in input_manifest: it is a %y%m%d date stamp and would move the manifest hash daily",
+  "present": true,
+  "sha256": "c8b6c3cd0ef7cd73134169afb5a030ba386ebed1230a676f5e9727de9726a225",
+  "text": "`define BUILD_DATE \"260820\""
+ },
+ "command": [
+  [
+   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_fit",
+   "--seed=3",
+   "--recompile=off",
+   "nec_test",
+   "-c",
+   "nec_test_ucore"
+  ],
+  [
+   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_asm",
+   "nec_test",
+   "-c",
+   "nec_test_ucore"
+  ],
+  [
+   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_sta",
+   "nec_test",
+   "-c",
+   "nec_test_ucore"
+  ]
+ ],
+ "completed": "2026-08-21T02:10:06Z",
+ "configuration": "CONTROL/DEFAULT (no X1_AD_RETENTION) -- DERIVED from hdl/output_files_ucore/nec_test_ucore.flow.rpt, hdl/output_files_ucore/nec_test_ucore.map.rpt",
+ "configuration_detail": {
+  "cmdline_macros": [],
+  "command_line": "quartus_map nec_test -c nec_test_ucore",
+  "macros": [
+   "MISTER_DEBUG_NOHDMI=1",
+   "MISTER_DISABLE_ALSA=1",
+   "MISTER_DISABLE_YC=1",
+   "SYNTHESIS=1",
+   "V30_MUXED_AD=1"
+  ],
+  "qsf_macros": [
+   "MISTER_DEBUG_NOHDMI=1",
+   "MISTER_DISABLE_ALSA=1",
+   "MISTER_DISABLE_YC=1",
+   "SYNTHESIS=1",
+   "V30_MUXED_AD=1"
+  ],
+  "retention": false,
+  "sources": {
+   "hdl/output_files_ucore/nec_test_ucore.flow.rpt": true,
+   "hdl/output_files_ucore/nec_test_ucore.map.rpt": true
+  }
+ },
+ "core_domain": {
+  "caveat": "UPPER BOUND: each class row is the worst path in that collection BY SLACK, not by slack/k, so a row can return a path carrying a different exception than its label names.  `off_class` lists the rows where the measured k and the label's k disagree ON THIS DRAW.",
+  "class": "SAME",
+  "class_label": "SAME   $v30u_ce -> $v30u_ce   (the CE multicycle)",
+  "classes": {
+   "INTO": 66.29,
+   "OUTOF": 84.18,
+   "SAME": 40.24
+  },
+  "definition": "min over the three SDC classes whose BOTH endpoints are v30u_eu/v30u_biu registers: SAME, INTO, OUTOF",
+  "fmax_mhz": 40.24,
+  "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+  "k": 2.0,
+  "k_measured": {
+   "INTO": 1.0,
+   "OUTOF": 1.0,
+   "SAME": 2.0
+  },
+  "k_nominal": 2.0,
+  "missing": [],
+  "off_class": [],
+  "slack": 12.803,
+  "t_min_ns": 24.849,
+  "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[1]",
+  "upper_bound": true
+ },
+ "env": {},
+ "figures": {
+  "durations": {
+   "fit": {
+    "cpu": "00:11:31",
+    "elapsed": "00:05:16"
+   },
+   "map": {
+    "cpu": "00:02:52",
+    "elapsed": "00:02:15"
+   }
+  },
+  "error_lines": [],
+  "fmax": {
+   "FPGA_CLK2_50": 147.47,
+   "altera_reserved_tck": 62.8,
+   "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk": 40.24,
+   "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk": 57.38
+  },
+  "hold": [
+   {
+    "clock": "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+    "slack": 0.258,
+    "tns": 0.0
+   },
+   {
+    "clock": "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+    "slack": 0.27,
+    "tns": 0.0
+   },
+   {
+    "clock": "altera_reserved_tck",
+    "slack": 0.35,
+    "tns": 0.0
+   },
+   {
+    "clock": "FPGA_CLK2_50",
+    "slack": 0.418,
+    "tns": 0.0
+   }
+  ],
+  "resources": {
+   "fit_registers": "5880",
+   "latches": 0,
+   "lpm_divide": 0
+  },
+  "setup": [
+   {
+    "clock": "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+    "slack": 7.232,
+    "tns": 0.0
+   },
+   {
+    "clock": "altera_reserved_tck",
+    "slack": 8.705,
+    "tns": 0.0
+   },
+   {
+    "clock": "FPGA_CLK2_50",
+    "slack": 13.219,
+    "tns": 0.0
+   },
+   {
+    "clock": "pll_audio|pll_audio_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+    "slack": 23.255,
+    "tns": 0.0
+   }
+  ],
+  "stages": [
+   {
+    "errors": 0,
+    "stage": "Shell",
+    "warnings": 0
+   },
+   {
+    "errors": 0,
+    "stage": "Analysis & Synthesis",
+    "warnings": 1152
+   },
+   {
+    "errors": 0,
+    "stage": "Fitter",
+    "warnings": 103
+   },
+   {
+    "errors": 0,
+    "stage": "Assembler",
+    "warnings": 2
+   },
+   {
+    "errors": 0,
+    "stage": "TimeQuest Timing Analyzer",
+    "warnings": 93
+   },
+   {
+    "errors": 0,
+    "stage": "TimeQuest Timing Analyzer",
+    "warnings": 93
+   },
+   {
+    "errors": 0,
+    "stage": "Fitter",
+    "warnings": 103
+   },
+   {
+    "errors": 0,
+    "stage": "Assembler",
+    "warnings": 2
+   },
+   {
+    "errors": 0,
+    "stage": "TimeQuest Timing Analyzer",
+    "warnings": 93
+   },
+   {
+    "errors": 0,
+    "stage": "TimeQuest Timing Analyzer",
+    "warnings": 93
+   },
+   {
+    "errors": 0,
+    "stage": "Fitter",
+    "warnings": 103
+   },
+   {
+    "errors": 0,
+    "stage": "Assembler",
+    "warnings": 2
+   },
+   {
+    "errors": 0,
+    "stage": "TimeQuest Timing Analyzer",
+    "warnings": 93
+   },
+   {
+    "errors": 0,
+    "stage": "TimeQuest Timing Analyzer",
+    "warnings": 93
+   }
+  ],
+  "status": {
+   "alms": "10,296 / 41,910 ( 25 % )",
+   "asm_successful": true,
+   "fit_registers": "5880",
+   "fit_status": "Successful - Thu Aug 20 19:09:18 2026",
+   "map_registers": "5094",
+   "map_status": "Successful - Thu Aug 20 18:52:06 2026"
+  },
+  "ucore_hierarchy": {
+   "v30_core": {
+    "combinational_aluts": {
+     "own": 1,
+     "total": 10317
+    },
+    "dedicated_logic_registers": {
+     "own": 0,
+     "total": 1169
+    }
+   },
+   "v30u_biu": {
+    "combinational_aluts": {
+     "own": 1092,
+     "total": 1092
+    },
+    "dedicated_logic_registers": {
+     "own": 438,
+     "total": 438
+    }
+   },
+   "v30u_eu": {
+    "combinational_aluts": {
+     "own": 8606,
+     "total": 9224
+    },
+    "dedicated_logic_registers": {
+     "own": 731,
+     "total": 731
+    }
+   },
+   "v30u_ucrom": {
+    "combinational_aluts": {
+     "own": 618,
+     "total": 618
+    },
+    "dedicated_logic_registers": {
+     "own": 0,
+     "total": 0
+    }
+   }
+  },
+  "uninferred_ram_fragments": {
+   "by_entity": {
+    "v30u_eu": 24
+   },
+   "by_source": {
+    "pla3_tables.svh:110": 16,
+    "pla3_tables.svh:373": 2,
+    "pla3_tables.svh:636": 6
+   },
+   "total": 24
+  }
+ },
+ "gate": "quartus_gate",
+ "gate_version": 1,
+ "git": {
+  "describe": "f688db385b-dirty",
+  "dirty_tracked": true,
+  "head": "f688db385b2387851d1d45393e5dbc20e0b425cd"
+ },
+ "id": "e939bbd6c3d0e51ae863bc823d0fb3cac88e60de1feeb0120d2b883855badaa8",
+ "input_manifest": {
+  "files": {
+   "hdl/files_ucore.qip": "88de032b628152698981594826b9cf53b09d53dbb1940093fa9c91ca1002b88e",
+   "hdl/nec_test.qsf": "cc128486ef534ea4388d5373c31e60343caa70bacdab2fc97742bafe2d96b8ae",
+   "hdl/nec_test.sdc": "2287c7c0a00a9544ee248d963bac3d3c4487f7f321bfd498b6af6290c3b77160",
+   "hdl/nec_test.sv": "b04e85a3e88f14e06d182e319a71714a2865e1b182acfb9f0cdc363801ce5e6b",
+   "hdl/nec_test_ucore.qsf": "709a8ee98a08c6bbc734316a36f2a75f1664324ccb1018d70dddce93f1b5dd5b",
+   "hdl/rtl/capture_buf.sv": "5eb48ef11ff0f8b2961151b76eedbd4a228528f162f604a70f822872c78dea66",
+   "hdl/rtl/hps_axi_slave.sv": "f7567ac588c496821cd113ceefa726998c408a62d44839e87562696263cf3721",
+   "hdl/rtl/iords_buf.sv": "b7744500def2a14af97228562a4371cd0531e7d68719e173fa431924f4ac76f8",
+   "hdl/rtl/nec_bus.sv": "99c778bde307d5e804f8cf4523b827e219ec461d07f8e9df96536aab3d688109",
+   "hdl/rtl/system_large.sv": "8c69e9336b7e5dc94fb97df7407dda3a001e9beacade9db90a076b4873e95616",
+   "hdl/rtl/test_mem.sv": "a0e09360c7359ab8679f5189a4c9d4765956dcb33c7ab4fa4b93f3c0e27c8249",
+   "hdl/rtl/ucore/README.md": "4dca7eb0212907909f770fcb9448e3804d00de7357ea8574620ad9768bc82419",
+   "hdl/rtl/ucore/pla3_tables.svh": "0d9693c01a289c7eb258ef9478c3405c93492417ee2cf42a28e4552360f61302",
+   "hdl/rtl/ucore/ucdecode.hex": "f5cf6e2bef1d3bec371d0b0227fb7cbcaaf62fd68f2ba3e505d345f492e08bda",
+   "hdl/rtl/ucore/ucrom.hex": "d9cfcddd4cb473f0c21f112bd64419e91d9395a256158e0205137e12ba3e531d",
+   "hdl/rtl/ucore/ucrom_census.json": "c97ad035e2a8e3e7209804321dc158e9129b9c83af1ce8229052447f65bfd7c9",
+   "hdl/rtl/ucore/v30_core.sv": "a36bfa02b14466a3566fb966961cbcf5cfb345f262f89eee461be96af0744036",
+   "hdl/rtl/ucore/v30u_biu.sv": "5de2b78627d33cc04e43dfeca1feaf69906af2d3009a4a6631355f5b28882530",
+   "hdl/rtl/ucore/v30u_eu.sv": "353d0adf1af2f177f5fffea4ee5e25ee0a3bc844aa99c3f7d47a252ac7197937",
+   "hdl/rtl/ucore/v30u_eu_1bl.svh": "8f22d7cd81a85092cb084996b17f8d70b70d19705ef79645dfd2a68bd83798f2",
+   "hdl/rtl/ucore/v30u_eu_cond.svh": "c676efd95c420875248741134a80cfe6b46bb3cea30119070ce6c7cd6e2c81fb",
+   "hdl/rtl/ucore/v30u_eu_iend_late.svh": "5dcf16f01584ae258d5c63b9bd969a8623cc7ffba827506f04f5753c1e5df20a",
+   "hdl/rtl/ucore/v30u_eu_poste.svh": "e8644de45bd67f0b04726f384d1cb250f8d6b8413d4b8058203fb6c46162cfd1",
+   "hdl/rtl/ucore/v30u_eu_row.svh": "692c8cf49961f1f0e47b66349ddd70f6907c1c84eb87dbdb7ae056bd81220f4c",
+   "hdl/rtl/ucore/v30u_eu_ss_read.svh": "877a63d21dc92483c18ed0fe126bb247d60dc7ee143446b6a1d04f676a640fdb",
+   "hdl/rtl/ucore/v30u_eu_ss_write.svh": "3c233d019d92a773fcc5c67d71fef730efcc9b45b20c7c1c04bf38f91184d579",
+   "hdl/rtl/ucore/v30u_eu_step.svh": "420894d2aaaab49914fe27b2e7c973cd47f03c34502fb0571add32f30610e5c5",
+   "hdl/rtl/ucore/v30u_eu_wd1.svh": "a6bd4ac45f8b6ca304f9b6eadee3ee8d8d504def574e20566c297b2f8348b65d",
+   "hdl/rtl/ucore/v30u_ss_pkg.sv": "c9d198f0cbead26f1f797468ef16b72f4cabf67f2fb58599cf0375b291a32aed",
+   "hdl/rtl/ucore/v30u_ucrom.sv": "60aa81810bbccaa3ab6041394429e1762ab880b051f5aa037ffe15b1df931718",
+   "hdl/rtl/video_gen.v": "d7058700f636c5f3bf27995c0a3561cecb6e0d5ff68bcac7c35fa78a8d0241e0",
+   "hdl/rtl/wvec_buf.sv": "50beb8d66d3e8b6840295cca3e5921ad49a180617f4431594a13f91283ac675f",
+   "hdl/sys/alsa.sv": "74943b658cd3f4adc5b74c72f225fb42b95122a1c5e453df860a4c6a9bf72fc9",
+   "hdl/sys/arcade_video.v": "ce64cdd7f900ded7b9cd9aa728dab7383b7561cdc75dfe82ab23fe27a3d217d3",
+   "hdl/sys/ascal.vhd": "08c21b36a95f22c813161066d9943c2d6959e8790d8ed840ee29ed335322d4c5",
+   "hdl/sys/audio_out.v": "565dd9badb00052dbd324e70f7ab66e8c6ecd0c5c2791aebffe477a2c0669363",
+   "hdl/sys/build_id.tcl": "148dc6a8124d36ac2898a45d085960cc05178a76d7297fde8877925fc0a74e88",
+   "hdl/sys/ddr_svc.sv": "8dfa874b9a93b4dbbe3b2fcf4f9035a895262cc090d398f4099941a626f41c08",
+   "hdl/sys/f2sdram_safe_terminator.sv": "400bcbcfc0b4aae324fe813866a5443d577bf4de9b4ab1454cb068733d170261",
+   "hdl/sys/gamma_corr.sv": "2754944c6fe05d921374d1fecc26621782520b3bc6fbf600ca561e9f37c7af88",
+   "hdl/sys/hps_io.sv": "1182da0710483a1030687c12e6601025a5293ab90f2eb15cdf5fdea38ea4c275",
+   "hdl/sys/hq2x.sv": "2146b69cf63c26a4b41407e9ac1b4462db4d7e3ea6d8a99f31ba12712d68f975",
+   "hdl/sys/i2c.v": "09bd7ebd5d84fb57f6a9d569e5214f3154c49e55826c15bd78884f3c781fec5b",
+   "hdl/sys/i2s.v": "927d2aea6797fb837f383e5e8a3259609e132ed24883127240ab21601f467efa",
+   "hdl/sys/iir_filter.v": "570a8095c15af84a60015b5eab105cee6e2d7edde77e20f0ce40c075ab2db8b7",
+   "hdl/sys/ltc2308.sv": "825fa1197c8e9f31c19c2fef1b01693133fb7df3cfb2dd831f2848a98fc6899c",
+   "hdl/sys/math.sv": "d384fa9fcf73100cb28a2affc5db1e4aacc87620287971c3882507fc3af056cc",
+   "hdl/sys/mcp23009.sv": "f168485e0b64c0545060f25b858c9f1c12b57024ce441754bb6a0cb0e9072e3f",
+   "hdl/sys/mt32pi.sv": "4ad39571d16a4b25347030d75ffdf601803ddec71e2e3fcabe962103cc45a1a2",
+   "hdl/sys/osd.v": "68ec08401a6ddaf68c95a2e976b9085b77f0002d5b64ffed7454055dbcc48062",
+   "hdl/sys/pll.13.qip": "f25f58e7c0290583f33ee0fdd729a4470cc69312686f0f1ecb95c61115d61cec",
+   "hdl/sys/pll_audio.13.qip": "60edce734c54e4b9f9d56f078bc797841e52c6817f4d27e0cfe77db5d77b2596",
+   "hdl/sys/pll_audio.qip": "278496eefe70d18f6b3ccf624c3a4595ccca74a9a6740eb4520200f1e929a236",
+   "hdl/sys/pll_audio.v": "1662fff7650cd443db81db7f0707f5583d223372b3e3c41af2d41ea4f3ac38f3",
+   "hdl/sys/pll_audio/pll_audio_0002.qip": "4cedd5394006286e0be61acdcbb6455f35cdf5c1488f4eb4a76b60e20eb43fb8",
+   "hdl/sys/pll_audio/pll_audio_0002.v": "2b24d2a561d81cc8b20f725884ee9c243e619058e42ebcdcf6f491d33008696c",
+   "hdl/sys/pll_cfg.qip": "7c1573f321012132479272242434d02058b1bcfe8d89843130ef11173a901eae",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_core.v": "9058d2c68e9cb0b1b6b3ab5487daad8aeaf04461e162aba317857dd133329189",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_top.v": "34c11c19e6bf3797d2db2e41314ce802f5a01041265ce943b54e7f20eb2027c9",
+   "hdl/sys/pll_cfg/pll_cfg.v": "e07ae93193537830b3bc9029465e763a6bfe354c25b7e7747eeeb4094b08ad10",
+   "hdl/sys/pll_cfg/pll_cfg_hdmi.v": "d3874dda124af03656054fa1ae1ee70f1a4d3cea6d4670795a5168325bb6760a",
+   "hdl/sys/pll_hdmi.13.qip": "625df824716313233400454bc1142615fb3a234a494225691c8a554753b1731b",
+   "hdl/sys/pll_hdmi.qip": "5571604010bf98858a0797a2286d2389e105d32a97b42508865b02ba4237dd0d",
+   "hdl/sys/pll_hdmi.v": "499561547c1045a46f1137558e2bab83d8e026e5d32669b5c5779a264b7ed676",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.qip": "de648286a832ee72839dd6abb444231a4238d32b2c26f29426399d2221d7bf5b",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.v": "27c77f35c89e97994477801f83edf3c7e9c5b9e57df49864434d300c40e9f1f7",
+   "hdl/sys/pll_hdmi_adj.vhd": "ae18c82eef2f6b9c7783c68ac272d03f570eb1bdaddce14a1908c351da51a71b",
+   "hdl/sys/pll_q13.qip": "c2b9c95a49d9b1100b0640bbdeea1acff845b0a8cbc11a7259c0913d2c61cfa8",
+   "hdl/sys/pll_q17.qip": "7139faf33ae28066e805f290b15401eddb092d4b7d31b529a3ce1f0213fbc90a",
+   "hdl/sys/scandoubler.v": "d36181c5fde9df0a504c547e23f60bcf201420052ada2682f081b00fd9485e6b",
+   "hdl/sys/scanlines.v": "1fc7ac5359fd224a3fc06388f7671e07bf57cf6a39f35803a265661c56c564d4",
+   "hdl/sys/sd_card.sv": "25114f9a0e9ab4dd702633ae927fc825dc79a4d9f7746c1bb75dbd10d61eb6d6",
+   "hdl/sys/shadowmask.sv": "88429d137b4ce9f6538a052f03d874604f46decf6d69b3fc824cc795efcf3193",
+   "hdl/sys/sigma_delta_dac.v": "352d31dd185bce14d9d1e8a4999fbb5f2b5b2e42b048bdc9f4b828119cc5127a",
+   "hdl/sys/spdif.v": "a617bba332c4611caf81ba585b8f6828c7899aec5f81664a870f10419cb9b451",
+   "hdl/sys/sys.qip": "3854d7f172097e01a40037e0a82dfd1a4178391ea0964767492979216279f31d",
+   "hdl/sys/sys.tcl": "8ed838a8c1e36327f862288ed36b681e320d940263ceb3436ae65a7a6c887676",
+   "hdl/sys/sys_analog.tcl": "36a875d6c59ba21b6d8936619db60f1bfcd8dbed5d5082aa43c72f22b22fd68f",
+   "hdl/sys/sys_dual_sdram.tcl": "4f41376069b2070079d8ba4ae4a722c8ecfe3ca4b99798d0bdd8cda986b5ad5b",
+   "hdl/sys/sys_top.sdc": "9c975aff0a05b115e4bcabb63d0e62c83b53957895e1c1920b304e8ed9054183",
+   "hdl/sys/sys_top.v": "8f8d493cde9d2e5a32604adf61fe9284a75291869c5018bd483b3f34a9332216",
+   "hdl/sys/sysmem.sv": "9f8cf78563cc31beb7dfc6d7048c51ba536ff4f1f9f640b4ff9f8d574456c94e",
+   "hdl/sys/vga_out.sv": "02a533c3dfd547afddea2946019ecc79bbe9c27bb6128c0999fa5fc9e78f8108",
+   "hdl/sys/video_cleaner.sv": "44b986d9bf8412e56bf8e4eae3dc87e04b4c378e58ec6119de5a8aed320e3572",
+   "hdl/sys/video_freak.sv": "6a9b8565f66894a8f2ec10c916593e980d260f29f1886bfe70bf6f3b0cf6edc0",
+   "hdl/sys/video_freezer.sv": "0f3f4710b072b7e90b0b6bfe7607dec18dbd6bed78d1994f32d6fa72a6b7aef3",
+   "hdl/sys/video_mixer.sv": "31ed2c917bd6680b4d60328e71a4f28015bd5fcec21e15b290eacec88971167d",
+   "hdl/sys/yc_out.sv": "c52d7bfcc8dbc5a0cda2b3117172cbba790fb97b7de61722ddac205f6ec8bc20"
+  },
+  "n_files": 88,
+  "sha256": "9edec9f41fecfe9327e3325513587ef749081da02445412f9779bc554c6019c4"
+ },
+ "inputs": {
+  "files": {
+   "hdl/files_ucore.qip": "88de032b628152698981594826b9cf53b09d53dbb1940093fa9c91ca1002b88e",
+   "hdl/nec_test.qsf": "cc128486ef534ea4388d5373c31e60343caa70bacdab2fc97742bafe2d96b8ae",
+   "hdl/nec_test.sdc": "2287c7c0a00a9544ee248d963bac3d3c4487f7f321bfd498b6af6290c3b77160",
+   "hdl/nec_test.sv": "b04e85a3e88f14e06d182e319a71714a2865e1b182acfb9f0cdc363801ce5e6b",
+   "hdl/nec_test_ucore.qsf": "709a8ee98a08c6bbc734316a36f2a75f1664324ccb1018d70dddce93f1b5dd5b",
+   "hdl/rtl/capture_buf.sv": "5eb48ef11ff0f8b2961151b76eedbd4a228528f162f604a70f822872c78dea66",
+   "hdl/rtl/hps_axi_slave.sv": "f7567ac588c496821cd113ceefa726998c408a62d44839e87562696263cf3721",
+   "hdl/rtl/iords_buf.sv": "b7744500def2a14af97228562a4371cd0531e7d68719e173fa431924f4ac76f8",
+   "hdl/rtl/nec_bus.sv": "99c778bde307d5e804f8cf4523b827e219ec461d07f8e9df96536aab3d688109",
+   "hdl/rtl/system_large.sv": "8c69e9336b7e5dc94fb97df7407dda3a001e9beacade9db90a076b4873e95616",
+   "hdl/rtl/test_mem.sv": "a0e09360c7359ab8679f5189a4c9d4765956dcb33c7ab4fa4b93f3c0e27c8249",
+   "hdl/rtl/ucore/README.md": "4dca7eb0212907909f770fcb9448e3804d00de7357ea8574620ad9768bc82419",
+   "hdl/rtl/ucore/pla3_tables.svh": "0d9693c01a289c7eb258ef9478c3405c93492417ee2cf42a28e4552360f61302",
+   "hdl/rtl/ucore/ucdecode.hex": "f5cf6e2bef1d3bec371d0b0227fb7cbcaaf62fd68f2ba3e505d345f492e08bda",
+   "hdl/rtl/ucore/ucrom.hex": "d9cfcddd4cb473f0c21f112bd64419e91d9395a256158e0205137e12ba3e531d",
+   "hdl/rtl/ucore/ucrom_census.json": "c97ad035e2a8e3e7209804321dc158e9129b9c83af1ce8229052447f65bfd7c9",
+   "hdl/rtl/ucore/v30_core.sv": "a36bfa02b14466a3566fb966961cbcf5cfb345f262f89eee461be96af0744036",
+   "hdl/rtl/ucore/v30u_biu.sv": "5de2b78627d33cc04e43dfeca1feaf69906af2d3009a4a6631355f5b28882530",
+   "hdl/rtl/ucore/v30u_eu.sv": "353d0adf1af2f177f5fffea4ee5e25ee0a3bc844aa99c3f7d47a252ac7197937",
+   "hdl/rtl/ucore/v30u_eu_1bl.svh": "8f22d7cd81a85092cb084996b17f8d70b70d19705ef79645dfd2a68bd83798f2",
+   "hdl/rtl/ucore/v30u_eu_cond.svh": "c676efd95c420875248741134a80cfe6b46bb3cea30119070ce6c7cd6e2c81fb",
+   "hdl/rtl/ucore/v30u_eu_iend_late.svh": "5dcf16f01584ae258d5c63b9bd969a8623cc7ffba827506f04f5753c1e5df20a",
+   "hdl/rtl/ucore/v30u_eu_poste.svh": "e8644de45bd67f0b04726f384d1cb250f8d6b8413d4b8058203fb6c46162cfd1",
+   "hdl/rtl/ucore/v30u_eu_row.svh": "692c8cf49961f1f0e47b66349ddd70f6907c1c84eb87dbdb7ae056bd81220f4c",
+   "hdl/rtl/ucore/v30u_eu_ss_read.svh": "877a63d21dc92483c18ed0fe126bb247d60dc7ee143446b6a1d04f676a640fdb",
+   "hdl/rtl/ucore/v30u_eu_ss_write.svh": "3c233d019d92a773fcc5c67d71fef730efcc9b45b20c7c1c04bf38f91184d579",
+   "hdl/rtl/ucore/v30u_eu_step.svh": "420894d2aaaab49914fe27b2e7c973cd47f03c34502fb0571add32f30610e5c5",
+   "hdl/rtl/ucore/v30u_eu_wd1.svh": "a6bd4ac45f8b6ca304f9b6eadee3ee8d8d504def574e20566c297b2f8348b65d",
+   "hdl/rtl/ucore/v30u_ss_pkg.sv": "c9d198f0cbead26f1f797468ef16b72f4cabf67f2fb58599cf0375b291a32aed",
+   "hdl/rtl/ucore/v30u_ucrom.sv": "60aa81810bbccaa3ab6041394429e1762ab880b051f5aa037ffe15b1df931718",
+   "hdl/rtl/video_gen.v": "d7058700f636c5f3bf27995c0a3561cecb6e0d5ff68bcac7c35fa78a8d0241e0",
+   "hdl/rtl/wvec_buf.sv": "50beb8d66d3e8b6840295cca3e5921ad49a180617f4431594a13f91283ac675f",
+   "hdl/sys/alsa.sv": "74943b658cd3f4adc5b74c72f225fb42b95122a1c5e453df860a4c6a9bf72fc9",
+   "hdl/sys/arcade_video.v": "ce64cdd7f900ded7b9cd9aa728dab7383b7561cdc75dfe82ab23fe27a3d217d3",
+   "hdl/sys/ascal.vhd": "08c21b36a95f22c813161066d9943c2d6959e8790d8ed840ee29ed335322d4c5",
+   "hdl/sys/audio_out.v": "565dd9badb00052dbd324e70f7ab66e8c6ecd0c5c2791aebffe477a2c0669363",
+   "hdl/sys/build_id.tcl": "148dc6a8124d36ac2898a45d085960cc05178a76d7297fde8877925fc0a74e88",
+   "hdl/sys/ddr_svc.sv": "8dfa874b9a93b4dbbe3b2fcf4f9035a895262cc090d398f4099941a626f41c08",
+   "hdl/sys/f2sdram_safe_terminator.sv": "400bcbcfc0b4aae324fe813866a5443d577bf4de9b4ab1454cb068733d170261",
+   "hdl/sys/gamma_corr.sv": "2754944c6fe05d921374d1fecc26621782520b3bc6fbf600ca561e9f37c7af88",
+   "hdl/sys/hps_io.sv": "1182da0710483a1030687c12e6601025a5293ab90f2eb15cdf5fdea38ea4c275",
+   "hdl/sys/hq2x.sv": "2146b69cf63c26a4b41407e9ac1b4462db4d7e3ea6d8a99f31ba12712d68f975",
+   "hdl/sys/i2c.v": "09bd7ebd5d84fb57f6a9d569e5214f3154c49e55826c15bd78884f3c781fec5b",
+   "hdl/sys/i2s.v": "927d2aea6797fb837f383e5e8a3259609e132ed24883127240ab21601f467efa",
+   "hdl/sys/iir_filter.v": "570a8095c15af84a60015b5eab105cee6e2d7edde77e20f0ce40c075ab2db8b7",
+   "hdl/sys/ltc2308.sv": "825fa1197c8e9f31c19c2fef1b01693133fb7df3cfb2dd831f2848a98fc6899c",
+   "hdl/sys/math.sv": "d384fa9fcf73100cb28a2affc5db1e4aacc87620287971c3882507fc3af056cc",
+   "hdl/sys/mcp23009.sv": "f168485e0b64c0545060f25b858c9f1c12b57024ce441754bb6a0cb0e9072e3f",
+   "hdl/sys/mt32pi.sv": "4ad39571d16a4b25347030d75ffdf601803ddec71e2e3fcabe962103cc45a1a2",
+   "hdl/sys/osd.v": "68ec08401a6ddaf68c95a2e976b9085b77f0002d5b64ffed7454055dbcc48062",
+   "hdl/sys/pll.13.qip": "f25f58e7c0290583f33ee0fdd729a4470cc69312686f0f1ecb95c61115d61cec",
+   "hdl/sys/pll_audio.13.qip": "60edce734c54e4b9f9d56f078bc797841e52c6817f4d27e0cfe77db5d77b2596",
+   "hdl/sys/pll_audio.qip": "278496eefe70d18f6b3ccf624c3a4595ccca74a9a6740eb4520200f1e929a236",
+   "hdl/sys/pll_audio.v": "1662fff7650cd443db81db7f0707f5583d223372b3e3c41af2d41ea4f3ac38f3",
+   "hdl/sys/pll_audio/pll_audio_0002.qip": "4cedd5394006286e0be61acdcbb6455f35cdf5c1488f4eb4a76b60e20eb43fb8",
+   "hdl/sys/pll_audio/pll_audio_0002.v": "2b24d2a561d81cc8b20f725884ee9c243e619058e42ebcdcf6f491d33008696c",
+   "hdl/sys/pll_cfg.qip": "7c1573f321012132479272242434d02058b1bcfe8d89843130ef11173a901eae",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_core.v": "9058d2c68e9cb0b1b6b3ab5487daad8aeaf04461e162aba317857dd133329189",
+   "hdl/sys/pll_cfg/altera_pll_reconfig_top.v": "34c11c19e6bf3797d2db2e41314ce802f5a01041265ce943b54e7f20eb2027c9",
+   "hdl/sys/pll_cfg/pll_cfg.v": "e07ae93193537830b3bc9029465e763a6bfe354c25b7e7747eeeb4094b08ad10",
+   "hdl/sys/pll_cfg/pll_cfg_hdmi.v": "d3874dda124af03656054fa1ae1ee70f1a4d3cea6d4670795a5168325bb6760a",
+   "hdl/sys/pll_hdmi.13.qip": "625df824716313233400454bc1142615fb3a234a494225691c8a554753b1731b",
+   "hdl/sys/pll_hdmi.qip": "5571604010bf98858a0797a2286d2389e105d32a97b42508865b02ba4237dd0d",
+   "hdl/sys/pll_hdmi.v": "499561547c1045a46f1137558e2bab83d8e026e5d32669b5c5779a264b7ed676",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.qip": "de648286a832ee72839dd6abb444231a4238d32b2c26f29426399d2221d7bf5b",
+   "hdl/sys/pll_hdmi/pll_hdmi_0002.v": "27c77f35c89e97994477801f83edf3c7e9c5b9e57df49864434d300c40e9f1f7",
+   "hdl/sys/pll_hdmi_adj.vhd": "ae18c82eef2f6b9c7783c68ac272d03f570eb1bdaddce14a1908c351da51a71b",
+   "hdl/sys/pll_q13.qip": "c2b9c95a49d9b1100b0640bbdeea1acff845b0a8cbc11a7259c0913d2c61cfa8",
+   "hdl/sys/pll_q17.qip": "7139faf33ae28066e805f290b15401eddb092d4b7d31b529a3ce1f0213fbc90a",
+   "hdl/sys/scandoubler.v": "d36181c5fde9df0a504c547e23f60bcf201420052ada2682f081b00fd9485e6b",
+   "hdl/sys/scanlines.v": "1fc7ac5359fd224a3fc06388f7671e07bf57cf6a39f35803a265661c56c564d4",
+   "hdl/sys/sd_card.sv": "25114f9a0e9ab4dd702633ae927fc825dc79a4d9f7746c1bb75dbd10d61eb6d6",
+   "hdl/sys/shadowmask.sv": "88429d137b4ce9f6538a052f03d874604f46decf6d69b3fc824cc795efcf3193",
+   "hdl/sys/sigma_delta_dac.v": "352d31dd185bce14d9d1e8a4999fbb5f2b5b2e42b048bdc9f4b828119cc5127a",
+   "hdl/sys/spdif.v": "a617bba332c4611caf81ba585b8f6828c7899aec5f81664a870f10419cb9b451",
+   "hdl/sys/sys.qip": "3854d7f172097e01a40037e0a82dfd1a4178391ea0964767492979216279f31d",
+   "hdl/sys/sys.tcl": "8ed838a8c1e36327f862288ed36b681e320d940263ceb3436ae65a7a6c887676",
+   "hdl/sys/sys_analog.tcl": "36a875d6c59ba21b6d8936619db60f1bfcd8dbed5d5082aa43c72f22b22fd68f",
+   "hdl/sys/sys_dual_sdram.tcl": "4f41376069b2070079d8ba4ae4a722c8ecfe3ca4b99798d0bdd8cda986b5ad5b",
+   "hdl/sys/sys_top.sdc": "9c975aff0a05b115e4bcabb63d0e62c83b53957895e1c1920b304e8ed9054183",
+   "hdl/sys/sys_top.v": "8f8d493cde9d2e5a32604adf61fe9284a75291869c5018bd483b3f34a9332216",
+   "hdl/sys/sysmem.sv": "9f8cf78563cc31beb7dfc6d7048c51ba536ff4f1f9f640b4ff9f8d574456c94e",
+   "hdl/sys/vga_out.sv": "02a533c3dfd547afddea2946019ecc79bbe9c27bb6128c0999fa5fc9e78f8108",
+   "hdl/sys/video_cleaner.sv": "44b986d9bf8412e56bf8e4eae3dc87e04b4c378e58ec6119de5a8aed320e3572",
+   "hdl/sys/video_freak.sv": "6a9b8565f66894a8f2ec10c916593e980d260f29f1886bfe70bf6f3b0cf6edc0",
+   "hdl/sys/video_freezer.sv": "0f3f4710b072b7e90b0b6bfe7607dec18dbd6bed78d1994f32d6fa72a6b7aef3",
+   "hdl/sys/video_mixer.sv": "31ed2c917bd6680b4d60328e71a4f28015bd5fcec21e15b290eacec88971167d",
+   "hdl/sys/yc_out.sv": "c52d7bfcc8dbc5a0cda2b3117172cbba790fb97b7de61722ddac205f6ec8bc20"
+  },
+  "n_files": 88,
+  "sha256": "9edec9f41fecfe9327e3325513587ef749081da02445412f9779bc554c6019c4"
+ },
+ "kind": "quartus_bitstream",
+ "label": "rep-int-term-control-20260820-seed3",
+ "name": "hdl/output_files_ucore/nec_test_ucore.sof",
+ "outputs": {
+  "hdl/output_files_ucore/nec_test_ucore.fit.summary": "b38a596152df1bafbf216669af309184499bbe4669b2ff146f01501734ffaf80",
+  "hdl/output_files_ucore/nec_test_ucore.rbf": "cf781be61d7d7fe179c9bab0310d63456470a6879af7d42c7e4285efc74927f6",
+  "hdl/output_files_ucore/nec_test_ucore.sof": "286bcaf561dc7dc60da9cd4632d1ecbd5c353b80f4a683e1dca0593fa8eaebe7",
+  "hdl/output_files_ucore/nec_test_ucore.sta.summary": "1fcd04ee3a5538182de6e3afdaa235d9b2fcd4880dbf6883f0c95cdf799a9b0f"
+ },
+ "rc": 0,
+ "reports": {
+  "files": {
+   "hdl/output_files_ucore/nec_test_ucore.asm.rpt": "627b8e0d1f94107ec21b52f38f7a997e99f5281e3318114bea771c369758e9ac",
+   "hdl/output_files_ucore/nec_test_ucore.fit.rpt": "eb905e997ba9b26e079c903552b486f5fe9c6151ea61344a813ebfe790da8c9e",
+   "hdl/output_files_ucore/nec_test_ucore.fit.summary": "b38a596152df1bafbf216669af309184499bbe4669b2ff146f01501734ffaf80",
+   "hdl/output_files_ucore/nec_test_ucore.flow.rpt": "e6a44de34d70a133fb8d408626d492480348113aab6c6d42919e9bab45da7e79",
+   "hdl/output_files_ucore/nec_test_ucore.map.rpt": "7a8f627234e9db5663abf8519a65c03bd19eeb7270bbb13b1f13bcd8510750c7",
+   "hdl/output_files_ucore/nec_test_ucore.map.summary": "4af34b93d79cebf151bec0e96abad15bac7c2cc62f9e2aed0b00e31b2f63ebed",
+   "hdl/output_files_ucore/nec_test_ucore.sta.rpt": "410a10ce466788c2053cf972c31a72b4514dea72ddf81623eb5160d05da81d0d",
+   "hdl/output_files_ucore/nec_test_ucore.sta.summary": "1fcd04ee3a5538182de6e3afdaa235d9b2fcd4880dbf6883f0c95cdf799a9b0f",
+   "hdl/quartus_gate_build.log": "d5a3ab5933bdf9ae927987a9b6a294de91152fd197dedeb6f8dd3036b0d6a402"
+  },
+  "n_files": 9,
+  "sha256": "da32cd78cb0a269b02f1c939588225cef53fe7dcca14249f823c7667c27fe1ea"
+ },
+ "schema": "nec_test/receipt",
+ "schema_version": 1,
+ "seconds": 359.3,
+ "started": "2026-08-21T01:49:49Z",
+ "sweep": {
+  "asm": true,
+  "configuration_requested": "CONTROL/DEFAULT",
+  "map_command": [
+   "/home/wickerwaka/intelFPGA_lite/17.1/quartus/bin/quartus_map",
+   "nec_test",
+   "-c",
+   "nec_test_ucore"
+  ],
+  "map_shared": true,
+  "n_seeds": 5,
+  "seed": 3,
+  "seed_echo": {
+   "command_line": 3,
+   "settings": 3,
+   "settings_row": "; Fitter Initial Placement Seed                                              ; 3                                     ;"
+  },
+  "seed_index": 3,
+  "seed_set": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ "tool": "Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition",
+ "tool_name": "quartus_sh",
+ "tool_probe": null,
+ "tool_sha256": null,
+ "tool_version": "Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition",
+ "tree": "/home/wickerwaka/src/nec_test/hdl/output_files_ucore",
+ "truefmax": {
+  "DEFAULT (whole-design worst, expect k=1)": {
+   "fmax_mhz": 41.64,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|opc_base[3]",
+   "k": 1.0,
+   "slack": 7.232,
+   "t_min_ns": 24.018,
+   "to": "emu:emu|system_large:system_large|nec_bus:bus|ad_in_q[3]"
+  },
+  "ENABLE (not $v30u_ce) -> t1_half2   -- the ENABLE arc": {
+   "fmax_mhz": 109.27,
+   "from": "emu:emu|system_large:system_large|hps_axi_slave:bridge|cfg_clk_div[3]",
+   "k": 1.0,
+   "slack": 22.098,
+   "t_min_ns": 9.152,
+   "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+  },
+  "INTO   $v30u_ce -> t1_half2": {
+   "fmax_mhz": 66.29,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+   "k": 1.0,
+   "slack": 16.164,
+   "t_min_ns": 15.086,
+   "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2"
+  },
+  "OUTOF  t1_half2 -> $v30u_ce": {
+   "fmax_mhz": 84.18,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|t1_half2",
+   "k": 1.0,
+   "slack": 19.37,
+   "t_min_ns": 11.88,
+   "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_biu:u_biu|r_cur_data[14]"
+  },
+  "RUNG 1: not latching in an observation register": {
+   "fmax_mhz": 42.38,
+   "from": "emu:emu|system_large:system_large|c_int_q",
+   "k": 1.0,
+   "slack": 7.655,
+   "t_min_ns": 23.595,
+   "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+  },
+  "RUNG 1a: ...and not t1_half2 either (the worst k=1 survivor)": {
+   "fmax_mhz": 42.38,
+   "from": "emu:emu|system_large:system_large|c_int_q",
+   "k": 1.0,
+   "slack": 7.655,
+   "t_min_ns": 23.595,
+   "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|row_posted"
+  },
+  "RUNG 2: ...and not launching from c_int_q": {
+   "fmax_mhz": 40.24,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+   "k": 2.0,
+   "slack": 12.803,
+   "t_min_ns": 24.849,
+   "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[1]"
+  },
+  "RUNG 3: ...and not latching in row_posted": {
+   "fmax_mhz": 40.24,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+   "k": 2.0,
+   "slack": 12.803,
+   "t_min_ns": 24.849,
+   "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[1]"
+  },
+  "SAME   $v30u_ce -> $v30u_ce   (the CE multicycle)": {
+   "fmax_mhz": 40.24,
+   "from": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|v30u_ucrom:u_ucrom|altsyncram:ucdecode_rtl_0|altsyncram_t2f1:auto_generated|ram_block1a3~PORT_A_WRITE_ENABLE_REG",
+   "k": 2.0,
+   "slack": 12.803,
+   "t_min_ns": 24.849,
+   "to": "emu:emu|system_large:system_large|v30_core:u_core|v30u_eu:u_eu|modrm_reg[1]"
+  }
+ },
+ "truefmax_probe": {
+  "accepted": true,
+  "artifact": "hdl/output_files_ucore/g6dist_seed3.truefmax.txt",
+  "rc": 0,
+  "salvaged_despite_rc": false
+ },
+ "ts": "2026-08-21T01:49:49Z",
+ "verdict": "PASS"
+}

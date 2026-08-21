@@ -304,7 +304,8 @@ def cmd_board(args):
     div = args.div if args.div is not None else div_default
     if es.EMIT_USE_CORE is not False:
         raise SystemExit("refusing board run: emit_suite truth source is not socket")
-    outdir = args.out.parent if args.out else ROOT / "sw/testdata/rep-int-term-race"
+    args.out = args.out.resolve()
+    outdir = args.out.parent
     outdir.mkdir(parents=True, exist_ok=True)
     manifest = {
         "tool": "rep_int_term_race board", "host": host,
